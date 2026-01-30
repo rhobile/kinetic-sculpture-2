@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarInset,
 } from '@/components/ui/sidebar';
-import { Home, Info, Mail } from 'lucide-react';
+import { Home, Info, Mail, FileImage } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -53,6 +53,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link href="/contact">
                   <Mail />
                   <span>Contact</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === '/demo'}>
+                <Link href="/demo">
+                  <FileImage />
+                  <span>Storage Demo</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
