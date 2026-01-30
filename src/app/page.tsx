@@ -13,7 +13,7 @@ export default function Home() {
   return (
     <div className="bg-background">
       <main className="p-4 sm:p-6 lg:p-8">
-        <div className="columns-2 md:columns-3 lg:columns-4 gap-0 space-y-0">
+        <div className="columns-4 gap-0 space-y-0">
           {PlaceHolderImages.map((image, index) => (
             <div key={image.id} className="break-inside-avoid">
               <Button
@@ -31,7 +31,7 @@ export default function Home() {
                       height={600}
                       className="w-full h-auto"
                       data-ai-hint={image.imageHint}
-                      priority={index < 4}
+                      priority={index < 8}
                     />
                   </CardContent>
                 </Card>
