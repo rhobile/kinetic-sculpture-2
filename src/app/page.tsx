@@ -18,7 +18,7 @@ export default function Home() {
             <div key={image.id} className="break-inside-avoid">
               <Button
                 variant="ghost"
-                className="p-0 h-auto w-full block overflow-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="p-0 h-auto w-full block overflow-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-none"
                 onClick={() => setSelectedImage(image)}
                 aria-label={`View ${image.description}`}
               >
