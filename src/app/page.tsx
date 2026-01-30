@@ -18,11 +18,11 @@ export default function Home() {
             <div key={image.id} className="break-inside-avoid">
               <Button
                 variant="ghost"
-                className="p-0 h-auto w-full block rounded-lg overflow-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="p-0 h-auto w-full block overflow-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 onClick={() => setSelectedImage(image)}
                 aria-label={`View ${image.description}`}
               >
-                <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 rounded-none">
                   <CardContent className="p-0">
                     <Image
                       src={image.imageUrl}
