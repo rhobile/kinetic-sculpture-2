@@ -28,7 +28,7 @@ export default function Home() {
                       src={image.imageUrl}
                       alt={image.description}
                       width={500}
-                      height={parseInt(image.imageUrl.split('/').pop() || '600', 10)}
+                      height={600}
                       className="w-full h-auto"
                       data-ai-hint={image.imageHint}
                       priority={index < 4}
