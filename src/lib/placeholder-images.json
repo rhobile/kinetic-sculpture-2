@@ -1,3 +1,76 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "1",
+      "description": "Flowing Forms",
+      "imageUrl": "https://images.unsplash.com/photo-1604654431894-9e5ca9c01cef?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzY3VscHR1cmUlMjBhYnN0cmFjdHxlbnwwfHx8fDE3Njk4MTM4NDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sculpture abstract"
+    },
+    {
+      "id": "2",
+      "description": "Geometric Dance",
+      "imageUrl": "https://images.unsplash.com/photo-1762719299519-2550089c00f2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxraW5ldGljJTIwYXJ0fGVufDB8fHx8MTc2OTgxMzg0NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "kinetic art"
+    },
+    {
+      "id": "3",
+      "description": "Liquid Metal",
+      "imageUrl": "https://images.unsplash.com/photo-1765616926738-5be33d02926a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtZXRhbCUyMHNjdWxwdHVyZXxlbnwwfHx8fDE3Njk4MTM4NDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "metal sculpture"
+    },
+    {
+      "id": "4",
+      "description": "Suspended Motion",
+      "imageUrl": "https://images.unsplash.com/photo-1614194405012-0414d157cee7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxpbnN0YWxsYXRpb24lMjBhcnR8ZW58MHx8fHwxNzY5NzM4OTM5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "installation art"
+    },
+    {
+      "id": "5",
+      "description": "Ephemeral Light",
+      "imageUrl": "https://images.unsplash.com/photo-1505299344687-ee45ad431f9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxsaWdodCUyMGFydHxlbnwwfHx8fDE3Njk4MTM4NDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "light art"
+    },
+    {
+      "id": "6",
+      "description": "Windswept",
+      "imageUrl": "https://images.unsplash.com/photo-1711494766718-25dd32b81236?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3aW5kJTIwc2N1bHB0dXJlfGVufDB8fHx8MTc2OTgxMzg0Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wind sculpture"
+    },
+    {
+      "id": "7",
+      "description": "Orbital Path",
+      "imageUrl": "https://images.unsplash.com/photo-1577398628395-4ebd1f36731b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtb2Rlcm4lMjBhcnR8ZW58MHx8fHwxNzY5ODEzODQ1fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern art"
+    },
+    {
+      "id": "8",
+      "description": "Unfolding Spire",
+      "imageUrl": "https://images.unsplash.com/photo-1519662978799-2f05096d3636?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxhYnN0cmFjdCUyMGFyY2hpdGVjdHVyZXxlbnwwfHx8fDE3Njk3NzI0ODB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract architecture"
+    },
+    {
+      "id": "9",
+      "description": "Crystal Lattice",
+      "imageUrl": "https://images.unsplash.com/photo-1767131544809-fd070e5c49a4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxjcnlzdGFsJTIwc3RydWN0dXJlfGVufDB8fHx8MTc2OTczNTg2NXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "crystal structure"
+    },
+    {
+      "id": "10",
+      "description": "Rhythmic Echoes",
+      "imageUrl": "https://images.unsplash.com/photo-1692838952665-a7a9577fde9e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c291bmQlMjB3YXZlc3xlbnwwfHx8fDE3Njk4MTM4NDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sound waves"
+    },
+    {
+      "id": "11",
+      "description": "Solar Flare",
+      "imageUrl": "https://images.unsplash.com/photo-1701001511816-8a24a3d64d86?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzdW4lMjBhYnN0cmFjdHxlbnwwfHx8fDE3Njk4MTM4NDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sun abstract"
+    },
+    {
+      "id": "12",
+      "description": "Aqueous Bloom",
+      "imageUrl": "https://images.unsplash.com/photo-1537133887535-3e29f86d62c3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8dW5kZXJ3YXRlciUyMGZsb3dlcnxlbnwwfHx8fDE3Njk4MTM4NDZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "underwater flower"
+    }
+  ]
 }
