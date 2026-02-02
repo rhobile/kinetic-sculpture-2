@@ -11,6 +11,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarInset,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Home, Info, Mail, FileImage } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -67,7 +68,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           </SidebarMenu>
         </SidebarContent>
       </Sidebar>
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        <header className="flex h-14 items-center gap-4 border-b px-4 md:hidden">
+          <SidebarTrigger />
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold font-headline">Kinetic Sculptures</h1>
+          </div>
+        </header>
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   );
 }
