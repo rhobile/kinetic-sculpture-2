@@ -1,0 +1,11 @@
+{
+  "firebaseImages": [
+    {
+      "id": "1",
+      "path": "menu-images/arclinedot.jpg",
+      "alt": "Arc Line Dot sculpture from Firebase Storage",
+      "width": 500,
+      "height": 600
+    }
+  ]
+}
