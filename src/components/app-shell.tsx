@@ -7,74 +7,87 @@ import {
   Sidebar,
   SidebarHeader,
   SidebarContent,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Home, Info, Mail, FileImage, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  
   return (
     <SidebarProvider>
-      <Sidebar className="border-0">
-        <SidebarHeader className="p-4">
+      <Sidebar className="border-0 bg-sidebar">
+        <SidebarHeader className="p-6 pb-2">
           <Link href="/" className="block text-foreground hover:no-underline">
-            <h1 className="font-headline text-2xl font-semibold tracking-tight">
+            <h1 className="font-headline text-3xl font-bold tracking-tight mb-1">
               Kinetic Sculptures
             </h1>
           </Link>
-          <p className="text-sm text-muted-foreground mt-2">
-            A curated collection of mesmerizing kinetic art and digital sculptures.
-          </p>
         </SidebarHeader>
-        <SidebarContent>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/'}>
-                <Link href="/">
-                  <Home className="size-4" />
-                  <span>Gallery</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/about'}>
-                <Link href="/about">
-                  <Info className="size-4" />
-                  <span>About</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/contact'}>
-                <Link href="/contact">
-                  <Mail className="size-4" />
-                  <span>Contact</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={pathname === '/demo'}>
-                <Link href="/demo">
-                  <FileImage className="size-4" />
-                  <span>Storage Demo</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+        <SidebarContent className="px-6 py-4 space-y-8 text-sm leading-relaxed overflow-y-auto">
+          <div className="space-y-4">
+            <p className="font-semibold text-base text-foreground">
+              Kinetic sculptures by Andrew Jones.
+            </p>
+            <p className="text-muted-foreground">
+              Mainly linear elements balanced and articulated to move simply in the wind, light or strong.
+            </p>
+            <p className="text-muted-foreground">
+              I work to commission. Guide prices are given below the videos or a price for a limited edition.
+            </p>
+            <p>
+              <Link href="#" className="font-semibold text-accent hover:underline underline-offset-4 decoration-accent/30">
+                News (if there is any)
+              </Link>
+            </p>
+          </div>
+
+          <div className="space-y-4 text-muted-foreground">
+            <p>
+              It is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in Ely during <a href="https://camopenstudios.org/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline underline-offset-4 decoration-accent/30">Cambridge Open Studios</a> which is in July each year.
+            </p>
+            <p>
+              If you would like to visit at another time, please <Link href="/contact" className="text-accent hover:underline underline-offset-4 decoration-accent/30">contact me</Link>.
+            </p>
+          </div>
+
+          <div className="space-y-1 text-muted-foreground font-medium pt-2 border-t border-border/50">
+            <p>
+              <a href="mailto:andrew@rhobile.com" className="hover:text-accent transition-colors">andrew@rhobile.com</a>
+            </p>
+            <p>Telephone +44 (0)1353 610406</p>
+            <p>Mobile +44 (0)781 4179181</p>
+            <p>
+              <a href="#" className="hover:text-accent transition-colors">@Rhobile</a>
+            </p>
+          </div>
+
+          <nav className="flex flex-col gap-4 pt-4 border-t border-border/50">
+            <Link href="/about" className="text-foreground hover:text-accent font-semibold transition-colors">
+              My background
+            </Link>
+            <Link href="#" className="text-foreground hover:text-accent font-semibold transition-colors">
+              Introduction to the sculptures
+            </Link>
+            <Link href="#" className="text-foreground hover:text-accent font-semibold transition-colors">
+              Flow observations of wind and water (short videos)
+            </Link>
+            <Link href="#" className="text-foreground hover:text-accent font-semibold transition-colors italic">
+              Sign up for news by email....
+            </Link>
+          </nav>
         </SidebarContent>
       </Sidebar>
+      
       <SidebarInset>
         <header className="flex h-14 items-center gap-4 border-b px-4 sm:hidden">
           <SidebarTrigger>
             <Menu className="size-6" />
           </SidebarTrigger>
           <div className="flex-1">
-            <h1 className="text-lg font-semibold font-headline">Kinetic Sculptures</h1>
+            <h1 className="text-lg font-bold font-headline">Kinetic Sculptures</h1>
           </div>
         </header>
         {children}
