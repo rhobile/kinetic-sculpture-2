@@ -23,13 +23,13 @@ export default function NewsPage() {
     <div className="bg-background min-h-screen">
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-headline mb-10 tracking-wide uppercase">News</h1>
+          <h1 className="text-2xl font-normal mb-10 tracking-widest uppercase">News</h1>
           
           <div className="space-y-16">
             {newsItems.map((item, index) => (
-              <article key={index} className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+              <article key={index} className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
                 <div className="md:col-span-1">
-                  <div className="aspect-square relative overflow-hidden rounded-sm border border-border/50">
+                  <div className="aspect-square relative overflow-hidden rounded-none border border-border/50">
                     <Image
                       src={item.image.imageUrl}
                       alt={item.title}
@@ -39,10 +39,10 @@ export default function NewsPage() {
                     />
                   </div>
                 </div>
-                <div className="md:col-span-2 space-y-3">
+                <div className="md:col-span-3 space-y-3">
                   <p className="text-xs uppercase tracking-widest text-muted-foreground">{item.date}</p>
-                  <h2 className="text-xl font-normal">{item.title}</h2>
-                  <p className="text-foreground/80 leading-relaxed font-normal">
+                  <h2 className="text-lg font-normal uppercase tracking-wide">{item.title}</h2>
+                  <p className="text-sm text-foreground/80 leading-relaxed font-normal">
                     {item.content}
                   </p>
                 </div>
@@ -50,7 +50,7 @@ export default function NewsPage() {
             ))}
             
             {newsItems.length === 0 && (
-              <p className="text-muted-foreground italic font-normal">No news updates at this time.</p>
+              <p className="text-sm text-muted-foreground italic font-normal">No news updates at this time.</p>
             )}
           </div>
         </div>
