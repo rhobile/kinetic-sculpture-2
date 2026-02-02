@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar className="border-0 bg-sidebar">
         <SidebarHeader className="p-6 pb-2 flex items-center justify-center">
           <Link href="/" className="block text-foreground hover:no-underline w-full">
-            <h1 className="font-headline text-2xl tracking-[0.25em] mb-1 uppercase whitespace-nowrap text-center">
+            <h1 className="font-headline text-2xl tracking-[0.25em] mb-1 uppercase whitespace-nowrap text-center font-normal">
               R H O B I L E
             </h1>
           </Link>
@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               I work to commission. Guide prices are given below the videos or a price for a limited edition.
             </p>
             <p>
-              <Link href="#" className="text-accent hover:underline underline-offset-4 decoration-accent/30">
+              <Link href="/news" className="text-accent hover:underline underline-offset-4 decoration-accent/30">
                 News (if there is any)
               </Link>
             </p>
@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu className="size-6" />
           </SidebarTrigger>
           <div className="flex-1">
-            <h1 className="text-lg font-headline tracking-[0.2em] uppercase whitespace-nowrap">R H O B I L E</h1>
+            <h1 className="text-lg font-headline tracking-[0.2em] uppercase whitespace-nowrap font-normal">R H O B I L E</h1>
           </div>
         </header>
         {children}
