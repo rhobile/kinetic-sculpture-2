@@ -22,9 +22,8 @@ export function FirebaseStorageImage({ path, alt, width, height, className }: Fi
   useEffect(() => {
     async function getUrl() {
       if (!app) return;
-      // This is a temporary check until config is populated.
       if (!app.options.storageBucket) {
-        setError('Firebase Storage is not configured.');
+        setError('Firebase Storage is not configured. Please check your firebase/config.ts file.');
         return;
       }
       try {
@@ -35,9 +34,11 @@ export function FirebaseStorageImage({ path, alt, width, height, className }: Fi
       } catch (e: any) {
         console.error(`Failed to get download URL for ${path}`, e);
         if (e.code === 'storage/object-not-found') {
-          setError('Image not found in Firebase Storage.');
+          setError(`Image not found in Firebase Storage at path: ${path}`);
+        } else if (e.code === 'storage/unauthorized') {
+          setError(`You don't have permission to access this image. Please check your Firebase Storage security rules to allow public read access.`);
         } else {
-          setError('Failed to load image.');
+          setError('Failed to load image from Firebase Storage. Check the browser console for more details.');
         }
       }
     }
