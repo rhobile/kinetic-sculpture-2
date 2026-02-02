@@ -35,18 +35,18 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
                 className="w-full h-full"
               />
             ) : (
-              <div className="flex items-center justify-center h-full p-4 text-center text-muted-foreground text-[12px] font-normal">
+              <div className="flex items-center justify-center h-full p-4 text-center text-muted-foreground text-[12pt] font-normal">
                 Could not determine video path.
               </div>
             )}
           </div>
-          <div className="px-4 py-2 bg-background">
-            <DialogHeader className="space-y-0 text-left">
-              <DialogTitle className="font-normal text-[12px] tracking-wide text-foreground uppercase">
+          <div className="px-4 py-3 bg-background">
+            <DialogHeader className="space-y-1 text-left">
+              <DialogTitle className="font-normal text-[12pt] tracking-wide text-foreground uppercase">
                 {image.alt}
               </DialogTitle>
-              <DialogDescription className="text-[12px] text-muted-foreground font-normal leading-relaxed">
-                This video shows the kinetic sculpture&apos;s mesmerizing movement.
+              <DialogDescription className="text-[12pt] text-muted-foreground font-normal leading-relaxed">
+                {image.description || "This video shows the kinetic sculpture's mesmerizing movement."}
               </DialogDescription>
             </DialogHeader>
           </div>

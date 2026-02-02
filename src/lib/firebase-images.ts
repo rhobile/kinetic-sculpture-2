@@ -4,6 +4,7 @@ export type FirebaseImage = {
   id: string;
   path: string;
   alt: string;
+  description?: string;
   width: number;
   height: number;
 };
