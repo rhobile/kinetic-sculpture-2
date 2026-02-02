@@ -5,8 +5,8 @@ import { AppShell } from '@/components/app-shell';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'Kinetic Sculptures',
-  description: 'An exploration of mesmerizing kinetic art and digital sculptures.',
+  title: 'Rhobile | Kinetic Sculptures',
+  description: 'An exploration of mesmerizing kinetic art and digital sculptures by Andrew Jones.',
 };
 
 export default function RootLayout({

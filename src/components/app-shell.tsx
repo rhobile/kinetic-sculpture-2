@@ -11,18 +11,15 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Menu } from 'lucide-react';
-import { usePathname } from 'next/navigation';
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-  
   return (
     <SidebarProvider>
       <Sidebar className="border-0 bg-sidebar">
         <SidebarHeader className="p-6 pb-2">
           <Link href="/" className="block text-foreground hover:no-underline">
-            <h1 className="font-headline text-3xl font-bold tracking-tight mb-1">
-              Kinetic Sculptures
+            <h1 className="font-headline text-3xl font-bold tracking-[0.2em] mb-1 uppercase whitespace-nowrap">
+              R H O B I L E
             </h1>
           </Link>
         </SidebarHeader>
@@ -71,9 +68,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link href="#" className="text-foreground hover:text-accent font-semibold transition-colors">
               Introduction to the sculptures
             </Link>
-            <Link href="#" className="text-foreground hover:text-accent font-semibold transition-colors">
-              Flow observations of wind and water (short videos)
-            </Link>
+            <div className="space-y-0">
+              <Link href="#" className="text-foreground hover:text-accent font-semibold transition-colors block">
+                Flow observations of wind and water.
+              </Link>
+              <span className="text-muted-foreground text-xs">(short videos)</span>
+            </div>
             <Link href="#" className="text-foreground hover:text-accent font-semibold transition-colors italic">
               Sign up for news by email....
             </Link>
@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu className="size-6" />
           </SidebarTrigger>
           <div className="flex-1">
-            <h1 className="text-lg font-bold font-headline">Kinetic Sculptures</h1>
+            <h1 className="text-lg font-bold font-headline tracking-[0.2em] uppercase whitespace-nowrap">R H O B I L E</h1>
           </div>
         </header>
         {children}
