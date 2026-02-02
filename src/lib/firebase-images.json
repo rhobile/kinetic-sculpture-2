@@ -13,6 +13,13 @@
       "alt": "3 Vees in Trees sculpture",
       "width": 500,
       "height": 700
+    },
+    {
+      "id": "3",
+      "path": "menu-images/appleinpear.jpg",
+      "alt": "Apple in Pear sculpture",
+      "width": 500,
+      "height": 650
     }
   ]
 }
