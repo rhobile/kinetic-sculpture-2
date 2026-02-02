@@ -20,7 +20,7 @@ export default function Home() {
   return (
     <div className="bg-background">
       <main>
-        <div className="columns-2 sm:columns-3 lg:columns-4 gap-0">
+        <div className="columns-2 min-[600px]:columns-3 lg:columns-4 gap-0">
           {FirebaseImages.map((image) => (
             <div
               key={image.id}

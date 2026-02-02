@@ -69,7 +69,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b px-4 sm:hidden">
+        <header className="flex h-14 items-center gap-4 border-b px-4 min-[600px]:hidden">
           <SidebarTrigger>
             <Menu className="size-6" />
           </SidebarTrigger>
