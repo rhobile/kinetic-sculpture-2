@@ -20,7 +20,7 @@ export default function Home() {
   return (
     <div className="bg-background">
       <main>
-        <div className="columns-2 md:columns-3 lg:columns-4">
+        <div className="columns-2 md:columns-3 lg:columns-4 gap-0">
           {FirebaseImages.map((image) => (
             <div
               key={image.id}
@@ -34,7 +34,7 @@ export default function Home() {
                     alt={image.alt}
                     width={image.width}
                     height={image.height}
-                    className="w-full h-auto"
+                    className="w-full h-auto block"
                   />
                 </CardContent>
               </Card>
