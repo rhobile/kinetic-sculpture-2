@@ -28,25 +28,27 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full p-0">
+      <DialogContent className="max-w-4xl w-full p-0 overflow-hidden border-none shadow-2xl">
         <div className="w-full">
-          <div className="w-full aspect-video bg-muted">
+          <div className="w-full aspect-video bg-black">
             {videoPath ? (
               <FirebaseStorageVideo
                 path={videoPath}
-                className="w-full h-full rounded-t-lg"
+                className="w-full h-full"
               />
             ) : (
-              <div className="flex items-center justify-center h-full p-4 text-center">
+              <div className="flex items-center justify-center h-full p-4 text-center text-muted-foreground">
                 Could not determine video path.
               </div>
             )}
           </div>
-          <div className="p-6">
-            <DialogHeader>
-              <DialogTitle className="font-headline text-2xl mb-2">{image.alt}</DialogTitle>
-              <DialogDescription className="text-base text-foreground/80">
-                This video shows the kinetic sculpture's mesmerizing movement. You can see the original image in the main gallery.
+          <div className="p-4 bg-background">
+            <DialogHeader className="space-y-1">
+              <DialogTitle className="font-normal text-sm tracking-wide text-foreground uppercase">
+                {image.alt}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-muted-foreground font-normal leading-relaxed">
+                This video shows the kinetic sculpture&apos;s mesmerizing movement.
               </DialogDescription>
             </DialogHeader>
           </div>
