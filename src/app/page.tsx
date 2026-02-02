@@ -19,15 +19,15 @@ export default function Home() {
 
   return (
     <div className="bg-background">
-      <main className="p-4 sm:p-6 lg:p-8">
-        <div className="columns-2 md:columns-3 lg:columns-4 gap-4 space-y-4">
+      <main>
+        <div className="columns-2 md:columns-3 lg:columns-4">
           {FirebaseImages.map((image) => (
             <div
               key={image.id}
               className="break-inside-avoid cursor-pointer"
               onClick={() => handleImageClick(image)}
             >
-              <Card className="overflow-hidden transition-shadow duration-300 rounded-lg hover:shadow-xl">
+              <Card className="overflow-hidden border-0 rounded-none shadow-none">
                 <CardContent className="p-0">
                   <FirebaseStorageImage
                     path={image.path}
