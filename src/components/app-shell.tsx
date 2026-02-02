@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -13,12 +14,14 @@ import {
 import { Menu } from 'lucide-react';
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+
   return (
     <SidebarProvider>
       <Sidebar className="border-0 bg-sidebar">
-        <SidebarHeader className="p-6 pb-2">
-          <Link href="/" className="block text-foreground hover:no-underline">
-            <h1 className="font-headline text-3xl font-bold tracking-[0.2em] mb-1 uppercase whitespace-nowrap">
+        <SidebarHeader className="p-6 pb-2 flex items-center justify-center">
+          <Link href="/" className="block text-foreground hover:no-underline w-full">
+            <h1 className="font-headline text-2xl font-bold tracking-[0.25em] mb-1 uppercase whitespace-nowrap text-center">
               R H O B I L E
             </h1>
           </Link>
