@@ -20,6 +20,13 @@
       "alt": "Apple in Pear sculpture",
       "width": 500,
       "height": 650
+    },
+    {
+      "id": "4",
+      "path": "menu-images/cusp1.jpg",
+      "alt": "Cusp 1 sculpture",
+      "width": 500,
+      "height": 600
     }
   ]
 }
