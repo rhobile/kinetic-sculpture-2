@@ -6,6 +6,13 @@
       "alt": "Arc Line Dot sculpture from Firebase Storage",
       "width": 500,
       "height": 600
+    },
+    {
+      "id": "2",
+      "path": "menu-images/3vees-intrees.jpg",
+      "alt": "3 Vees in Trees sculpture",
+      "width": 500,
+      "height": 700
     }
   ]
 }
