@@ -13,7 +13,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Home, Info, Mail, FileImage } from 'lucide-react';
+import { Home, Info, Mail, FileImage, Menu } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/'}>
                 <Link href="/">
-                  <Home />
+                  <Home className="size-4" />
                   <span>Gallery</span>
                 </Link>
               </SidebarMenuButton>
@@ -44,7 +44,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/about'}>
                 <Link href="/about">
-                  <Info />
+                  <Info className="size-4" />
                   <span>About</span>
                 </Link>
               </SidebarMenuButton>
@@ -52,7 +52,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/contact'}>
                 <Link href="/contact">
-                  <Mail />
+                  <Mail className="size-4" />
                   <span>Contact</span>
                 </Link>
               </SidebarMenuButton>
@@ -60,7 +60,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/demo'}>
                 <Link href="/demo">
-                  <FileImage />
+                  <FileImage className="size-4" />
                   <span>Storage Demo</span>
                 </Link>
               </SidebarMenuButton>
@@ -69,8 +69,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SidebarContent>
       </Sidebar>
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b px-4 md:hidden">
-          <SidebarTrigger />
+        <header className="flex h-14 items-center gap-4 border-b px-4 sm:hidden">
+          <SidebarTrigger>
+            <Menu className="size-6" />
+          </SidebarTrigger>
           <div className="flex-1">
             <h1 className="text-lg font-semibold font-headline">Kinetic Sculptures</h1>
           </div>
