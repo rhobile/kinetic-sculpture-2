@@ -27,6 +27,13 @@
       "alt": "Cusp 1 sculpture",
       "width": 500,
       "height": 600
+    },
+    {
+      "id": "5",
+      "path": "menu-images/cowparsley.jpg",
+      "alt": "Cow Parsley sculpture",
+      "width": 500,
+      "height": 750
     }
   ]
 }
