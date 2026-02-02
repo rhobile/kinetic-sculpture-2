@@ -6,6 +6,7 @@ import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { useFirebaseApp } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface FirebaseStorageImageProps {
   path: string;
@@ -19,17 +20,23 @@ export function FirebaseStorageImage({ path, alt, width, height, className }: Fi
   const app = useFirebaseApp();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const getUrl = useCallback(async () => {
-    if (!app || !path) return;
+    if (!app || !path) {
+      setError('Firebase app or image path is not available.');
+      setIsLoading(false);
+      return;
+    }
     if (!app.options.storageBucket) {
       setError('Firebase Storage is not configured. Please check your firebase/config.ts file.');
+      setIsLoading(false);
       return;
     }
     
     setIsLoading(true);
     setError(null);
+    setImageUrl(null);
 
     try {
       const storage = getStorage(app);
@@ -45,22 +52,23 @@ export function FirebaseStorageImage({ path, alt, width, height, className }: Fi
       } else {
         setError('Failed to load image from Firebase Storage. Check the browser console for more details.');
       }
-      setImageUrl(null);
     } finally {
         setIsLoading(false);
     }
   }, [app, path]);
 
   useEffect(() => {
-    if(path) {
-        getUrl();
-    }
-  }, [path, getUrl]);
+    getUrl();
+  }, [getUrl]);
+
+  if (isLoading) {
+    return <Skeleton style={{ width, height }} className={cn('w-full h-full', className)} />;
+  }
 
   if (error) {
     return (
-        <div style={{width, height}} className="w-full h-full flex flex-col items-center justify-center bg-muted text-destructive p-4">
-            <p className="text-center mb-4">{error}</p>
+        <div style={{width, height}} className="w-full h-full flex flex-col items-center justify-center bg-muted text-destructive p-4 text-center">
+            <p className="mb-4">{error}</p>
             <Button onClick={getUrl} disabled={isLoading}>
               {isLoading ? 'Retrying...' : 'Retry'}
             </Button>
@@ -68,17 +76,17 @@ export function FirebaseStorageImage({ path, alt, width, height, className }: Fi
     );
   }
 
-  if (isLoading || !imageUrl) {
-    return <Skeleton style={{width, height}} className={className} />;
+  if (imageUrl) {
+    return (
+      <Image
+        src={imageUrl}
+        alt={alt}
+        width={width}
+        height={height}
+        className={className}
+      />
+    );
   }
 
-  return (
-    <Image
-      src={imageUrl}
-      alt={alt}
-      width={width}
-      height={height}
-      className={className}
-    />
-  );
+  return <Skeleton style={{width, height}} className={cn("w-full h-full", className)} />;
 }
