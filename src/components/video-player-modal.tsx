@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dialog';
 import type { FirebaseImage } from '@/lib/firebase-images';
 import { FirebaseStorageVideo } from '@/components/firebase/storage-video';
-import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 
 interface VideoPlayerModalProps {
   image: FirebaseImage;
@@ -29,13 +28,13 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-[95vw] p-0">
-        <div className="md:grid md:grid-cols-2">
-          <div className="relative aspect-[4/5] h-[60vh] md:h-auto md:aspect-auto bg-muted">
+      <DialogContent className="max-w-4xl w-full p-0">
+        <div className="w-full">
+          <div className="w-full aspect-video bg-muted">
             {videoPath ? (
               <FirebaseStorageVideo
                 path={videoPath}
-                className="md:rounded-l-lg rounded-t-lg md:rounded-t-none"
+                className="w-full h-full rounded-t-lg"
               />
             ) : (
               <div className="flex items-center justify-center h-full p-4 text-center">
@@ -43,26 +42,13 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
               </div>
             )}
           </div>
-          <div className="p-6 sm:p-8 flex flex-col justify-center">
+          <div className="p-6">
             <DialogHeader>
-              <DialogTitle className="font-headline text-3xl mb-2">{image.alt}</DialogTitle>
-              <DialogDescription className="text-base">
-                The video on the left shows the kinetic sculpture's mesmerizing movement.
+              <DialogTitle className="font-headline text-2xl mb-2">{image.alt}</DialogTitle>
+              <DialogDescription className="text-base text-foreground/80">
+                This video shows the kinetic sculpture's mesmerizing movement. You can see the original image in the main gallery.
               </DialogDescription>
             </DialogHeader>
-            <div className="mt-4 rounded-lg overflow-hidden border aspect-video flex items-center justify-center">
-              <FirebaseStorageImage
-                path={image.path}
-                alt={image.alt}
-                width={image.width}
-                height={image.height}
-                className="w-full h-auto"
-              />
-            </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              Image: {image.path}<br/>
-              Video: {videoPath}
-            </p>
           </div>
         </div>
       </DialogContent>
