@@ -21,14 +21,14 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar className="border-0 bg-sidebar">
         <SidebarHeader className="p-6 pb-2 flex items-center justify-center">
           <Link href="/" className="block text-foreground hover:no-underline w-full">
-            <h1 className="font-headline text-2xl font-bold tracking-[0.25em] mb-1 uppercase whitespace-nowrap text-center">
+            <h1 className="font-headline text-2xl tracking-[0.25em] mb-1 uppercase whitespace-nowrap text-center">
               R H O B I L E
             </h1>
           </Link>
         </SidebarHeader>
-        <SidebarContent className="px-6 py-4 space-y-8 text-sm leading-relaxed overflow-y-auto">
+        <SidebarContent className="px-6 py-4 space-y-8 text-sm leading-relaxed overflow-y-auto font-normal">
           <div className="space-y-4">
-            <p className="font-semibold text-base text-foreground">
+            <p className="text-base text-foreground">
               Kinetic sculptures by Andrew Jones.
             </p>
             <p className="text-muted-foreground">
@@ -38,7 +38,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               I work to commission. Guide prices are given below the videos or a price for a limited edition.
             </p>
             <p>
-              <Link href="#" className="font-semibold text-accent hover:underline underline-offset-4 decoration-accent/30">
+              <Link href="#" className="text-accent hover:underline underline-offset-4 decoration-accent/30">
                 News (if there is any)
               </Link>
             </p>
@@ -53,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </p>
           </div>
 
-          <div className="space-y-1 text-muted-foreground font-medium pt-2 border-t border-border/50">
+          <div className="space-y-1 text-muted-foreground pt-2 border-t border-border/50">
             <p>
               <a href="mailto:andrew@rhobile.com" className="hover:text-accent transition-colors">andrew@rhobile.com</a>
             </p>
@@ -65,19 +65,19 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <nav className="flex flex-col gap-4 pt-4 border-t border-border/50">
-            <Link href="/about" className="text-foreground hover:text-accent font-semibold transition-colors">
+            <Link href="/about" className="text-foreground hover:text-accent transition-colors">
               My background
             </Link>
-            <Link href="#" className="text-foreground hover:text-accent font-semibold transition-colors">
+            <Link href="#" className="text-foreground hover:text-accent transition-colors">
               Introduction to the sculptures
             </Link>
             <div className="space-y-0">
-              <Link href="#" className="text-foreground hover:text-accent font-semibold transition-colors block">
+              <Link href="#" className="text-foreground hover:text-accent transition-colors block">
                 Flow observations of wind and water.
               </Link>
               <span className="text-muted-foreground text-xs">(short videos)</span>
             </div>
-            <Link href="#" className="text-foreground hover:text-accent font-semibold transition-colors italic">
+            <Link href="#" className="text-foreground hover:text-accent transition-colors italic">
               Sign up for news by email....
             </Link>
           </nav>
@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Menu className="size-6" />
           </SidebarTrigger>
           <div className="flex-1">
-            <h1 className="text-lg font-bold font-headline tracking-[0.2em] uppercase whitespace-nowrap">R H O B I L E</h1>
+            <h1 className="text-lg font-headline tracking-[0.2em] uppercase whitespace-nowrap">R H O B I L E</h1>
           </div>
         </header>
         {children}
