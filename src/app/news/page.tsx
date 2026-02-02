@@ -40,9 +40,9 @@ export default function NewsPage() {
                   </div>
                 </div>
                 <div className="md:col-span-3 space-y-3">
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground">{item.date}</p>
-                  <h2 className="text-lg font-normal uppercase tracking-wide">{item.title}</h2>
-                  <p className="text-sm text-foreground/80 leading-relaxed font-normal">
+                  <p className="text-[12px] uppercase tracking-widest text-muted-foreground">{item.date}</p>
+                  <h2 className="text-[14px] font-normal uppercase tracking-wide">{item.title}</h2>
+                  <p className="text-[12px] text-foreground/80 leading-relaxed font-normal">
                     {item.content}
                   </p>
                 </div>
@@ -50,7 +50,7 @@ export default function NewsPage() {
             ))}
             
             {newsItems.length === 0 && (
-              <p className="text-sm text-muted-foreground italic font-normal">No news updates at this time.</p>
+              <p className="text-[12px] text-muted-foreground italic font-normal">No news updates at this time.</p>
             )}
           </div>
         </div>

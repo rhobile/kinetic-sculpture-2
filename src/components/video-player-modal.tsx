@@ -26,7 +26,7 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full p-0 overflow-hidden border-none shadow-2xl rounded-none">
+      <DialogContent className="max-w-4xl w-full p-0 overflow-hidden border-none shadow-2xl rounded-none sm:rounded-none">
         <div className="w-full">
           <div className="w-full aspect-video bg-black">
             {videoPath ? (
@@ -35,17 +35,17 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
                 className="w-full h-full"
               />
             ) : (
-              <div className="flex items-center justify-center h-full p-4 text-center text-muted-foreground text-sm font-normal">
+              <div className="flex items-center justify-center h-full p-4 text-center text-muted-foreground text-[12px] font-normal">
                 Could not determine video path.
               </div>
             )}
           </div>
-          <div className="px-4 py-3 bg-background">
-            <DialogHeader className="space-y-1 text-left">
-              <DialogTitle className="font-normal text-sm tracking-wide text-foreground uppercase">
+          <div className="px-4 py-2 bg-background">
+            <DialogHeader className="space-y-0 text-left">
+              <DialogTitle className="font-normal text-[12px] tracking-wide text-foreground uppercase">
                 {image.alt}
               </DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground font-normal leading-relaxed">
+              <DialogDescription className="text-[12px] text-muted-foreground font-normal leading-relaxed">
                 This video shows the kinetic sculpture&apos;s mesmerizing movement.
               </DialogDescription>
             </DialogHeader>
