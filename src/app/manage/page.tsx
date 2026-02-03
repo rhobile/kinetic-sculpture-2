@@ -5,7 +5,6 @@ import { getStorage, ref, listAll, deleteObject, uploadBytes } from 'firebase/st
 import { useFirebaseApp } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Trash2, Upload, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,6 +30,7 @@ export default function ManageGalleryPage() {
       }));
       setImages(storageImages);
     } catch (error) {
+      console.error("Error loading images:", error);
       toast({
         variant: "destructive",
         title: "Error loading images",
@@ -45,8 +45,13 @@ export default function ManageGalleryPage() {
     fetchImages();
   }, [app]);
 
-  const handleDelete = async (imagePath: string) => {
-    if (!confirm("Are you sure you want to delete this sculpture image? This will remove it from the public gallery.")) return;
+  const handleDelete = async (e: React.MouseEvent, imagePath: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const isConfirmed = window.confirm("Are you sure you want to delete this sculpture image? This will remove it from the public gallery.");
+    
+    if (!isConfirmed) return;
     
     try {
       const storage = getStorage(app);
@@ -54,11 +59,12 @@ export default function ManageGalleryPage() {
       await deleteObject(imageRef);
       toast({ title: "Image deleted successfully" });
       fetchImages();
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Delete failed:", error);
       toast({
         variant: "destructive",
         title: "Delete failed",
-        description: "You might not have permission to delete this file."
+        description: error.message || "You might not have permission to delete this file."
       });
     }
   };
@@ -74,7 +80,8 @@ export default function ManageGalleryPage() {
       await uploadBytes(storageRef, file);
       toast({ title: "Image uploaded successfully" });
       fetchImages();
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Upload failed:", error);
       toast({
         variant: "destructive",
         title: "Upload failed",
@@ -95,10 +102,10 @@ export default function ManageGalleryPage() {
             <p className="text-[12pt] text-muted-foreground mt-1">Upload or remove sculptures from your public masonry.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={fetchImages} className="rounded-none">
+            <Button variant="outline" size="sm" onClick={fetchImages} className="rounded-none font-normal text-[12pt]">
               <RefreshCw className="size-4 mr-2" /> Refresh
             </Button>
-            <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="rounded-none">
+            <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="rounded-none font-normal text-[12pt]">
               {isUploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Upload className="size-4 mr-2" />}
               Upload Image
             </Button>
@@ -121,7 +128,7 @@ export default function ManageGalleryPage() {
         ) : images.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {images.map((image) => (
-              <div key={image.id} className="relative group aspect-square bg-muted border border-border/50 overflow-hidden">
+              <div key={image.id} className="relative group aspect-square bg-muted border border-border/50 overflow-hidden rounded-none">
                 <FirebaseStorageImage
                   path={image.path}
                   alt={image.name}
@@ -133,20 +140,20 @@ export default function ManageGalleryPage() {
                   <Button 
                     variant="destructive" 
                     size="icon" 
-                    className="rounded-none h-10 w-10" 
-                    onClick={() => handleDelete(image.path)}
+                    className="rounded-none h-12 w-12" 
+                    onClick={(e) => handleDelete(e, image.path)}
                   >
-                    <Trash2 className="size-5" />
+                    <Trash2 className="size-6" />
                   </Button>
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/40 text-white text-[10pt] truncate">
+                <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/60 text-white text-[10pt] truncate">
                   {image.name}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 border-2 border-dashed border-border/50">
+          <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-none">
             <p className="text-muted-foreground text-[12pt]">No images found. Upload your first sculpture above.</p>
           </div>
         )}

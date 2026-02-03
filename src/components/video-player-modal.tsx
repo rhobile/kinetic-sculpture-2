@@ -42,7 +42,7 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
           </div>
           <div className="px-6 py-4 bg-background">
             <DialogHeader className="space-y-2 text-left">
-              <DialogTitle className="font-normal text-[12pt] tracking-widest text-foreground uppercase m-0 p-0">
+              <DialogTitle className="font-normal text-[12pt] tracking-widest text-foreground uppercase m-0 p-0 leading-none">
                 {image.alt}
               </DialogTitle>
               <DialogDescription className="text-[12pt] text-muted-foreground font-normal leading-relaxed m-0 p-0">
