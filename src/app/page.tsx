@@ -10,11 +10,21 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 // Descriptions for specific sculptures
 const SCULPTURE_DESCRIPTIONS: Record<string, string> = {
-  'bikeshedtrio': "Three rectangular section polished aluminium elements on larch battened out-building. The elements reflect the larch verticals as they turn.",
+  'bikeshedtrio': "Three rectangular section polished aluminium elements on larch battened out-building.\nThe elements reflect the larch verticals as they turn.",
   'arclinedot': "A delicate balance of form and movement, catching the subtlest breeze.",
 };
 
-const EXCLUDED_IMAGES = ['helix', 'polished-rhobile_on', 'limetree', 'chopsticksmurfitts2', 'chopstxsap12_on', 'dashcube', 'bubbles_on', 'trioxi_on', 'redsquare_on'];
+const EXCLUDED_IMAGES = [
+  'helix', 
+  'polished-rhobile_on', 
+  'limetree', 
+  'chopsticksmurfitts2', 
+  'chopstxsap12_on', 
+  'dashcube', 
+  'bubbles_on', 
+  'trioxi_on', 
+  'redsquare_on'
+];
 
 export type FirebaseImage = {
   id: string;
@@ -117,7 +127,7 @@ export default function Home() {
                       alt={image.alt}
                       width={image.width}
                       height={image.height}
-                      className="w-full h-auto block transition-opacity group-hover:opacity-90"
+                      className="w-full h-auto block transition-opacity group-hover:opacity-90 rounded-none"
                     />
                   </CardContent>
                 </Card>

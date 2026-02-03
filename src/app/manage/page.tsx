@@ -9,7 +9,17 @@ import { Trash2, Upload, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const EXCLUDED_IMAGES = ['helix', 'polished-rhobile_on', 'limetree', 'chopsticksmurfitts2', 'chopstxsap12_on', 'dashcube', 'bubbles_on', 'trioxi_on', 'redsquare_on'];
+const EXCLUDED_IMAGES = [
+  'helix', 
+  'polished-rhobile_on', 
+  'limetree', 
+  'chopsticksmurfitts2', 
+  'chopstxsap12_on', 
+  'dashcube', 
+  'bubbles_on', 
+  'trioxi_on', 
+  'redsquare_on'
+];
 
 export default function ManageGalleryPage() {
   const app = useFirebaseApp();
@@ -146,7 +156,7 @@ export default function ManageGalleryPage() {
                   alt={image.name}
                   width={300}
                   height={300}
-                  className="w-full h-full object-cover transition-opacity group-hover:opacity-70"
+                  className="w-full h-full object-cover transition-opacity group-hover:opacity-70 rounded-none"
                 />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
                   <Button 
