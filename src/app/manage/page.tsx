@@ -58,7 +58,7 @@ export default function ManageGalleryPage() {
       const imageRef = ref(storage, imagePath);
       await deleteObject(imageRef);
       toast({ title: "Image deleted successfully" });
-      fetchImages();
+      await fetchImages();
     } catch (error: any) {
       console.error("Delete failed:", error);
       toast({
@@ -98,7 +98,7 @@ export default function ManageGalleryPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
           <div>
-            <h1 className="text-[14pt] font-normal uppercase tracking-widest">Manage Gallery</h1>
+            <h1 className="text-[12pt] font-normal uppercase tracking-widest">Manage Gallery</h1>
             <p className="text-[12pt] text-muted-foreground mt-1">Upload or remove sculptures from your public masonry.</p>
           </div>
           <div className="flex gap-2">
