@@ -18,7 +18,8 @@ const EXCLUDED_IMAGES = [
   'dashcube', 
   'bubbles_on', 
   'trioxi_on', 
-  'redsquare_on'
+  'redsquare_on',
+  'redsquares'
 ];
 
 export default function ManageGalleryPage() {
