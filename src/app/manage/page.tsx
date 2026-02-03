@@ -44,8 +44,9 @@ export default function ManageGalleryPage() {
       const filteredItems = res.items.filter(item => {
         const lowerName = item.name.toLowerCase();
         const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
-        const fileNameWithoutExt = lowerName.split('.').slice(0, -1).join('.');
-        const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameWithoutExt === excluded.toLowerCase());
+        const fileNameWithoutExt = item.name.split('.').slice(0, -1).join('.');
+        const fileNameLower = fileNameWithoutExt.toLowerCase();
+        const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameLower === excluded.toLowerCase());
         return isJpg && !isExcluded;
       });
 
