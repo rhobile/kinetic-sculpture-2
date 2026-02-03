@@ -20,7 +20,8 @@ const EXCLUDED_IMAGES = [
   'trioxi_on', 
   'redsquare_on',
   'redsquares',
-  'red square on'
+  'red square on',
+  'sea2'
 ];
 
 export default function ManageGalleryPage() {
