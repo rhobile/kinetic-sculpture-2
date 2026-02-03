@@ -19,6 +19,7 @@ const EXCLUDED_IMAGES = [
   'bubbles_on', 
   'trioxi_on', 
   'redsquare_on',
+  'red-square_on',
   'redsquares',
   'red square on',
   'sea2'
