@@ -14,7 +14,7 @@ const SCULPTURE_DESCRIPTIONS: Record<string, string> = {
   'arclinedot': "A delicate balance of form and movement, catching the subtlest breeze.",
 };
 
-const EXCLUDED_IMAGES = ['helix', 'polished-rhobile_on', 'limetree', 'chopsticksmurfitts2', 'chopstxsap12_on', 'dashcube', 'bubbles_on'];
+const EXCLUDED_IMAGES = ['helix', 'polished-rhobile_on', 'limetree', 'chopsticksmurfitts2', 'chopstxsap12_on', 'dashcube', 'bubbles_on', 'trioxi_on'];
 
 export type FirebaseImage = {
   id: string;
