@@ -19,7 +19,8 @@ const EXCLUDED_IMAGES = [
   'bubbles_on', 
   'trioxi_on', 
   'redsquare_on',
-  'redsquares'
+  'redsquares',
+  'red square on'
 ];
 
 export default function ManageGalleryPage() {
