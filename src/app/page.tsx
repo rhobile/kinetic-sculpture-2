@@ -8,8 +8,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { VideoPlayerModal } from '@/components/video-player-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// Type for images found in storage
-type FirebaseImage = {
+// Descriptions for specific sculptures
+const SCULPTURE_DESCRIPTIONS: Record<string, string> = {
+  'bikeshedtrio': "Three rectangular section polished aluminium elements on larch battened out-building. The elements reflect the larch verticals as they turn.",
+  'arclinedot': "A delicate balance of form and movement, catching the subtlest breeze.",
+};
+
+export type FirebaseImage = {
   id: string;
   path: string;
   alt: string;
@@ -35,8 +40,9 @@ export default function Home() {
         const res = await listAll(listRef);
         
         const storageImages: FirebaseImage[] = res.items.map((item, index) => {
-          // Clean up the name for display (remove extension, replace dashes/underscores with spaces)
           const fileName = item.name.split('.').slice(0, -1).join('.');
+          const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
+          
           const displayTitle = fileName
             .replace(/[-_]/g, ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase());
@@ -45,8 +51,9 @@ export default function Home() {
             id: item.fullPath,
             path: item.fullPath,
             alt: displayTitle,
-            width: 500, // Default width for masonry
-            height: index % 2 === 0 ? 600 : 750, // Staggered heights for masonry effect
+            description: SCULPTURE_DESCRIPTIONS[normalizedKey],
+            width: 500,
+            height: index % 2 === 0 ? 600 : 750,
           };
         });
 
@@ -71,10 +78,10 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <div className="bg-background min-h-screen p-4">
+      <div className="bg-background min-h-screen p-0">
         <div className="columns-2 sm:columns-3 lg:columns-4 gap-0">
           {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="w-full aspect-[2/3] mb-0" />
+            <Skeleton key={i} className="w-full aspect-[2/3] rounded-none" />
           ))}
         </div>
       </div>
@@ -89,7 +96,7 @@ export default function Home() {
             {images.map((image) => (
               <div
                 key={image.id}
-                className="break-inside-avoid cursor-pointer"
+                className="break-inside-avoid cursor-pointer group"
                 onClick={() => handleImageClick(image)}
               >
                 <Card className="overflow-hidden border-0 rounded-none shadow-none">
@@ -99,7 +106,7 @@ export default function Home() {
                       alt={image.alt}
                       width={image.width}
                       height={image.height}
-                      className="w-full h-auto block"
+                      className="w-full h-auto block transition-opacity group-hover:opacity-90"
                     />
                   </CardContent>
                 </Card>
@@ -110,9 +117,6 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
             <p className="text-muted-foreground text-[12pt]">
               No images found in your 'menu-images/' folder.
-            </p>
-            <p className="text-muted-foreground text-[10pt] mt-2">
-              Upload .jpg files to this folder in the Firebase Console to see them here.
             </p>
           </div>
         )}

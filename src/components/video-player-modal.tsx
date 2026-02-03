@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import type { FirebaseImage } from '@/lib/firebase-images';
+import type { FirebaseImage } from '@/app/page';
 import { FirebaseStorageVideo } from '@/components/firebase/storage-video';
 
 interface VideoPlayerModalProps {
@@ -26,7 +26,7 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl w-full p-0 overflow-hidden border-none shadow-2xl rounded-none sm:rounded-none">
+      <DialogContent className="max-w-4xl w-full p-0 overflow-hidden border-none shadow-2xl rounded-none sm:rounded-none bg-background">
         <div className="w-full">
           <div className="w-full aspect-video bg-black">
             {videoPath ? (
@@ -40,12 +40,12 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
               </div>
             )}
           </div>
-          <div className="px-4 py-3 bg-background">
-            <DialogHeader className="space-y-1 text-left">
-              <DialogTitle className="font-normal text-[12pt] tracking-wide text-foreground uppercase">
+          <div className="px-6 py-4 bg-background">
+            <DialogHeader className="space-y-2 text-left">
+              <DialogTitle className="font-normal text-[12pt] tracking-widest text-foreground uppercase m-0 p-0">
                 {image.alt}
               </DialogTitle>
-              <DialogDescription className="text-[12pt] text-muted-foreground font-normal leading-relaxed">
+              <DialogDescription className="text-[12pt] text-muted-foreground font-normal leading-relaxed m-0 p-0">
                 {image.description || "This video shows the kinetic sculpture's mesmerizing movement."}
               </DialogDescription>
             </DialogHeader>

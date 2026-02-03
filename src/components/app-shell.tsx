@@ -11,7 +11,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
-import { Menu } from 'lucide-react';
+import { Menu, Settings } from 'lucide-react';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -28,23 +28,23 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SidebarHeader>
         <SidebarContent className="px-6 py-4 space-y-8 text-sm leading-relaxed overflow-y-auto font-normal">
           <div className="space-y-4">
-            <p className="text-base text-foreground">
+            <p className="text-[12pt] text-foreground">
               Kinetic sculptures by Andrew Jones.
             </p>
-            <p className="text-muted-foreground">
+            <p className="text-[12pt] text-muted-foreground">
               Mainly linear elements balanced and articulated to move simply in the wind, light or strong.
             </p>
-            <p className="text-muted-foreground">
+            <p className="text-[12pt] text-muted-foreground">
               I work to commission. Guide prices are given below the videos or a price for a limited edition.
             </p>
             <p>
-              <Link href="/news" className="text-accent hover:underline underline-offset-4 decoration-accent/30">
+              <Link href="/news" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30">
                 News (if there is any)
               </Link>
             </p>
           </div>
 
-          <div className="space-y-4 text-muted-foreground">
+          <div className="space-y-4 text-muted-foreground text-[12pt]">
             <p>
               It is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in Ely during <a href="https://camopenstudios.org/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline underline-offset-4 decoration-accent/30">Cambridge Open Studios</a> which is in July each year.
             </p>
@@ -53,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </p>
           </div>
 
-          <div className="space-y-1 text-muted-foreground pt-2 border-t border-border/50">
+          <div className="space-y-1 text-muted-foreground pt-2 border-t border-border/50 text-[12pt]">
             <p>
               <a href="mailto:andrew@rhobile.com" className="hover:text-accent transition-colors">andrew@rhobile.com</a>
             </p>
@@ -64,7 +64,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </p>
           </div>
 
-          <nav className="flex flex-col gap-4 pt-4 border-t border-border/50">
+          <nav className="flex flex-col gap-4 pt-4 border-t border-border/50 text-[12pt]">
             <Link href="/about" className="text-foreground hover:text-accent transition-colors">
               My background
             </Link>
@@ -75,10 +75,13 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Link href="#" className="text-foreground hover:text-accent transition-colors block">
                 Flow observations of wind and water.
               </Link>
-              <span className="text-muted-foreground text-xs">(short videos)</span>
+              <span className="text-muted-foreground text-[10pt]">(short videos)</span>
             </div>
             <Link href="#" className="text-foreground hover:text-accent transition-colors italic">
               Sign up for news by email....
+            </Link>
+            <Link href="/manage" className="text-muted-foreground/50 hover:text-accent transition-colors flex items-center gap-2 mt-4 pt-4 border-t border-border/20 text-[10pt]">
+              <Settings className="size-3" /> Manage Gallery
             </Link>
           </nav>
         </SidebarContent>
