@@ -9,6 +9,8 @@ import { Trash2, Upload, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
+const EXCLUDED_IMAGES = ['helix', 'polished-rhobile_on', 'limetree'];
+
 export default function ManageGalleryPage() {
   const app = useFirebaseApp();
   const [images, setImages] = useState<any[]>([]);
@@ -24,10 +26,13 @@ export default function ManageGalleryPage() {
       const listRef = ref(storage, 'menu-images/');
       const res = await listAll(listRef);
       
-      // Filter to only include .jpg and .jpeg files
+      // Filter to only include .jpg and .jpeg files, and exclude specific names
       const filteredItems = res.items.filter(item => {
         const lowerName = item.name.toLowerCase();
-        return lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+        const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+        const fileNameWithoutExt = lowerName.split('.').slice(0, -1).join('.');
+        const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameWithoutExt === excluded.toLowerCase());
+        return isJpg && !isExcluded;
       });
 
       const storageImages = filteredItems.map((item) => ({

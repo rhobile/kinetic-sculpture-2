@@ -14,6 +14,8 @@ const SCULPTURE_DESCRIPTIONS: Record<string, string> = {
   'arclinedot': "A delicate balance of form and movement, catching the subtlest breeze.",
 };
 
+const EXCLUDED_IMAGES = ['helix', 'polished-rhobile_on', 'limetree'];
+
 export type FirebaseImage = {
   id: string;
   path: string;
@@ -39,10 +41,13 @@ export default function Home() {
         const listRef = ref(storage, 'menu-images/');
         const res = await listAll(listRef);
         
-        // Filter to only include .jpg and .jpeg files
+        // Filter to only include .jpg and .jpeg files, and exclude specific names
         const filteredItems = res.items.filter(item => {
           const lowerName = item.name.toLowerCase();
-          return lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+          const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+          const fileNameWithoutExt = lowerName.split('.').slice(0, -1).join('.');
+          const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameWithoutExt === excluded.toLowerCase());
+          return isJpg && !isExcluded;
         });
 
         const storageImages: FirebaseImage[] = filteredItems.map((item, index) => {
