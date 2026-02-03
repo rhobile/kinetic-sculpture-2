@@ -23,7 +23,14 @@ export default function ManageGalleryPage() {
       const storage = getStorage(app);
       const listRef = ref(storage, 'menu-images/');
       const res = await listAll(listRef);
-      const storageImages = res.items.map((item) => ({
+      
+      // Filter to only include .jpg and .jpeg files
+      const filteredItems = res.items.filter(item => {
+        const lowerName = item.name.toLowerCase();
+        return lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+      });
+
+      const storageImages = filteredItems.map((item) => ({
         id: item.fullPath,
         path: item.fullPath,
         name: item.name,
@@ -99,7 +106,7 @@ export default function ManageGalleryPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
           <div>
             <h1 className="text-[12pt] font-normal uppercase tracking-widest">Manage Gallery</h1>
-            <p className="text-[12pt] text-muted-foreground mt-1">Upload or remove sculptures from your public masonry.</p>
+            <p className="text-[12pt] text-muted-foreground mt-1 font-normal">Upload or remove sculptures from your public masonry.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={fetchImages} className="rounded-none font-normal text-[12pt]">
@@ -146,7 +153,7 @@ export default function ManageGalleryPage() {
                     <Trash2 className="size-6" />
                   </Button>
                 </div>
-                <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/60 text-white text-[10pt] truncate">
+                <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/60 text-white text-[10pt] truncate font-normal">
                   {image.name}
                 </div>
               </div>
@@ -154,7 +161,7 @@ export default function ManageGalleryPage() {
           </div>
         ) : (
           <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-none">
-            <p className="text-muted-foreground text-[12pt]">No images found. Upload your first sculpture above.</p>
+            <p className="text-muted-foreground text-[12pt] font-normal">No .jpg images found. Upload your first sculpture above.</p>
           </div>
         )}
       </div>

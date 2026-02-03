@@ -39,7 +39,13 @@ export default function Home() {
         const listRef = ref(storage, 'menu-images/');
         const res = await listAll(listRef);
         
-        const storageImages: FirebaseImage[] = res.items.map((item, index) => {
+        // Filter to only include .jpg and .jpeg files
+        const filteredItems = res.items.filter(item => {
+          const lowerName = item.name.toLowerCase();
+          return lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+        });
+
+        const storageImages: FirebaseImage[] = filteredItems.map((item, index) => {
           const fileName = item.name.split('.').slice(0, -1).join('.');
           const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
           
@@ -115,8 +121,8 @@ export default function Home() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
-            <p className="text-muted-foreground text-[12pt]">
-              No images found in your 'menu-images/' folder.
+            <p className="text-muted-foreground text-[12pt] font-normal">
+              No .jpg images found in your 'menu-images/' folder.
             </p>
           </div>
         )}
