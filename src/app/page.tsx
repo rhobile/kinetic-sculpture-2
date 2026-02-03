@@ -52,16 +52,29 @@ export default function Home() {
       setIsLoading(true);
       try {
         const storage = getStorage(app);
+        
+        // Fetch videos first to know what's available
+        const videoListRef = ref(storage, 'menu-videos/');
+        const videoRes = await listAll(videoListRef);
+        const availableVideoNames = new Set(
+          videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
+        );
+
         const listRef = ref(storage, 'menu-images/');
         const res = await listAll(listRef);
         
-        // Filter to only include .jpg and .jpeg files, and exclude specific names
+        // Filter to only include .jpg and .jpeg files, exclude specific names,
+        // AND ensure a corresponding video exists in menu-videos/
         const filteredItems = res.items.filter(item => {
           const lowerName = item.name.toLowerCase();
           const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
-          const fileNameWithoutExt = lowerName.split('.').slice(0, -1).join('.');
-          const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameWithoutExt === excluded.toLowerCase());
-          return isJpg && !isExcluded;
+          const fileNameWithoutExt = item.name.split('.').slice(0, -1).join('.');
+          const fileNameLower = fileNameWithoutExt.toLowerCase();
+          
+          const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameLower === excluded.toLowerCase());
+          const videoExists = availableVideoNames.has(fileNameLower);
+          
+          return isJpg && !isExcluded && videoExists;
         });
 
         const storageImages: FirebaseImage[] = filteredItems.map((item, index) => {
@@ -141,7 +154,7 @@ export default function Home() {
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
             <p className="text-muted-foreground text-[12pt] font-normal">
-              No .jpg images found in your 'menu-images/' folder.
+              No .jpg images with corresponding .mp4 videos found.
             </p>
           </div>
         )}
