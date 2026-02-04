@@ -19,9 +19,10 @@ interface VideoPlayerModalProps {
 
 export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
+    // Extracts filename and looks for it in the new ks-videos folder
     const filename = image.path.split('/').pop()?.split('.').slice(0, -1).join('.');
     if (!filename) return '';
-    return `menu-videos/${filename}.mp4`;
+    return `ks-videos/${filename}.mp4`;
   }, [image.path]);
 
   return (
@@ -46,7 +47,7 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
                 {image.alt}
               </DialogTitle>
               <DialogDescription className="text-[11pt] sm:text-[12pt] text-muted-foreground font-normal leading-relaxed m-0 p-0">
-                {image.description || "This video shows the kinetic sculpture's mesmerizing movement."}
+                {image.description || "Mesmerizing kinetic movement articulated by the wind."}
               </DialogDescription>
             </DialogHeader>
           </div>

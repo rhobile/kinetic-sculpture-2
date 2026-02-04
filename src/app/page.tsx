@@ -27,18 +27,18 @@ export default function Home() {
       try {
         const storage = getStorage(app);
         
-        // 1. Fetch available videos
-        const videoListRef = ref(storage, 'menu-videos/');
+        // 1. Fetch available videos in the new ks-videos folder
+        const videoListRef = ref(storage, 'ks-videos/');
         const videoRes = await listAll(videoListRef);
         const availableVideoNames = new Set(
           videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
         );
 
-        // 2. Fetch available images
-        const listRef = ref(storage, 'menu-images/');
+        // 2. Fetch available images in the new ks-images folder
+        const listRef = ref(storage, 'ks-images/');
         const res = await listAll(listRef);
         
-        // 3. Filter and map images
+        // 3. Filter and map images that have matching videos
         const filteredItems = res.items.filter(item => {
           const lowerName = item.name.toLowerCase();
           const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
@@ -78,11 +78,11 @@ export default function Home() {
 
         if (storageImages.length === 0) {
           if (res.items.length === 0) {
-            setError("No images found in 'menu-images/' folder.");
+            setError("No images found in 'ks-images/' folder.");
           } else if (videoRes.items.length === 0) {
-            setError(`Found ${res.items.length} images, but no videos found in 'menu-videos/'. Images require a matching .mp4 video to be displayed.`);
+            setError(`Found ${res.items.length} images, but no videos found in 'ks-videos/'. Every sculpture requires a matching .mp4 video.`);
           } else {
-            setError(`Found ${res.items.length} images and ${videoRes.items.length} videos, but no matching pairs (same filename) were found. Check your file naming.`);
+            setError(`Found ${res.items.length} images and ${videoRes.items.length} videos, but no matching pairs (same filename) were found.`);
           }
         }
       } catch (err: any) {
@@ -122,11 +122,11 @@ export default function Home() {
             <div className="mt-8 pt-8 border-t border-border/50 w-full text-left space-y-2">
               <p className="text-[10pt] uppercase tracking-wider text-muted-foreground">Storage Statistics:</p>
               <div className="flex justify-between text-[11pt]">
-                <span>Total Images:</span>
+                <span>Total Images (/ks-images):</span>
                 <span className="font-mono">{status?.images || 0}</span>
               </div>
               <div className="flex justify-between text-[11pt]">
-                <span>Total Videos:</span>
+                <span>Total Videos (/ks-videos):</span>
                 <span className="font-mono">{status?.videos || 0}</span>
               </div>
               <div className="flex justify-between text-[11pt] font-semibold">
@@ -134,9 +134,6 @@ export default function Home() {
                 <span className="font-mono">{status?.matches || 0}</span>
               </div>
             </div>
-            <p className="text-muted-foreground/60 text-[10pt] mt-8 font-normal italic">
-              Use the <span className="underline italic">Manage Gallery</span> page to verify and synchronize your uploads.
-            </p>
           </div>
         ) : (
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">

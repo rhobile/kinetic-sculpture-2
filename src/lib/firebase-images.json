@@ -2,42 +2,42 @@
   "firebaseImages": [
     {
       "id": "1",
-      "path": "menu-images/arclinedot.jpg",
-      "alt": "Arc Line Dot sculpture from Firebase Storage",
+      "path": "ks-images/arclinedot.jpg",
+      "alt": "Arc Line Dot sculpture",
       "width": 500,
       "height": 600
     },
     {
       "id": "2",
-      "path": "menu-images/3vees-intrees.jpg",
+      "path": "ks-images/3vees-intrees.jpg",
       "alt": "3 Vees in Trees sculpture",
       "width": 500,
       "height": 700
     },
     {
       "id": "3",
-      "path": "menu-images/appleinpear.jpg",
+      "path": "ks-images/appleinpear.jpg",
       "alt": "Apple in Pear sculpture",
       "width": 500,
       "height": 650
     },
     {
       "id": "4",
-      "path": "menu-images/cusp1.jpg",
+      "path": "ks-images/cusp1.jpg",
       "alt": "Cusp 1 sculpture",
       "width": 500,
       "height": 600
     },
     {
       "id": "5",
-      "path": "menu-images/cowparsley.jpg",
+      "path": "ks-images/cowparsley.jpg",
       "alt": "Cow Parsley sculpture",
       "width": 500,
       "height": 750
     },
     {
       "id": "6",
-      "path": "menu-images/bikeshedtrio.jpg",
+      "path": "ks-images/bikeshedtrio.jpg",
       "alt": "Bike Shed Trio",
       "description": "Three rectangular section polished aluminium elements on larch battened out-building. The elements reflect the larch verticals as they turn.",
       "width": 500,

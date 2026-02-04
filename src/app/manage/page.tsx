@@ -18,10 +18,9 @@ export default function ManageGalleryPage() {
   const [videos, setVideos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadFolder, setUploadFolder] = useState<'menu-images' | 'menu-videos'>('menu-images');
+  const [uploadFolder, setUploadFolder] = useState<'ks-images' | 'ks-videos'>('ks-images');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Ensure user is signed in (anonymously) to satisfy Storage rules for writes
   useEffect(() => {
     if (!isAuthLoading && !user && auth) {
       signInAnonymously(auth).catch((err) => {
@@ -36,8 +35,8 @@ export default function ManageGalleryPage() {
     try {
       const storage = getStorage(firebaseApp);
       
-      // Fetch Images
-      const imgRef = ref(storage, 'menu-images/');
+      // Fetch Images from ks-images/
+      const imgRef = ref(storage, 'ks-images/');
       const imgRes = await listAll(imgRef);
       const filteredImages = imgRes.items.filter(item => {
         const lowerName = item.name.toLowerCase();
@@ -50,8 +49,8 @@ export default function ManageGalleryPage() {
       
       setImages(filteredImages);
 
-      // Fetch Videos
-      const vidRef = ref(storage, 'menu-videos/');
+      // Fetch Videos from ks-videos/
+      const vidRef = ref(storage, 'ks-videos/');
       const vidRes = await listAll(vidRef);
       const videoItems = vidRes.items.map(item => ({
         id: item.fullPath,
@@ -62,13 +61,11 @@ export default function ManageGalleryPage() {
 
     } catch (error: any) {
       console.error("Error loading storage content:", error);
-      if (error.code !== 'storage/unauthorized') {
-        toast({
-          variant: "destructive",
-          title: "Error loading content",
-          description: "Could not fetch files from Cloud Storage."
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Error loading content",
+        description: "Could not fetch files from ks-images or ks-videos."
+      });
     } finally {
       setIsLoading(false);
     }
@@ -137,12 +134,11 @@ export default function ManageGalleryPage() {
     }
   };
 
-  const triggerUpload = (folder: 'menu-images' | 'menu-videos') => {
+  const triggerUpload = (folder: 'ks-images' | 'ks-videos') => {
     setUploadFolder(folder);
     fileInputRef.current?.click();
   };
 
-  // Check for matching video for an image
   const hasMatchingVideo = (imageName: string) => {
     const nameWithoutExt = imageName.split('.').slice(0, -1).join('.').toLowerCase();
     return videos.some(v => v.name.split('.').slice(0, -1).join('.').toLowerCase() === nameWithoutExt);
@@ -154,21 +150,21 @@ export default function ManageGalleryPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
           <div>
             <h1 className="text-[12pt] font-normal uppercase tracking-widest flex items-center gap-2">
-              Cloud Storage Browser
+              Cloud Storage Browser (ks- folders)
               {!user && !isAuthLoading && <Lock className="size-3 text-muted-foreground" />}
             </h1>
-            <p className="text-[12pt] text-muted-foreground mt-1 font-normal">Manage sculpture metadata and media pairs.</p>
+            <p className="text-[12pt] text-muted-foreground mt-1 font-normal">Manage sculpture media in ks-images and ks-videos.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={fetchData} className="rounded-none font-normal text-[11pt]">
-              <RefreshCw className="size-4 mr-2" /> Refresh All
+              <RefreshCw className="size-4 mr-2" /> Refresh
             </Button>
             <input 
               type="file" 
               ref={fileInputRef} 
               onChange={handleFileUpload} 
               className="hidden" 
-              accept={uploadFolder === 'menu-images' ? "image/*" : "video/mp4"}
+              accept={uploadFolder === 'ks-images' ? "image/*" : "video/mp4"}
             />
           </div>
         </div>
@@ -185,10 +181,10 @@ export default function ManageGalleryPage() {
 
           <TabsContent value="images" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculpture Images (/menu-images)</h2>
-              <Button size="sm" onClick={() => triggerUpload('menu-images')} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
-                {isUploading && uploadFolder === 'menu-images' ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
-                Upload .jpg
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculpture Images (/ks-images)</h2>
+              <Button size="sm" onClick={() => triggerUpload('ks-images')} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
+                {isUploading && uploadFolder === 'ks-images' ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
+                Upload Image
               </Button>
             </div>
 
@@ -213,7 +209,7 @@ export default function ManageGalleryPage() {
                           <CheckCircle2 className="size-3 text-white" />
                         </div>
                       ) : (
-                        <div className="bg-amber-500/90 p-1" title="Missing matching video">
+                        <div className="bg-amber-500/90 p-1" title="Missing matching video in ks-videos">
                           <AlertCircle className="size-3 text-white" />
                         </div>
                       )}
@@ -236,17 +232,17 @@ export default function ManageGalleryPage() {
               </div>
             ) : (
               <div className="text-center py-20 border border-dashed border-border/50 text-muted-foreground">
-                No images found.
+                No images found in ks-images/.
               </div>
             )}
           </TabsContent>
 
           <TabsContent value="videos" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculpture Videos (/menu-videos)</h2>
-              <Button size="sm" onClick={() => triggerUpload('menu-videos')} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
-                {isUploading && uploadFolder === 'menu-videos' ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
-                Upload .mp4
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculpture Videos (/ks-videos)</h2>
+              <Button size="sm" onClick={() => triggerUpload('ks-videos')} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
+                {isUploading && uploadFolder === 'ks-videos' ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
+                Upload Video
               </Button>
             </div>
 
@@ -275,21 +271,11 @@ export default function ManageGalleryPage() {
               </div>
             ) : (
               <div className="text-center py-20 border border-dashed border-border/50 text-muted-foreground">
-                No videos found.
+                No videos found in ks-videos/.
               </div>
             )}
           </TabsContent>
         </Tabs>
-
-        <div className="mt-12 p-6 bg-muted/20 border border-border/50">
-          <h2 className="text-[10pt] uppercase tracking-widest font-normal mb-4">How to synchronize</h2>
-          <ul className="text-[11pt] text-muted-foreground space-y-2 font-normal">
-            <li>• Every <strong>.jpg</strong> in <code className="text-foreground">menu-images/</code> needs a matching <strong>.mp4</strong> in <code className="text-foreground">menu-videos/</code>.</li>
-            <li>• The filenames must be identical (e.g., <code className="text-foreground">sculpture-one.jpg</code> and <code className="text-foreground">sculpture-one.mp4</code>).</li>
-            <li>• Case sensitivity matters in Firebase Storage; use all lowercase if possible.</li>
-            <li>• Images without matching videos will be excluded from the public home page gallery.</li>
-          </ul>
-        </div>
       </div>
     </main>
   );

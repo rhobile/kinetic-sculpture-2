@@ -9,14 +9,14 @@ export default function DemoPage() {
           <CardHeader>
             <CardTitle className="font-headline text-3xl">Firebase Storage Demo</CardTitle>
             <CardDescription>
-              This image is loaded directly from a path in your Firebase Cloud Storage bucket.
+              This image is loaded from the new /ks-images/ folder.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="rounded-lg overflow-hidden border aspect-video flex items-center justify-center">
               <FirebaseStorageImage
-                path="menu-images/arclinedot.jpg"
-                alt="Arc Line Dot sculpture from Firebase Storage"
+                path="ks-images/arclinedot.jpg"
+                alt="Arc Line Dot sculpture"
                 width={800}
                 height={450}
                 className="w-full h-auto"
