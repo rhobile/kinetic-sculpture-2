@@ -31,7 +31,8 @@ export default function Home() {
         const storage = getStorage(app);
         
         // 1. Fetch available videos in the ks-videos folder
-        const videoListRef = ref(storage, 'ks-videos/');
+        // Use no trailing slash for the list reference to be safer with rules
+        const videoListRef = ref(storage, 'ks-videos');
         let videoItems: string[] = [];
         try {
           const videoRes = await listAll(videoListRef);
@@ -39,7 +40,7 @@ export default function Home() {
         } catch (vidErr: any) {
           console.error("Error listing ks-videos:", vidErr);
           if (vidErr.code === 'storage/unauthorized') {
-            throw new Error("Permission denied for 'ks-videos'. Your Firebase Storage Security Rules are currently blocking public listing. Please wait a moment (up to 60s) for the new rules to deploy globally.");
+            throw new Error("Permission denied for 'ks-videos'. Security Rules are blocking public listing. Please wait a moment (up to 60s) for the new rules to deploy.");
           }
           throw vidErr;
         }
@@ -47,14 +48,14 @@ export default function Home() {
         const availableVideoNames = new Set(videoItems);
 
         // 2. Fetch available images in the ks-images folder
-        const listRef = ref(storage, 'ks-images/');
+        const imageListRef = ref(storage, 'ks-images');
         let imageRes;
         try {
-          imageRes = await listAll(listRef);
+          imageRes = await listAll(imageListRef);
         } catch (imgErr: any) {
           console.error("Error listing ks-images:", imgErr);
           if (imgErr.code === 'storage/unauthorized') {
-            throw new Error("Permission denied for 'ks-images'. Your Firebase Storage Security Rules are currently blocking public listing.");
+            throw new Error("Permission denied for 'ks-images'. Security Rules are blocking public listing.");
           }
           throw imgErr;
         }
@@ -97,13 +98,13 @@ export default function Home() {
           matches: storageImages.length
         });
 
-        if (storageImages.length === 0 && !error) {
+        if (storageImages.length === 0) {
           if (imageRes.items.length === 0) {
-            setError("No images found in 'ks-images/' folder. Please upload images to your Cloud Storage bucket.");
+            setError("No images found in 'ks-images/'. Please upload images (.jpg) to your Cloud Storage bucket.");
           } else if (availableVideoNames.size === 0) {
-            setError(`Found ${imageRes.items.length} images, but no videos found in 'ks-videos/'. Every sculpture requires a matching .mp4 video file with the same name.`);
+            setError(`Found ${imageRes.items.length} images, but no videos found in 'ks-videos/'. Each sculpture requires a matching .mp4 file.`);
           } else {
-            setError(`Found ${imageRes.items.length} images and ${availableVideoNames.size} videos, but no matching pairs (same filename) were found. Ensure your .jpg and .mp4 files share the exact same name.`);
+            setError(`Found ${imageRes.items.length} images and ${availableVideoNames.size} videos, but no matching filenames (e.g. 'sculpture1.jpg' and 'sculpture1.mp4') were found.`);
           }
         }
       } catch (err: any) {
@@ -141,23 +142,23 @@ export default function Home() {
               {error}
             </p>
             <div className="mt-8 pt-8 border-t border-border/50 w-full text-left space-y-3">
-              <p className="text-[10pt] uppercase tracking-wider text-muted-foreground font-semibold">Next Steps:</p>
-              <ul className="text-[10pt] text-muted-foreground space-y-2 list-disc pl-4">
-                <li>Wait 30-60 seconds for the updated Storage Rules to deploy globally.</li>
-                <li>Verify that folders 'ks-images' and 'ks-videos' exist in your Firebase Console.</li>
-                <li>Ensure images are .jpg/.jpeg and videos are .mp4.</li>
+              <p className="text-[10pt] uppercase tracking-wider text-muted-foreground font-semibold">Troubleshooting:</p>
+              <ul className="text-[10pt] text-muted-foreground space-y-2 list-disc pl-4 font-normal">
+                <li>Wait 60 seconds for Storage Rules to deploy globally.</li>
+                <li>Refresh this page to re-attempt the connection.</li>
+                <li>Check your 'Manage Gallery' dashboard for folder synchronization.</li>
               </ul>
               <div className="pt-4 border-t border-border/20">
-                <p className="text-[10pt] uppercase tracking-wider text-muted-foreground">Statistics:</p>
-                <div className="flex justify-between text-[11pt] mt-1">
+                <p className="text-[10pt] uppercase tracking-wider text-muted-foreground font-semibold">Statistics:</p>
+                <div className="flex justify-between text-[11pt] mt-1 font-normal">
                   <span>Images (/ks-images):</span>
                   <span className="font-mono">{status?.images || 0}</span>
                 </div>
-                <div className="flex justify-between text-[11pt]">
+                <div className="flex justify-between text-[11pt] font-normal">
                   <span>Videos (/ks-videos):</span>
                   <span className="font-mono">{status?.videos || 0}</span>
                 </div>
-                <div className="flex justify-between text-[11pt] font-semibold">
+                <div className="flex justify-between text-[11pt] font-semibold border-t border-border/10 mt-1 pt-1">
                   <span>Matched Sculptures:</span>
                   <span className="font-mono">{status?.matches || 0}</span>
                 </div>

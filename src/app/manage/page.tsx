@@ -35,8 +35,8 @@ export default function ManageGalleryPage() {
     try {
       const storage = getStorage(firebaseApp);
       
-      // Fetch Images from ks-images/
-      const imgRef = ref(storage, 'ks-images/');
+      // Fetch Images from ks-images/ (using root reference for listing)
+      const imgRef = ref(storage, 'ks-images');
       const imgRes = await listAll(imgRef);
       const filteredImages = imgRes.items.filter(item => {
         const lowerName = item.name.toLowerCase();
@@ -50,7 +50,7 @@ export default function ManageGalleryPage() {
       setImages(filteredImages);
 
       // Fetch Videos from ks-videos/
-      const vidRef = ref(storage, 'ks-videos/');
+      const vidRef = ref(storage, 'ks-videos');
       const vidRes = await listAll(vidRef);
       const videoItems = vidRes.items.map(item => ({
         id: item.fullPath,
@@ -63,8 +63,10 @@ export default function ManageGalleryPage() {
       console.error("Error loading storage content:", error);
       toast({
         variant: "destructive",
-        title: "Error loading content",
-        description: "Could not fetch files from ks-images or ks-videos."
+        title: "Permission Denied",
+        description: error.code === 'storage/unauthorized' 
+          ? "Wait 60s for rules to deploy, then refresh." 
+          : "Could not fetch files from ks- folders."
       });
     } finally {
       setIsLoading(false);
@@ -231,7 +233,7 @@ export default function ManageGalleryPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-20 border border-dashed border-border/50 text-muted-foreground">
+              <div className="text-center py-20 border border-dashed border-border/50 text-muted-foreground font-normal">
                 No images found in ks-images/.
               </div>
             )}
@@ -270,7 +272,7 @@ export default function ManageGalleryPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-20 border border-dashed border-border/50 text-muted-foreground">
+              <div className="text-center py-20 border border-dashed border-border/50 text-muted-foreground font-normal">
                 No videos found in ks-videos/.
               </div>
             )}
