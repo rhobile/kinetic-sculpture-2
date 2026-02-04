@@ -32,17 +32,35 @@ export default function Home() {
         
         // 1. Fetch available videos in the ks-videos folder
         const videoListRef = ref(storage, 'ks-videos/');
-        const videoRes = await listAll(videoListRef);
-        const availableVideoNames = new Set(
-          videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
-        );
+        let videoItems: string[] = [];
+        try {
+          const videoRes = await listAll(videoListRef);
+          videoItems = videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase());
+        } catch (vidErr: any) {
+          console.error("Error listing ks-videos:", vidErr);
+          if (vidErr.code === 'storage/unauthorized') {
+            throw new Error("Permission denied for 'ks-videos'. Your Firebase Storage Security Rules are currently blocking public listing. Please wait a moment (up to 60s) for the new rules to deploy globally.");
+          }
+          throw vidErr;
+        }
+        
+        const availableVideoNames = new Set(videoItems);
 
         // 2. Fetch available images in the ks-images folder
         const listRef = ref(storage, 'ks-images/');
-        const res = await listAll(listRef);
+        let imageRes;
+        try {
+          imageRes = await listAll(listRef);
+        } catch (imgErr: any) {
+          console.error("Error listing ks-images:", imgErr);
+          if (imgErr.code === 'storage/unauthorized') {
+            throw new Error("Permission denied for 'ks-images'. Your Firebase Storage Security Rules are currently blocking public listing.");
+          }
+          throw imgErr;
+        }
         
         // 3. Filter and map images that have matching videos
-        const filteredItems = res.items.filter(item => {
+        const filteredItems = imageRes.items.filter(item => {
           const lowerName = item.name.toLowerCase();
           const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
           const fileNameWithoutExt = item.name.split('.').slice(0, -1).join('.');
@@ -74,23 +92,23 @@ export default function Home() {
 
         setImages(storageImages);
         setStatus({
-          images: res.items.length,
-          videos: videoRes.items.length,
+          images: imageRes.items.length,
+          videos: availableVideoNames.size,
           matches: storageImages.length
         });
 
-        if (storageImages.length === 0) {
-          if (res.items.length === 0) {
+        if (storageImages.length === 0 && !error) {
+          if (imageRes.items.length === 0) {
             setError("No images found in 'ks-images/' folder. Please upload images to your Cloud Storage bucket.");
-          } else if (videoRes.items.length === 0) {
-            setError(`Found ${res.items.length} images, but no videos found in 'ks-videos/'. Every sculpture requires a matching .mp4 video file with the same name.`);
+          } else if (availableVideoNames.size === 0) {
+            setError(`Found ${imageRes.items.length} images, but no videos found in 'ks-videos/'. Every sculpture requires a matching .mp4 video file with the same name.`);
           } else {
-            setError(`Found ${res.items.length} images and ${videoRes.items.length} videos, but no matching pairs (same filename) were found. Ensure your .jpg and .mp4 files share the exact same name.`);
+            setError(`Found ${imageRes.items.length} images and ${availableVideoNames.size} videos, but no matching pairs (same filename) were found. Ensure your .jpg and .mp4 files share the exact same name.`);
           }
         }
       } catch (err: any) {
         console.error("Error fetching gallery data:", err);
-        setError(`Failed to connect to storage: ${err.message || 'Unknown error'}`);
+        setError(err.message || 'Failed to connect to storage.');
       } finally {
         setIsLoading(false);
       }
@@ -119,22 +137,30 @@ export default function Home() {
         ) : error ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center max-w-md mx-auto">
             <h2 className="text-[14pt] font-normal uppercase tracking-widest mb-4">Gallery Status</h2>
-            <p className="text-muted-foreground text-[12pt] font-normal leading-relaxed">
+            <p className="text-muted-foreground text-[11pt] font-normal leading-relaxed">
               {error}
             </p>
-            <div className="mt-8 pt-8 border-t border-border/50 w-full text-left space-y-2">
-              <p className="text-[10pt] uppercase tracking-wider text-muted-foreground">Storage Statistics:</p>
-              <div className="flex justify-between text-[11pt]">
-                <span>Total Images (/ks-images):</span>
-                <span className="font-mono">{status?.images || 0}</span>
-              </div>
-              <div className="flex justify-between text-[11pt]">
-                <span>Total Videos (/ks-videos):</span>
-                <span className="font-mono">{status?.videos || 0}</span>
-              </div>
-              <div className="flex justify-between text-[11pt] font-semibold">
-                <span>Displayable Matches:</span>
-                <span className="font-mono">{status?.matches || 0}</span>
+            <div className="mt-8 pt-8 border-t border-border/50 w-full text-left space-y-3">
+              <p className="text-[10pt] uppercase tracking-wider text-muted-foreground font-semibold">Next Steps:</p>
+              <ul className="text-[10pt] text-muted-foreground space-y-2 list-disc pl-4">
+                <li>Wait 30-60 seconds for the updated Storage Rules to deploy globally.</li>
+                <li>Verify that folders 'ks-images' and 'ks-videos' exist in your Firebase Console.</li>
+                <li>Ensure images are .jpg/.jpeg and videos are .mp4.</li>
+              </ul>
+              <div className="pt-4 border-t border-border/20">
+                <p className="text-[10pt] uppercase tracking-wider text-muted-foreground">Statistics:</p>
+                <div className="flex justify-between text-[11pt] mt-1">
+                  <span>Images (/ks-images):</span>
+                  <span className="font-mono">{status?.images || 0}</span>
+                </div>
+                <div className="flex justify-between text-[11pt]">
+                  <span>Videos (/ks-videos):</span>
+                  <span className="font-mono">{status?.videos || 0}</span>
+                </div>
+                <div className="flex justify-between text-[11pt] font-semibold">
+                  <span>Matched Sculptures:</span>
+                  <span className="font-mono">{status?.matches || 0}</span>
+                </div>
               </div>
             </div>
           </div>
