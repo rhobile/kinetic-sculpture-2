@@ -20,21 +20,24 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchGalleryData() {
-      if (!app) return;
+      if (!app) {
+        setIsLoading(false);
+        return;
+      }
       
       setIsLoading(true);
       setError(null);
       try {
         const storage = getStorage(app);
         
-        // 1. Fetch available videos in the new ks-videos folder
+        // 1. Fetch available videos in the ks-videos folder
         const videoListRef = ref(storage, 'ks-videos/');
         const videoRes = await listAll(videoListRef);
         const availableVideoNames = new Set(
           videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
         );
 
-        // 2. Fetch available images in the new ks-images folder
+        // 2. Fetch available images in the ks-images folder
         const listRef = ref(storage, 'ks-images/');
         const res = await listAll(listRef);
         
@@ -78,11 +81,11 @@ export default function Home() {
 
         if (storageImages.length === 0) {
           if (res.items.length === 0) {
-            setError("No images found in 'ks-images/' folder.");
+            setError("No images found in 'ks-images/' folder. Please upload images to your Cloud Storage bucket.");
           } else if (videoRes.items.length === 0) {
-            setError(`Found ${res.items.length} images, but no videos found in 'ks-videos/'. Every sculpture requires a matching .mp4 video.`);
+            setError(`Found ${res.items.length} images, but no videos found in 'ks-videos/'. Every sculpture requires a matching .mp4 video file with the same name.`);
           } else {
-            setError(`Found ${res.items.length} images and ${videoRes.items.length} videos, but no matching pairs (same filename) were found.`);
+            setError(`Found ${res.items.length} images and ${videoRes.items.length} videos, but no matching pairs (same filename) were found. Ensure your .jpg and .mp4 files share the exact same name.`);
           }
         }
       } catch (err: any) {

@@ -2,24 +2,29 @@ rules_version = '2';
 
 // FIREBASE STORAGE SECURITY RULES
 // 
-// Updated to use the new ks-images and ks-videos folder structure.
+// Updated to grant access to the kinetic-sculpture-2 project folders.
 // 
 // Public Read: All users can view media in ks-images and ks-videos.
-// Restricted Write: Uploads/Deletes are restricted to authenticated users.
+// Restricted Write: Uploads/Deletes are restricted to authenticated users (Anonymous Sign-in).
 
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Rules for sculpture images in the new ks-images folder
+    // Rules for sculpture images
     match /ks-images/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null;
     }
     
-    // Rules for sculpture videos in the new ks-videos folder
+    // Rules for sculpture videos
     match /ks-videos/{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null;
+    }
+    
+    // Default deny for any other root paths to maintain security
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
   }
 }
