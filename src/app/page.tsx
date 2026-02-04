@@ -15,6 +15,7 @@ export default function Home() {
   const [images, setImages] = useState<FirebaseImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<FirebaseImage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [status, setStatus] = useState<{ images: number, videos: number, matches: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -69,13 +70,19 @@ export default function Home() {
         });
 
         setImages(storageImages);
+        setStatus({
+          images: res.items.length,
+          videos: videoRes.items.length,
+          matches: storageImages.length
+        });
+
         if (storageImages.length === 0) {
           if (res.items.length === 0) {
             setError("No images found in 'menu-images/' folder.");
           } else if (videoRes.items.length === 0) {
-            setError("No videos found in 'menu-videos/'. Images require a matching .mp4 video to be displayed.");
+            setError(`Found ${res.items.length} images, but no videos found in 'menu-videos/'. Images require a matching .mp4 video to be displayed.`);
           } else {
-            setError("No matching pairs of .jpg images and .mp4 videos found.");
+            setError(`Found ${res.items.length} images and ${videoRes.items.length} videos, but no matching pairs (same filename) were found. Check your file naming.`);
           }
         }
       } catch (err: any) {
@@ -108,11 +115,27 @@ export default function Home() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center max-w-md mx-auto">
+            <h2 className="text-[14pt] font-normal uppercase tracking-widest mb-4">Gallery Status</h2>
             <p className="text-muted-foreground text-[12pt] font-normal leading-relaxed">
               {error}
             </p>
-            <p className="text-muted-foreground/60 text-[10pt] mt-4 font-normal">
-              Check the <span className="italic">Manage Gallery</span> page to verify your uploads.
+            <div className="mt-8 pt-8 border-t border-border/50 w-full text-left space-y-2">
+              <p className="text-[10pt] uppercase tracking-wider text-muted-foreground">Storage Statistics:</p>
+              <div className="flex justify-between text-[11pt]">
+                <span>Total Images:</span>
+                <span className="font-mono">{status?.images || 0}</span>
+              </div>
+              <div className="flex justify-between text-[11pt]">
+                <span>Total Videos:</span>
+                <span className="font-mono">{status?.videos || 0}</span>
+              </div>
+              <div className="flex justify-between text-[11pt] font-semibold">
+                <span>Displayable Matches:</span>
+                <span className="font-mono">{status?.matches || 0}</span>
+              </div>
+            </div>
+            <p className="text-muted-foreground/60 text-[10pt] mt-8 font-normal italic">
+              Use the <span className="underline italic">Manage Gallery</span> page to verify and synchronize your uploads.
             </p>
           </div>
         ) : (
