@@ -1,0 +1,35 @@
+rules_version = '2';
+
+// FIREBASE STORAGE SECURITY RULES
+// 
+// This ruleset governs access to the Cloud Storage bucket for the Rhobile application.
+// 
+// Public Read: All users (including anonymous visitors) can view images and videos in
+// the 'menu-images' and 'menu-videos' folders to ensure the gallery is always visible.
+// 
+// Restricted Write: Uploads and deletions are restricted to authenticated users.
+// The management page is configured to sign the user in anonymously if they aren't 
+// already logged in, satisfying the 'request.auth != null' condition.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Rules for sculpture images
+    match /menu-images/{allPaths=**} {
+      // Allow public read for gallery display and SEO
+      allow read: if true;
+      
+      // Allow writes for authenticated users (including anonymous)
+      allow write: if request.auth != null;
+    }
+    
+    // Rules for sculpture videos
+    match /menu-videos/{allPaths=**} {
+      // Allow public read for video playback
+      allow read: if true;
+      
+      // Allow writes for authenticated users (including anonymous)
+      allow write: if request.auth != null;
+    }
+  }
+}

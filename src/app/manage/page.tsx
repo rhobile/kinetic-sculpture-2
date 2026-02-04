@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { getStorage, ref, listAll, deleteObject, uploadBytes } from 'firebase/storage';
-import { useFirebaseApp } from '@/firebase';
+import { signInAnonymously } from 'firebase/auth';
+import { useFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
-import { Trash2, Upload, Loader2, RefreshCw } from 'lucide-react';
+import { Trash2, Upload, Loader2, RefreshCw, Lock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -26,21 +27,29 @@ const EXCLUDED_IMAGES = [
 ];
 
 export default function ManageGalleryPage() {
-  const app = useFirebaseApp();
+  const { firebaseApp, auth, user, isUserLoading: isAuthLoading } = useFirebase();
   const [images, setImages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Ensure user is signed in (anonymously) to satisfy Storage rules for writes
+  useEffect(() => {
+    if (!isAuthLoading && !user && auth) {
+      signInAnonymously(auth).catch((err) => {
+        console.error("Anonymous sign-in failed:", err);
+      });
+    }
+  }, [auth, user, isAuthLoading]);
+
   const fetchImages = async () => {
-    if (!app) return;
+    if (!firebaseApp) return;
     setIsLoading(true);
     try {
-      const storage = getStorage(app);
+      const storage = getStorage(firebaseApp);
       const listRef = ref(storage, 'menu-images/');
       const res = await listAll(listRef);
       
-      // Filter to only include .jpg and .jpeg files, and exclude specific names
       const filteredItems = res.items.filter(item => {
         const lowerName = item.name.toLowerCase();
         const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
@@ -56,32 +65,46 @@ export default function ManageGalleryPage() {
         name: item.name,
       }));
       setImages(storageImages);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading images:", error);
-      toast({
-        variant: "destructive",
-        title: "Error loading images",
-        description: "Could not fetch images from Storage."
-      });
+      // Only show error toast if it's not a permission error during initial load
+      if (error.code !== 'storage/unauthorized') {
+        toast({
+          variant: "destructive",
+          title: "Error loading images",
+          description: "Could not fetch images from Storage."
+        });
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchImages();
-  }, [app]);
+    if (firebaseApp) {
+      fetchImages();
+    }
+  }, [firebaseApp]);
 
   const handleDelete = async (e: React.MouseEvent, imagePath: string) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Permission Denied",
+        description: "You must be signed in to delete images."
+      });
+      return;
+    }
 
     const isConfirmed = window.confirm("Are you sure you want to delete this sculpture image? This will remove it from the public gallery.");
     
     if (!isConfirmed) return;
     
     try {
-      const storage = getStorage(app);
+      const storage = getStorage(firebaseApp);
       const imageRef = ref(storage, imagePath);
       await deleteObject(imageRef);
       toast({ title: "Image deleted successfully" });
@@ -98,11 +121,20 @@ export default function ManageGalleryPage() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !app) return;
+    if (!file || !firebaseApp) return;
+
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Permission Denied",
+        description: "You must be signed in to upload images."
+      });
+      return;
+    }
 
     setIsUploading(true);
     try {
-      const storage = getStorage(app);
+      const storage = getStorage(firebaseApp);
       const storageRef = ref(storage, `menu-images/${file.name}`);
       await uploadBytes(storageRef, file);
       toast({ title: "Image uploaded successfully" });
@@ -112,7 +144,7 @@ export default function ManageGalleryPage() {
       toast({
         variant: "destructive",
         title: "Upload failed",
-        description: "Ensure you are uploading a valid image file."
+        description: "Ensure you are uploading a valid image file and have permission."
       });
     } finally {
       setIsUploading(false);
@@ -125,14 +157,17 @@ export default function ManageGalleryPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
           <div>
-            <h1 className="text-[12pt] font-normal uppercase tracking-widest">Manage Gallery</h1>
+            <h1 className="text-[12pt] font-normal uppercase tracking-widest flex items-center gap-2">
+              Manage Gallery
+              {!user && !isAuthLoading && <Lock className="size-3 text-muted-foreground" title="Signing in..." />}
+            </h1>
             <p className="text-[12pt] text-muted-foreground mt-1 font-normal">Upload or remove sculptures from your public masonry.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={fetchImages} className="rounded-none font-normal text-[12pt]">
               <RefreshCw className="size-4 mr-2" /> Refresh
             </Button>
-            <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="rounded-none font-normal text-[12pt]">
+            <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading || isAuthLoading} className="rounded-none font-normal text-[12pt]">
               {isUploading ? <Loader2 className="size-4 animate-spin mr-2" /> : <Upload className="size-4 mr-2" />}
               Upload Image
             </Button>
@@ -181,7 +216,7 @@ export default function ManageGalleryPage() {
           </div>
         ) : (
           <div className="text-center py-20 border-2 border-dashed border-border/50 rounded-none">
-            <p className="text-muted-foreground text-[12pt] font-normal">No .jpg images found. Upload your first sculpture above.</p>
+            <p className="text-muted-foreground text-[12pt] font-normal">No .jpg images found in /menu-images. Upload your first sculpture above.</p>
           </div>
         )}
       </div>
