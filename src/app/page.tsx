@@ -7,7 +7,7 @@ import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Card, CardContent } from '@/components/ui/card';
 import { VideoPlayerModal } from '@/components/video-player-modal';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FirebaseImage } from '@/lib/firebase-images';
+import type { FirebaseImage } from '@/lib/firebase-images';
 
 // Descriptions for specific sculptures
 const SCULPTURE_DESCRIPTIONS: Record<string, string> = {
@@ -106,23 +106,17 @@ export default function Home() {
     setSelectedImage(null);
   };
 
-  if (isLoading) {
-    return (
-      <div className="bg-background min-h-screen p-0">
-        <div className="columns-2 sm:columns-3 lg:columns-4 gap-0">
-          {[...Array(8)].map((_, i) => (
-            <Skeleton key={i} className="w-full aspect-[2/3] rounded-none" />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-background">
-      <main>
-        {images.length > 0 ? (
-          <div className="columns-2 sm:columns-3 lg:columns-4 gap-0">
+    <div className="bg-background min-h-screen">
+      <main className="w-full">
+        {isLoading ? (
+          <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">
+            {[...Array(8)].map((_, i) => (
+              <Skeleton key={i} className="w-full aspect-[2/3] rounded-none border-0" />
+            ))}
+          </div>
+        ) : images.length > 0 ? (
+          <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">
             {images.map((image) => (
               <div
                 key={image.id}

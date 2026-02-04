@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <Sidebar className="border-0 bg-sidebar">
         <SidebarHeader className="p-6 pb-2 flex items-center justify-center">
           <Link href="/" className="block text-foreground hover:no-underline w-full">
-            <h1 className="font-headline text-2xl tracking-[0.25em] mb-1 uppercase whitespace-nowrap text-center font-normal">
+            <h1 className="font-headline text-xl sm:text-2xl tracking-[0.15em] sm:tracking-[0.25em] mb-1 uppercase whitespace-nowrap text-center font-normal">
               R H O B I L E
             </h1>
           </Link>
@@ -88,15 +88,17 @@ export function AppShell({ children }: { children: ReactNode }) {
       </Sidebar>
       
       <SidebarInset>
-        <header className="flex h-14 items-center gap-4 border-b px-4 sm:hidden">
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 sm:hidden">
           <SidebarTrigger>
             <Menu className="size-6" />
           </SidebarTrigger>
-          <div className="flex-1">
-            <h1 className="text-lg font-headline tracking-[0.2em] uppercase whitespace-nowrap font-normal">R H O B I L E</h1>
+          <div className="flex-1 overflow-hidden">
+            <h1 className="text-base font-headline tracking-[0.15em] uppercase whitespace-nowrap font-normal truncate">R H O B I L E</h1>
           </div>
         </header>
-        {children}
+        <div className="flex-1">
+          {children}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
