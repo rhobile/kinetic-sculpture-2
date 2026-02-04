@@ -1,0 +1,118 @@
+{
+  "entities": {
+    "Video": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Video",
+      "type": "object",
+      "description": "Represents a video uploaded to the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the video."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the video."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the video."
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "Date and time when the video was uploaded.",
+          "format": "date-time"
+        },
+        "storageUrl": {
+          "type": "string",
+          "description": "URL of the video in cloud storage.",
+          "format": "uri"
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "description": "URL of the video's thumbnail image.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "storageUrl",
+        "thumbnailUrl"
+      ]
+    },
+    "Page": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Page",
+      "type": "object",
+      "description": "Represents a static page in the application (e.g., About, Contact).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the page."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the page (e.g., About Us, Contact)."
+        },
+        "content": {
+          "type": "string",
+          "description": "HTML content of the page."
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL-friendly slug for the page (e.g., about-us, contact)."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "content",
+        "slug"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/videos/{videoId}",
+        "definition": {
+          "entityName": "Video",
+          "schema": {
+            "$ref": "#/backend/entities/Video"
+          },
+          "description": "Stores video metadata. Publicly readable.",
+          "params": [
+            {
+              "name": "videoId",
+              "description": "Unique identifier for the video."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/pages/{pageId}",
+        "definition": {
+          "entityName": "Page",
+          "schema": {
+            "$ref": "#/backend/entities/Page"
+          },
+          "description": "Stores static page content. Publicly readable.",
+          "params": [
+            {
+              "name": "pageId",
+              "description": "Unique identifier for the page."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure prioritizes Authorization Independence and QAPs (Rules are not Filters). It segregates data with different access needs and uses path-based ownership where applicable.  The `videos` collection stores video metadata, and the `pages` collection stores static page content.  Both collections are globally readable. The structure is designed to support simple, robust security rules that avoid `get()` calls. Specifically, the structure uses segregation such that different access patterns are stored in different collections to avoid any security complexity. Since global read is available in both the `videos` and `pages` collections, QAPs are satisfied."
+  }
+}
