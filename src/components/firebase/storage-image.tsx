@@ -49,20 +49,17 @@ export function FirebaseStorageImage({ path, alt, width, height, className }: Fi
         setError(`Image not found at path: "${path}". Please ensure the file exists in your Firebase Storage bucket.`);
       } else if (e.code === 'storage/unauthorized') {
         setError(`Permission denied. Please check your Firebase Storage security rules to ensure public read access is allowed for the path: "${path}".`);
-      } else if (e.code === 'storage/retry-limit-exceeded') {
+      } else if (e.code === 'storage/retry-limit-exceeded' || e.code === 'storage/cannot-slice-blob') {
         const bucket = app.options.storageBucket || 'N/A';
         const projectId = app.options.projectId || 'N/A';
         setError(
-`This is a timeout error. Please check the following:
-1. In 'src/firebase/config.ts', is the 'storageBucket' ("${bucket}") correct for your project ("${projectId}")?
-2. Is your device connected to the internet, and are there any firewalls blocking access to *.googleapis.com?
-3. In the Firebase Console, is Cloud Storage for Firebase enabled and fully provisioned?`
+`This is a connection timeout error (retry-limit-exceeded). 
+1. Verify 'storageBucket' ("${bucket}") in 'src/firebase/config.ts' matches your Firebase Project ("${projectId}").
+2. Ensure "Cloud Storage for Firebase" is enabled in the Firebase Console.
+3. Check your internet connection and ensure *.googleapis.com is not blocked by a firewall.`
         );
-      }
-      else {
-        let errorMessage = `An error occurred while loading the image (Code: ${e.code || 'unknown'}). This might be a network timeout or a configuration issue.`;
-        errorMessage += ` Please verify your internet connection, Firebase project configuration, and storage security rules. Check the browser console for more details.`
-        setError(errorMessage);
+      } else {
+        setError(`An error occurred while loading the image (Code: ${e.code || 'unknown'}). Check the browser console for more details.`);
       }
     } finally {
         setIsLoading(false);
@@ -81,8 +78,8 @@ export function FirebaseStorageImage({ path, alt, width, height, className }: Fi
     return (
         <div style={{width, height}} className="w-full h-full flex flex-col items-center justify-center bg-muted text-destructive p-4 text-center">
             <p className="font-semibold mb-2">Error Loading Image</p>
-            <p className="mb-4 text-sm text-left whitespace-pre-wrap">{error}</p>
-            <Button onClick={getUrl} disabled={isLoading}>
+            <p className="mb-4 text-xs text-left whitespace-pre-wrap leading-relaxed">{error}</p>
+            <Button variant="outline" size="sm" onClick={getUrl} disabled={isLoading}>
               {isLoading ? 'Retrying...' : 'Retry'}
             </Button>
         </div>

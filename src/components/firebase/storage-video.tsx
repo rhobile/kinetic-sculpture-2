@@ -42,9 +42,11 @@ export function FirebaseStorageVideo({ path, className }: FirebaseStorageVideoPr
     } catch (e: any) {
       console.error(`Failed to get download URL for ${path}`, e);
       if (e.code === 'storage/object-not-found') {
-        setError(`Video not found at path: "${path}". Please ensure a video file with the correct name exists in your 'menu-videos' folder.`);
+        setError(`Video not found at path: "${path}".`);
       } else if (e.code === 'storage/unauthorized') {
-        setError(`Permission denied. Please check your Firebase Storage security rules to ensure public read access is allowed for the path: "${path}".`);
+        setError(`Permission denied. Check your Firebase Storage security rules.`);
+      } else if (e.code === 'storage/retry-limit-exceeded') {
+        setError(`Connection timed out. Please verify your internet connection and ensure Cloud Storage is provisioned in your Firebase Console.`);
       } else {
         setError(`An error occurred while loading the video (Code: ${e.code || 'unknown'}).`);
       }
@@ -65,8 +67,8 @@ export function FirebaseStorageVideo({ path, className }: FirebaseStorageVideoPr
     return (
         <div className="w-full h-full flex flex-col items-center justify-center bg-muted text-destructive p-4 text-center">
             <p className="font-semibold mb-2">Error Loading Video</p>
-            <p className="mb-4 text-sm text-left whitespace-pre-wrap">{error}</p>
-            <Button onClick={getUrl} disabled={isLoading}>
+            <p className="mb-4 text-xs text-left whitespace-pre-wrap leading-relaxed">{error}</p>
+            <Button variant="outline" size="sm" onClick={getUrl} disabled={isLoading}>
               {isLoading ? 'Retrying...' : 'Retry'}
             </Button>
         </div>
