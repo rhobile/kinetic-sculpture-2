@@ -7,6 +7,7 @@ import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Card, CardContent } from '@/components/ui/card';
 import { VideoPlayerModal } from '@/components/video-player-modal';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FirebaseImage } from '@/lib/firebase-images';
 
 // Descriptions for specific sculptures
 const SCULPTURE_DESCRIPTIONS: Record<string, string> = {
@@ -29,15 +30,6 @@ const EXCLUDED_IMAGES = [
   'red square on',
   'sea2'
 ];
-
-export type FirebaseImage = {
-  id: string;
-  path: string;
-  alt: string;
-  description?: string;
-  width: number;
-  height: number;
-};
 
 export default function Home() {
   const app = useFirebaseApp();

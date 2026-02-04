@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import type { FirebaseImage } from '@/app/page';
+import type { FirebaseImage } from '@/lib/firebase-images';
 import { FirebaseStorageVideo } from '@/components/firebase/storage-video';
 
 interface VideoPlayerModalProps {
