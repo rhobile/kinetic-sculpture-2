@@ -9,22 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Upload, Loader2, RefreshCw, Lock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const EXCLUDED_IMAGES = [
-  'helix', 
-  'polished-rhobile_on', 
-  'limetree', 
-  'chopsticksmurfitts2', 
-  'chopstxsap12_on', 
-  'dashcube', 
-  'bubbles_on', 
-  'trioxi_on', 
-  'redsquare_on',
-  'red-square_on',
-  'redsquares',
-  'red square on',
-  'sea2'
-];
+import { EXCLUDED_IMAGES } from '@/lib/constants';
 
 export default function ManageGalleryPage() {
   const { firebaseApp, auth, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -67,7 +52,6 @@ export default function ManageGalleryPage() {
       setImages(storageImages);
     } catch (error: any) {
       console.error("Error loading images:", error);
-      // Only show error toast if it's not a permission error during initial load
       if (error.code !== 'storage/unauthorized') {
         toast({
           variant: "destructive",

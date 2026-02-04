@@ -8,55 +8,36 @@ import { Card, CardContent } from '@/components/ui/card';
 import { VideoPlayerModal } from '@/components/video-player-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { FirebaseImage } from '@/lib/firebase-images';
-
-// Descriptions for specific sculptures
-const SCULPTURE_DESCRIPTIONS: Record<string, string> = {
-  'bikeshedtrio': "Three rectangular section polished aluminium elements on larch battened out-building.\nThe elements reflect the larch verticals as they turn.",
-  'arclinedot': "A delicate balance of form and movement, catching the subtlest breeze.",
-};
-
-const EXCLUDED_IMAGES = [
-  'helix', 
-  'polished-rhobile_on', 
-  'limetree', 
-  'chopsticksmurfitts2', 
-  'chopstxsap12_on', 
-  'dashcube', 
-  'bubbles_on', 
-  'trioxi_on', 
-  'redsquare_on',
-  'red-square_on',
-  'redsquares',
-  'red square on',
-  'sea2'
-];
+import { EXCLUDED_IMAGES, SCULPTURE_DESCRIPTIONS } from '@/lib/constants';
 
 export default function Home() {
   const app = useFirebaseApp();
   const [images, setImages] = useState<FirebaseImage[]>([]);
   const [selectedImage, setSelectedImage] = useState<FirebaseImage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchImages() {
+    async function fetchGalleryData() {
       if (!app) return;
       
       setIsLoading(true);
+      setError(null);
       try {
         const storage = getStorage(app);
         
-        // Fetch videos first to know what's available
+        // 1. Fetch available videos
         const videoListRef = ref(storage, 'menu-videos/');
         const videoRes = await listAll(videoListRef);
         const availableVideoNames = new Set(
           videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
         );
 
+        // 2. Fetch available images
         const listRef = ref(storage, 'menu-images/');
         const res = await listAll(listRef);
         
-        // Filter to only include .jpg and .jpeg files, exclude specific names,
-        // AND ensure a corresponding video exists in menu-videos/
+        // 3. Filter and map images
         const filteredItems = res.items.filter(item => {
           const lowerName = item.name.toLowerCase();
           const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
@@ -88,14 +69,24 @@ export default function Home() {
         });
 
         setImages(storageImages);
-      } catch (error) {
-        console.error("Error listing images from storage:", error);
+        if (storageImages.length === 0) {
+          if (res.items.length === 0) {
+            setError("No images found in 'menu-images/' folder.");
+          } else if (videoRes.items.length === 0) {
+            setError("No videos found in 'menu-videos/'. Images require a matching .mp4 video to be displayed.");
+          } else {
+            setError("No matching pairs of .jpg images and .mp4 videos found.");
+          }
+        }
+      } catch (err: any) {
+        console.error("Error fetching gallery data:", err);
+        setError(`Failed to connect to storage: ${err.message || 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }
     }
 
-    fetchImages();
+    fetchGalleryData();
   }, [app]);
 
   const handleImageClick = (image: FirebaseImage) => {
@@ -115,7 +106,16 @@ export default function Home() {
               <Skeleton key={i} className="w-full aspect-[2/3] rounded-none border-0" />
             ))}
           </div>
-        ) : images.length > 0 ? (
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center max-w-md mx-auto">
+            <p className="text-muted-foreground text-[12pt] font-normal leading-relaxed">
+              {error}
+            </p>
+            <p className="text-muted-foreground/60 text-[10pt] mt-4 font-normal">
+              Check the <span className="italic">Manage Gallery</span> page to verify your uploads.
+            </p>
+          </div>
+        ) : (
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">
             {images.map((image) => (
               <div
@@ -136,12 +136,6 @@ export default function Home() {
                 </Card>
               </div>
             ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
-            <p className="text-muted-foreground text-[12pt] font-normal">
-              No .jpg images with corresponding .mp4 videos found.
-            </p>
           </div>
         )}
       </main>
