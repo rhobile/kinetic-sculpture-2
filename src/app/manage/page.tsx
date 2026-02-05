@@ -1,26 +1,48 @@
+
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { getStorage, ref, listAll, deleteObject, uploadBytes } from 'firebase/storage';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { getStorage, ref as storageRef, listAll, deleteObject, uploadBytes } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
-import { useFirebase } from '@/firebase';
+import { collection, doc, setDoc } from 'firebase/firestore';
+import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
-import { Trash2, Upload, Loader2, RefreshCw, Lock, Video, Image as ImageIcon, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { 
+  Trash2, Upload, Loader2, RefreshCw, Lock, Video, 
+  Image as ImageIcon, CheckCircle2, AlertCircle, Info, Edit3, Save, X 
+} from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function ManageGalleryPage() {
-  const { firebaseApp, auth, user, isUserLoading: isAuthLoading } = useFirebase();
+  const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
   const [images, setImages] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFolder, setUploadFolder] = useState<'ks-images' | 'ks-videos'>('ks-images');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Firestore Descriptions
+  const videosQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'videos');
+  }, [firestore]);
+  const { data: firestoreVideos } = useCollection(videosQuery);
+
+  // Editing State
+  const [editingSculpture, setEditingSculpture] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!isAuthLoading && !user && auth) {
@@ -36,7 +58,7 @@ export default function ManageGalleryPage() {
     try {
       const storage = getStorage(firebaseApp);
       
-      const imgRef = ref(storage, 'ks-images');
+      const imgRef = storageRef(storage, 'ks-images');
       const imgRes = await listAll(imgRef);
       const filteredImages = imgRes.items.filter(item => {
         const lowerName = item.name.toLowerCase();
@@ -49,7 +71,7 @@ export default function ManageGalleryPage() {
       
       setImages(filteredImages);
 
-      const vidRef = ref(storage, 'ks-videos');
+      const vidRef = storageRef(storage, 'ks-videos');
       const vidRes = await listAll(vidRef);
       const videoItems = vidRes.items.map(item => ({
         id: item.fullPath,
@@ -92,7 +114,7 @@ export default function ManageGalleryPage() {
     
     try {
       const storage = getStorage(firebaseApp);
-      const fileRef = ref(storage, path);
+      const fileRef = storageRef(storage, path);
       await deleteObject(fileRef);
       toast({ title: "File deleted successfully" });
       await fetchData();
@@ -118,8 +140,8 @@ export default function ManageGalleryPage() {
     setIsUploading(true);
     try {
       const storage = getStorage(firebaseApp);
-      const storageRef = ref(storage, `${uploadFolder}/${file.name}`);
-      await uploadBytes(storageRef, file);
+      const storageReference = storageRef(storage, `${uploadFolder}/${file.name}`);
+      await uploadBytes(storageReference, file);
       toast({ title: "Upload successful" });
       fetchData();
     } catch (error: any) {
@@ -135,9 +157,36 @@ export default function ManageGalleryPage() {
     }
   };
 
-  const triggerUpload = (folder: 'ks-images' | 'ks-videos') => {
-    setUploadFolder(folder);
-    fileInputRef.current?.click();
+  const openEditDialog = (image: any) => {
+    const fileName = image.name.split('.').slice(0, -1).join('.');
+    const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const existing = firestoreVideos?.find(v => v.id === normalizedKey);
+    
+    setEditingSculpture({ ...image, normalizedKey });
+    setEditTitle(existing?.title || fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()));
+    setEditDesc(existing?.description || '');
+  };
+
+  const handleSaveDescription = async () => {
+    if (!firestore || !editingSculpture) return;
+    setIsSaving(true);
+    try {
+      const docRef = doc(firestore, 'videos', editingSculpture.normalizedKey);
+      await setDoc(docRef, {
+        id: editingSculpture.normalizedKey,
+        title: editTitle,
+        description: editDesc,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      
+      toast({ title: "Description saved" });
+      setEditingSculpture(null);
+    } catch (error: any) {
+      console.error("Save failed:", error);
+      toast({ variant: "destructive", title: "Save failed", description: error.message });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const hasMatchingVideo = (imageName: string) => {
@@ -154,7 +203,7 @@ export default function ManageGalleryPage() {
               Cloud Storage Browser (ks- folders)
               {!user && !isAuthLoading && <Lock className="size-3 text-muted-foreground" />}
             </h1>
-            <p className="text-[12pt] text-muted-foreground mt-1 font-normal">Manage sculpture media in ks-images and ks-videos.</p>
+            <p className="text-[12pt] text-muted-foreground mt-1 font-normal">Manage sculpture media and descriptions.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={fetchData} className="rounded-none font-normal text-[11pt]">
@@ -172,14 +221,9 @@ export default function ManageGalleryPage() {
 
         <Alert className="rounded-none border-accent/20 bg-accent/5">
           <Info className="h-4 w-4 text-accent" />
-          <AlertTitle className="text-[10pt] uppercase tracking-widest font-normal">Upload Guidelines</AlertTitle>
+          <AlertTitle className="text-[10pt] uppercase tracking-widest font-normal">Management Tips</AlertTitle>
           <AlertDescription className="text-[10pt] text-muted-foreground font-normal space-y-2 mt-2">
-            <p>To ensure the best gallery experience, please use the following settings:</p>
-            <ul className="list-disc pl-4 space-y-1">
-              <li><strong>Video Format:</strong> MP4 (H.264 codec)</li>
-              <li><strong>Video FPS:</strong> 30 FPS (recommended for kinetic motion)</li>
-              <li><strong>Filenames:</strong> Match exactly (e.g., <code>sculpture1.jpg</code> and <code>sculpture1.mp4</code>)</li>
-            </ul>
+            <p>Maintain consistent filenames (e.g., <code>wave.jpg</code> and <code>wave.mp4</code>). Click the edit icon to manage descriptions stored in Firestore.</p>
           </AlertDescription>
         </Alert>
 
@@ -196,7 +240,7 @@ export default function ManageGalleryPage() {
           <TabsContent value="images" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculpture Images (/ks-images)</h2>
-              <Button size="sm" onClick={() => triggerUpload('ks-images')} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
+              <Button size="sm" onClick={() => { setUploadFolder('ks-images'); fileInputRef.current?.click(); }} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
                 {isUploading && uploadFolder === 'ks-images' ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
                 Upload Image
               </Button>
@@ -217,23 +261,33 @@ export default function ManageGalleryPage() {
                       height={300}
                       className="w-full h-full object-cover transition-opacity group-hover:opacity-60 rounded-none"
                     />
-                    <div className="absolute top-2 left-2 z-10">
+                    <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
                       {hasMatchingVideo(image.name) ? (
                         <div className="bg-green-500/90 p-1" title="Has matching video">
                           <CheckCircle2 className="size-3 text-white" />
                         </div>
                       ) : (
-                        <div className="bg-amber-500/90 p-1" title="Missing matching video in ks-videos">
+                        <div className="bg-amber-500/90 p-1" title="Missing matching video">
                           <AlertCircle className="size-3 text-white" />
                         </div>
                       )}
                     </div>
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 gap-2">
+                      <Button 
+                        variant="secondary" 
+                        size="icon" 
+                        className="rounded-none h-10 w-10" 
+                        onClick={() => openEditDialog(image)}
+                        title="Edit Description"
+                      >
+                        <Edit3 className="size-4" />
+                      </Button>
                       <Button 
                         variant="destructive" 
                         size="icon" 
                         className="rounded-none h-10 w-10" 
                         onClick={(e) => handleDelete(e, image.path)}
+                        title="Delete Image"
                       >
                         <Trash2 className="size-4" />
                       </Button>
@@ -246,7 +300,7 @@ export default function ManageGalleryPage() {
               </div>
             ) : (
               <div className="text-center py-20 border border-dashed border-border/50 text-muted-foreground font-normal">
-                No images found in ks-images/.
+                No images found.
               </div>
             )}
           </TabsContent>
@@ -254,7 +308,7 @@ export default function ManageGalleryPage() {
           <TabsContent value="videos" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculpture Videos (/ks-videos)</h2>
-              <Button size="sm" onClick={() => triggerUpload('ks-videos')} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
+              <Button size="sm" onClick={() => { setUploadFolder('ks-videos'); fileInputRef.current?.click(); }} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
                 {isUploading && uploadFolder === 'ks-videos' ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
                 Upload Video
               </Button>
@@ -285,12 +339,53 @@ export default function ManageGalleryPage() {
               </div>
             ) : (
               <div className="text-center py-20 border border-dashed border-border/50 text-muted-foreground font-normal">
-                No videos found in ks-videos/.
+                No videos found.
               </div>
             )}
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Edit Description Dialog */}
+      <Dialog open={!!editingSculpture} onOpenChange={() => setEditingSculpture(null)}>
+        <DialogContent className="rounded-none border-none max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="uppercase tracking-widest font-normal text-[12pt]">Edit Sculpture Info</DialogTitle>
+            <DialogDescription className="text-[10pt]">Updates are stored in Firestore and show instantly in the gallery.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title" className="text-[10pt] uppercase tracking-wide">Title</Label>
+              <Input 
+                id="title" 
+                value={editTitle} 
+                onChange={(e) => setEditTitle(e.target.value)} 
+                className="rounded-none"
+                placeholder="Sculpture Title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="desc" className="text-[10pt] uppercase tracking-wide">Description</Label>
+              <Textarea 
+                id="desc" 
+                value={editDesc} 
+                onChange={(e) => setEditDesc(e.target.value)} 
+                className="rounded-none min-h-[150px]"
+                placeholder="Paste or type the description here..."
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditingSculpture(null)} className="rounded-none font-normal">
+              <X className="size-4 mr-2" /> Cancel
+            </Button>
+            <Button onClick={handleSaveDescription} disabled={isSaving} className="rounded-none font-normal">
+              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
