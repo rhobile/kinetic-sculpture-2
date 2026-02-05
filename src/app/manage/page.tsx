@@ -6,11 +6,12 @@ import { signInAnonymously } from 'firebase/auth';
 import { useFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
-import { Trash2, Upload, Loader2, RefreshCw, Lock, Video, Image as ImageIcon, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Trash2, Upload, Loader2, RefreshCw, Lock, Video, Image as ImageIcon, CheckCircle2, AlertCircle, Info } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function ManageGalleryPage() {
   const { firebaseApp, auth, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -35,7 +36,6 @@ export default function ManageGalleryPage() {
     try {
       const storage = getStorage(firebaseApp);
       
-      // Fetch Images from ks-images/ (using root reference for listing)
       const imgRef = ref(storage, 'ks-images');
       const imgRes = await listAll(imgRef);
       const filteredImages = imgRes.items.filter(item => {
@@ -49,7 +49,6 @@ export default function ManageGalleryPage() {
       
       setImages(filteredImages);
 
-      // Fetch Videos from ks-videos/
       const vidRef = ref(storage, 'ks-videos');
       const vidRes = await listAll(vidRef);
       const videoItems = vidRes.items.map(item => ({
@@ -170,6 +169,19 @@ export default function ManageGalleryPage() {
             />
           </div>
         </div>
+
+        <Alert className="rounded-none border-accent/20 bg-accent/5">
+          <Info className="h-4 w-4 text-accent" />
+          <AlertTitle className="text-[10pt] uppercase tracking-widest font-normal">Upload Guidelines</AlertTitle>
+          <AlertDescription className="text-[10pt] text-muted-foreground font-normal space-y-2 mt-2">
+            <p>To ensure the best gallery experience, please use the following settings:</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li><strong>Video Format:</strong> MP4 (H.264 codec)</li>
+              <li><strong>Video FPS:</strong> 30 FPS (recommended for kinetic motion)</li>
+              <li><strong>Filenames:</strong> Match exactly (e.g., <code>sculpture1.jpg</code> and <code>sculpture1.mp4</code>)</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
 
         <Tabs defaultValue="images" className="w-full">
           <TabsList className="grid w-full max-w-md grid-cols-2 rounded-none bg-muted/50 p-1 mb-8">
