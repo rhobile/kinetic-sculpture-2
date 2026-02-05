@@ -20,7 +20,7 @@ export default function Home() {
   const [status, setStatus] = useState<{ images: number, videos: number, matches: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Firestore Descriptions
+  // Firestore Descriptions and Ordering
   const videosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'videos');
@@ -47,7 +47,7 @@ export default function Home() {
         } catch (vidErr: any) {
           console.error("Error listing ks-videos:", vidErr);
           if (vidErr.code === 'storage/unauthorized') {
-            throw new Error("Permission denied for 'ks-videos'. Security Rules are blocking public listing.");
+            throw new Error("Permission denied for 'ks-videos'. Your Firebase Storage Security Rules are currently blocking public listing. Please wait a moment (up to 60s) for the new rules to deploy globally.");
           }
           throw vidErr;
         }
@@ -61,7 +61,7 @@ export default function Home() {
         } catch (imgErr: any) {
           console.error("Error listing ks-images:", imgErr);
           if (imgErr.code === 'storage/unauthorized') {
-            throw new Error("Permission denied for 'ks-images'. Security Rules are blocking public listing.");
+            throw new Error("Permission denied for 'ks-images'. Your Firebase Storage Security Rules are currently blocking public listing. Please wait a moment (up to 60s) for the new rules to deploy globally.");
           }
           throw imgErr;
         }
@@ -79,7 +79,7 @@ export default function Home() {
         });
 
         // Use firestore data if available
-        const storageImages: FirebaseImage[] = filteredItems.map((item, index) => {
+        let storageImages: (FirebaseImage & { order: number })[] = filteredItems.map((item, index) => {
           const fileName = item.name.split('.').slice(0, -1).join('.');
           const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
           
@@ -91,16 +91,21 @@ export default function Home() {
             .replace(/\b\w/g, (l) => l.toUpperCase());
 
           const description = fsData?.description || SCULPTURE_DESCRIPTIONS[normalizedKey];
+          const order = fsData?.order !== undefined ? fsData.order : 999;
 
           return {
             id: item.fullPath,
             path: item.fullPath,
             alt: displayTitle,
             description: description,
+            order: order,
             width: 500,
             height: index % 2 === 0 ? 600 : 750,
           };
         });
+
+        // Sort images based on the 'order' property
+        storageImages.sort((a, b) => a.order - b.order);
 
         setImages(storageImages);
         setStatus({
@@ -115,7 +120,7 @@ export default function Home() {
           } else if (availableVideoNames.size === 0) {
             setError(`Found ${imageRes.items.length} images, but no videos found in 'ks-videos/'.`);
           } else {
-            setError(`No matching filenames found between 'ks-images' and 'ks-videos'.`);
+            setError(`No matching filenames found between 'ks-images' and 'ks-videos'. Ensure each .jpg has a corresponding .mp4 with the same name.`);
           }
         }
       } catch (err: any) {
@@ -149,7 +154,7 @@ export default function Home() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center max-w-md mx-auto">
-            <h2 className="text-[14pt] font-normal uppercase tracking-widest mb-4">Gallery Status</h2>
+            <h2 className="text-[14pt] font-normal uppercase tracking-widest mb-4 text-destructive">Gallery Status</h2>
             <p className="text-muted-foreground text-[11pt] font-normal leading-relaxed">
               {error}
             </p>
@@ -157,7 +162,8 @@ export default function Home() {
               <p className="text-[10pt] uppercase tracking-wider text-muted-foreground font-semibold">Troubleshooting:</p>
               <ul className="text-[10pt] text-muted-foreground space-y-2 list-disc pl-4 font-normal">
                 <li>Ensure matching filenames (e.g. 'art.jpg' and 'art.mp4').</li>
-                <li>Check the Manage Gallery dashboard.</li>
+                <li>Wait 60s for security rules to deploy if this is a new setup.</li>
+                <li>Check the <a href="/manage" className="text-accent underline">Manage Gallery</a> dashboard.</li>
               </ul>
             </div>
           </div>

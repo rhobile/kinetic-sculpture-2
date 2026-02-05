@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Video": {
@@ -17,6 +18,10 @@
         "description": {
           "type": "string",
           "description": "Description of the video."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of the sculpture (lower numbers first)."
         },
         "uploadDate": {
           "type": "string",

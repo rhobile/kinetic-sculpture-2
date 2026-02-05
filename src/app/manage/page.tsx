@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getStorage, ref as storageRef, listAll, deleteObject, uploadBytes } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, doc, setDoc } from 'firebase/firestore';
@@ -10,7 +10,7 @@ import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
   Trash2, Upload, Loader2, RefreshCw, Lock, Video, 
-  Image as ImageIcon, CheckCircle2, AlertCircle, Info, Edit3, Save, X 
+  Image as ImageIcon, CheckCircle2, AlertCircle, Info, Edit3, Save, X, ArrowUpDown 
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,6 +42,7 @@ export default function ManageGalleryPage() {
   const [editingSculpture, setEditingSculpture] = useState<any | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [editOrder, setEditOrder] = useState('0');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -165,6 +166,7 @@ export default function ManageGalleryPage() {
     setEditingSculpture({ ...image, normalizedKey });
     setEditTitle(existing?.title || fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()));
     setEditDesc(existing?.description || '');
+    setEditOrder(existing?.order?.toString() || '0');
   };
 
   const handleSaveDescription = async () => {
@@ -176,10 +178,11 @@ export default function ManageGalleryPage() {
         id: editingSculpture.normalizedKey,
         title: editTitle,
         description: editDesc,
+        order: parseInt(editOrder) || 0,
         updatedAt: new Date().toISOString()
       }, { merge: true });
       
-      toast({ title: "Description saved" });
+      toast({ title: "Sculpture info saved" });
       setEditingSculpture(null);
     } catch (error: any) {
       console.error("Save failed:", error);
@@ -203,7 +206,7 @@ export default function ManageGalleryPage() {
               Cloud Storage Browser (ks- folders)
               {!user && !isAuthLoading && <Lock className="size-3 text-muted-foreground" />}
             </h1>
-            <p className="text-[12pt] text-muted-foreground mt-1 font-normal">Manage sculpture media and descriptions.</p>
+            <p className="text-[12pt] text-muted-foreground mt-1 font-normal">Manage sculpture media, descriptions, and ordering.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={fetchData} className="rounded-none font-normal text-[11pt]">
@@ -223,7 +226,7 @@ export default function ManageGalleryPage() {
           <Info className="h-4 w-4 text-accent" />
           <AlertTitle className="text-[10pt] uppercase tracking-widest font-normal">Management Tips</AlertTitle>
           <AlertDescription className="text-[10pt] text-muted-foreground font-normal space-y-2 mt-2">
-            <p>Maintain consistent filenames (e.g., <code>wave.jpg</code> and <code>wave.mp4</code>). Click the edit icon to manage descriptions stored in Firestore.</p>
+            <p>Maintain consistent filenames (e.g., <code>wave.jpg</code> and <code>wave.mp4</code>). Use the <strong>Order</strong> field to reorder items in the main gallery (lower numbers show first).</p>
           </AlertDescription>
         </Alert>
 
@@ -278,7 +281,7 @@ export default function ManageGalleryPage() {
                         size="icon" 
                         className="rounded-none h-10 w-10" 
                         onClick={() => openEditDialog(image)}
-                        title="Edit Description"
+                        title="Edit Info"
                       >
                         <Edit3 className="size-4" />
                       </Button>
@@ -346,23 +349,38 @@ export default function ManageGalleryPage() {
         </Tabs>
       </div>
 
-      {/* Edit Description Dialog */}
+      {/* Edit Sculpture Info Dialog */}
       <Dialog open={!!editingSculpture} onOpenChange={() => setEditingSculpture(null)}>
         <DialogContent className="rounded-none border-none max-w-lg">
           <DialogHeader>
             <DialogTitle className="uppercase tracking-widest font-normal text-[12pt]">Edit Sculpture Info</DialogTitle>
-            <DialogDescription className="text-[10pt]">Updates are stored in Firestore and show instantly in the gallery.</DialogDescription>
+            <DialogDescription className="text-[10pt]">Update details and display order. Lower order numbers show first.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="title" className="text-[10pt] uppercase tracking-wide">Title</Label>
-              <Input 
-                id="title" 
-                value={editTitle} 
-                onChange={(e) => setEditTitle(e.target.value)} 
-                className="rounded-none"
-                placeholder="Sculpture Title"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
+              <div className="sm:col-span-3 space-y-2">
+                <Label htmlFor="title" className="text-[10pt] uppercase tracking-wide">Title</Label>
+                <Input 
+                  id="title" 
+                  value={editTitle} 
+                  onChange={(e) => setEditTitle(e.target.value)} 
+                  className="rounded-none"
+                  placeholder="Sculpture Title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="order" className="text-[10pt] uppercase tracking-wide flex items-center gap-1">
+                  <ArrowUpDown className="size-3" /> Order
+                </Label>
+                <Input 
+                  id="order" 
+                  type="number"
+                  value={editOrder} 
+                  onChange={(e) => setEditOrder(e.target.value)} 
+                  className="rounded-none"
+                  placeholder="0"
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="desc" className="text-[10pt] uppercase tracking-wide">Description</Label>
