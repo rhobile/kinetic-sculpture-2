@@ -9,7 +9,8 @@ import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
   Trash2, Upload, Loader2, RefreshCw, Lock, 
-  CheckCircle2, AlertCircle, Edit3, Save, Plus
+  CheckCircle2, AlertCircle, Edit3, Save, Plus,
+  Info
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
@@ -18,6 +19,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function ManageGalleryPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -119,7 +121,7 @@ export default function ManageGalleryPage() {
       return;
     }
 
-    const isConfirmed = window.confirm(`Are you sure you want to delete this file?\nPath: ${path}`);
+    const isConfirmed = window.confirm(`Permanently delete this file?\nPath: ${path}`);
     if (!isConfirmed) return;
 
     try {
@@ -133,7 +135,7 @@ export default function ManageGalleryPage() {
       toast({ 
         variant: "destructive", 
         title: "Delete failed", 
-        description: error.message || "An unexpected error occurred during deletion."
+        description: error.message || "Could not delete file."
       });
     }
   };
@@ -230,21 +232,23 @@ export default function ManageGalleryPage() {
     <main className="p-4 sm:p-6 lg:p-8 bg-background min-h-screen">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
-          <div>
-            <h1 className="text-[12pt] font-normal uppercase tracking-widest flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            <h1 className="text-[12pt] font-normal uppercase tracking-widest">
               Management Dashboard
-              {!user && !isAuthLoading && <Lock className="size-3 text-muted-foreground" />}
             </h1>
+            {!user && !isAuthLoading && <Lock className="size-3 text-muted-foreground" />}
           </div>
-          <Button 
-            type="button"
-            variant="outline" 
-            size="sm" 
-            onClick={fetchData} 
-            className="rounded-none font-normal text-[11pt]"
-          >
-            <RefreshCw className="size-4 mr-2" /> Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              type="button"
+              variant="outline" 
+              size="sm" 
+              onClick={fetchData} 
+              className="rounded-none font-normal text-[11pt]"
+            >
+              <RefreshCw className="size-4 mr-2" /> Refresh
+            </Button>
+          </div>
           <input type="file" ref={fileInputRef} onChange={async (e) => {
             const file = e.target.files?.[0];
             if (!file || !firebaseApp || !user) return;
@@ -287,16 +291,42 @@ export default function ManageGalleryPage() {
               {images.map((image) => (
                 <div key={image.id} className="relative group aspect-square bg-muted border border-border/50 overflow-hidden rounded-none">
                   <FirebaseStorageImage path={image.path} alt={image.name} width={300} height={300} className="w-full h-full object-cover rounded-none" />
+                  
+                  {/* Status Indicator (Tick/Alert) */}
                   <div className="absolute top-2 left-2 z-10">
-                    {hasMatchingVideo(image.name) ? <CheckCircle2 className="size-4 text-green-500 fill-black" /> : <AlertCircle className="size-4 text-amber-500 fill-black" />}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="cursor-help">
+                            {hasMatchingVideo(image.name) ? (
+                              <CheckCircle2 className="size-5 text-green-500 fill-black/50" />
+                            ) : (
+                              <AlertCircle className="size-5 text-amber-500 fill-black/50" />
+                            )}
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">
+                          <p>{hasMatchingVideo(image.name) ? 'Matching video found' : 'No matching video (.mp4) found'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
+
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 gap-2">
-                    <Button type="button" variant="secondary" size="icon" className="rounded-none" onClick={() => openEditSculpture(image)}><Edit3 className="size-4" /></Button>
+                    <Button 
+                      type="button" 
+                      variant="secondary" 
+                      size="icon" 
+                      className="rounded-none shadow-lg" 
+                      onClick={() => openEditSculpture(image)}
+                    >
+                      <Edit3 className="size-4" />
+                    </Button>
                     <Button 
                       type="button"
                       variant="destructive" 
                       size="icon" 
-                      className="rounded-none" 
+                      className="rounded-none shadow-lg" 
                       onClick={(e) => handleDelete(e, image.path)}
                     >
                       <Trash2 className="size-4" />
@@ -368,7 +398,7 @@ export default function ManageGalleryPage() {
       {/* Sculpture Dialog */}
       <Dialog open={!!editingSculpture} onOpenChange={() => setEditingSculpture(null)}>
         <DialogContent className="max-w-lg rounded-none">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest font-normal">Edit Sculpture</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="tracking-widest font-normal">Edit Sculpture Info</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3 space-y-2">
@@ -394,7 +424,7 @@ export default function ManageGalleryPage() {
       {/* News Dialog */}
       <Dialog open={!!editingNews} onOpenChange={() => setEditingNews(null)}>
         <DialogContent className="max-w-2xl rounded-none">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest font-normal">{editingNews?.isNew ? 'New Update' : 'Edit Update'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="tracking-widest font-normal">{editingNews?.isNew ? 'New Update' : 'Edit Update'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
