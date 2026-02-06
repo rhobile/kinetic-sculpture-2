@@ -1,11 +1,9 @@
-
 'use client';
 
 import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default function NewsPage() {
   const { firestore } = useFirebase();
@@ -57,7 +55,7 @@ export default function NewsPage() {
                   </div>
                   <div className="md:col-span-3 space-y-3">
                     <p className="text-[12px] uppercase tracking-widest text-muted-foreground">{item.date}</p>
-                    <h2 className="text-[14px] font-normal uppercase tracking-wide">{item.title}</h2>
+                    <h2 className="text-[14px] font-normal tracking-wide">{item.title}</h2>
                     <p className="text-[12px] text-foreground/80 leading-relaxed font-normal whitespace-pre-wrap">
                       {item.content}
                     </p>

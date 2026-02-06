@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -9,15 +8,13 @@ import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Upload, Loader2, RefreshCw, Lock, Video, 
-  Image as ImageIcon, CheckCircle2, AlertCircle, Info, Edit3, Save, X, ArrowUpDown, Plus, Newspaper
+  Trash2, Upload, Loader2, RefreshCw, Lock, 
+  CheckCircle2, AlertCircle, Edit3, Save, Plus
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -353,7 +350,7 @@ export default function ManageGalleryPage() {
                 <div key={item.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-start gap-4">
                   <div className="space-y-1">
                     <p className="text-[9pt] uppercase tracking-widest text-muted-foreground">{item.date}</p>
-                    <h3 className="text-[12pt] font-normal uppercase">{item.title}</h3>
+                    <h3 className="text-[12pt] font-normal">{item.title}</h3>
                     <p className="text-[10pt] text-muted-foreground line-clamp-2">{item.content}</p>
                   </div>
                   <div className="flex gap-2">
