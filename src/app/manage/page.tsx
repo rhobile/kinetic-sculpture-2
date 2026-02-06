@@ -111,35 +111,33 @@ export default function ManageGalleryPage() {
 
   const handleDelete = async (e: React.MouseEvent, path: string) => {
     e.preventDefault();
-    if (!user) return;
+    e.stopPropagation();
+    
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Required",
+        description: "Please wait while the app connects. If this persists, refresh the page."
+      });
+      return;
+    }
+
     const isConfirmed = window.confirm(`Are you sure you want to delete this file?\nPath: ${path}`);
     if (!isConfirmed) return;
+
     try {
       const storage = getStorage(firebaseApp);
       const fileRef = storageRef(storage, path);
       await deleteObject(fileRef);
-      toast({ title: "File deleted" });
+      toast({ title: "File deleted successfully" });
       await fetchData();
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Delete failed", description: error.message });
-    }
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !firebaseApp || !user) return;
-    setIsUploading(true);
-    try {
-      const storage = getStorage(firebaseApp);
-      const storageReference = storageRef(storage, `${uploadFolder}/${file.name}`);
-      await uploadBytes(storageReference, file);
-      toast({ title: "Upload successful" });
-      fetchData();
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Upload failed" });
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      console.error("Delete failed:", error);
+      toast({ 
+        variant: "destructive", 
+        title: "Delete failed", 
+        description: error.message || "An unexpected error occurred during deletion."
+      });
     }
   };
 
@@ -241,10 +239,32 @@ export default function ManageGalleryPage() {
               {!user && !isAuthLoading && <Lock className="size-3 text-muted-foreground" />}
             </h1>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchData} className="rounded-none font-normal text-[11pt]">
+          <Button 
+            type="button"
+            variant="outline" 
+            size="sm" 
+            onClick={fetchData} 
+            className="rounded-none font-normal text-[11pt]"
+          >
             <RefreshCw className="size-4 mr-2" /> Refresh
           </Button>
-          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+          <input type="file" ref={fileInputRef} onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file || !firebaseApp || !user) return;
+            setIsUploading(true);
+            try {
+              const storage = getStorage(firebaseApp);
+              const storageReference = storageRef(storage, `${uploadFolder}/${file.name}`);
+              await uploadBytes(storageReference, file);
+              toast({ title: "Upload successful" });
+              fetchData();
+            } catch (error: any) {
+              toast({ variant: "destructive", title: "Upload failed", description: error.message });
+            } finally {
+              setIsUploading(false);
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+          }} className="hidden" />
         </div>
 
         <Tabs defaultValue="images" className="w-full">
@@ -257,10 +277,13 @@ export default function ManageGalleryPage() {
           {/* IMAGES TAB */}
           <TabsContent value="images" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Images</h2>
-              <Button size="sm" onClick={() => { setUploadFolder('ks-images'); fileInputRef.current?.click(); }} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
+              <div className="space-y-1">
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Images</h2>
+                <p className="text-[9pt] text-muted-foreground">Recommended: JPG, 30 FPS for corresponding videos.</p>
+              </div>
+              <Button type="button" size="sm" onClick={() => { setUploadFolder('ks-images'); fileInputRef.current?.click(); }} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
                 {isUploading ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
-                Upload
+                Upload Image
               </Button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -271,8 +294,16 @@ export default function ManageGalleryPage() {
                     {hasMatchingVideo(image.name) ? <CheckCircle2 className="size-4 text-green-500 fill-black" /> : <AlertCircle className="size-4 text-amber-500 fill-black" />}
                   </div>
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 gap-2">
-                    <Button variant="secondary" size="icon" className="rounded-none" onClick={() => openEditSculpture(image)}><Edit3 className="size-4" /></Button>
-                    <Button variant="destructive" size="icon" className="rounded-none" onClick={(e) => handleDelete(e, image.path)}><Trash2 className="size-4" /></Button>
+                    <Button type="button" variant="secondary" size="icon" className="rounded-none" onClick={() => openEditSculpture(image)}><Edit3 className="size-4" /></Button>
+                    <Button 
+                      type="button"
+                      variant="destructive" 
+                      size="icon" 
+                      className="rounded-none" 
+                      onClick={(e) => handleDelete(e, image.path)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -282,17 +313,28 @@ export default function ManageGalleryPage() {
           {/* VIDEOS TAB */}
           <TabsContent value="videos" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Videos</h2>
-              <Button size="sm" onClick={() => { setUploadFolder('ks-videos'); fileInputRef.current?.click(); }} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
+              <div className="space-y-1">
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Videos</h2>
+                <p className="text-[9pt] text-muted-foreground">Best format: MP4 (H.264) at 30 FPS.</p>
+              </div>
+              <Button type="button" size="sm" onClick={() => { setUploadFolder('ks-videos'); fileInputRef.current?.click(); }} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
                 {isUploading ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
-                Upload
+                Upload Video
               </Button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {videos.map((video) => (
                 <div key={video.id} className="p-4 bg-muted/30 border border-border/50 flex justify-between items-center">
                   <span className="text-[11pt] truncate">{video.name}</span>
-                  <Button variant="ghost" size="icon" onClick={(e) => handleDelete(e, video.path)}><Trash2 className="size-4" /></Button>
+                  <Button 
+                    type="button"
+                    variant="ghost" 
+                    size="icon" 
+                    className="text-destructive hover:bg-destructive/10"
+                    onClick={(e) => handleDelete(e, video.path)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
                 </div>
               ))}
             </div>
@@ -302,7 +344,7 @@ export default function ManageGalleryPage() {
           <TabsContent value="news" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
-              <Button size="sm" onClick={() => openEditNews()} className="rounded-none h-8 font-normal text-[10pt]">
+              <Button type="button" size="sm" onClick={() => openEditNews()} className="rounded-none h-8 font-normal text-[10pt]">
                 <Plus className="size-3 mr-2" /> Add News
               </Button>
             </div>
@@ -315,8 +357,8 @@ export default function ManageGalleryPage() {
                     <p className="text-[10pt] text-muted-foreground line-clamp-2">{item.content}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="icon" className="rounded-none" onClick={() => openEditNews(item)}><Edit3 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="rounded-none text-destructive" onClick={() => deleteNewsItem(item.id)}><Trash2 className="size-4" /></Button>
+                    <Button type="button" variant="outline" size="icon" className="rounded-none" onClick={() => openEditNews(item)}><Edit3 className="size-4" /></Button>
+                    <Button type="button" variant="ghost" size="icon" className="rounded-none text-destructive" onClick={() => deleteNewsItem(item.id)}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -347,7 +389,7 @@ export default function ManageGalleryPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={saveSculptureInfo} disabled={isSaving} className="rounded-none"><Save className="size-4 mr-2" /> Save</Button>
+            <Button type="button" onClick={saveSculptureInfo} disabled={isSaving} className="rounded-none"><Save className="size-4 mr-2" /> Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -383,7 +425,7 @@ export default function ManageGalleryPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={saveNewsItem} disabled={isSaving} className="rounded-none"><Save className="size-4 mr-2" /> Save News</Button>
+            <Button type="button" onClick={saveNewsItem} disabled={isSaving} className="rounded-none"><Save className="size-4 mr-2" /> Save News</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
