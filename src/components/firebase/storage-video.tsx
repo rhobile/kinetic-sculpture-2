@@ -82,7 +82,6 @@ export function FirebaseStorageVideo({ path, className }: FirebaseStorageVideoPr
         controls
         autoPlay
         loop
-        muted
         playsInline
         className={cn("w-full h-full object-contain", className)}
       />
