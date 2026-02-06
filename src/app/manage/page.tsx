@@ -4,13 +4,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { getStorage, ref as storageRef, listAll, deleteObject, uploadBytes } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
   Trash2, Upload, Loader2, RefreshCw, Lock, Video, 
-  Image as ImageIcon, CheckCircle2, AlertCircle, Info, Edit3, Save, X, ArrowUpDown 
+  Image as ImageIcon, CheckCircle2, AlertCircle, Info, Edit3, Save, X, ArrowUpDown, Plus, Newspaper
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,18 +31,33 @@ export default function ManageGalleryPage() {
   const [uploadFolder, setUploadFolder] = useState<'ks-images' | 'ks-videos'>('ks-images');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Firestore Descriptions
+  // Firestore Data
   const videosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'videos');
   }, [firestore]);
   const { data: firestoreVideos } = useCollection(videosQuery);
 
-  // Editing State
+  const newsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'news'), orderBy('order', 'asc'));
+  }, [firestore]);
+  const { data: firestoreNews } = useCollection(newsQuery);
+
+  // Editing State (Sculptures)
   const [editingSculpture, setEditingSculpture] = useState<any | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editDesc, setEditDesc] = useState('');
   const [editOrder, setEditOrder] = useState('0');
+
+  // Editing State (News)
+  const [editingNews, setEditingNews] = useState<any | null>(null);
+  const [newsTitle, setNewsTitle] = useState('');
+  const [newsDate, setNewsDate] = useState('');
+  const [newsContent, setNewsContent] = useState('');
+  const [newsImagePath, setNewsImagePath] = useState('');
+  const [newsOrder, setNewsOrder] = useState('0');
+
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -83,13 +98,6 @@ export default function ManageGalleryPage() {
 
     } catch (error: any) {
       console.error("Error loading storage content:", error);
-      toast({
-        variant: "destructive",
-        title: "Permission Denied",
-        description: error.code === 'storage/unauthorized' 
-          ? "Wait 60s for rules to deploy, then refresh." 
-          : "Could not fetch files from ks- folders."
-      });
     } finally {
       setIsLoading(false);
     }
@@ -103,41 +111,23 @@ export default function ManageGalleryPage() {
 
   const handleDelete = async (e: React.MouseEvent, path: string) => {
     e.preventDefault();
-    e.stopPropagation();
-
-    if (!user) {
-      toast({ variant: "destructive", title: "Permission Denied", description: "You must be signed in." });
-      return;
-    }
-
+    if (!user) return;
     const isConfirmed = window.confirm(`Are you sure you want to delete this file?\nPath: ${path}`);
     if (!isConfirmed) return;
-    
     try {
       const storage = getStorage(firebaseApp);
       const fileRef = storageRef(storage, path);
       await deleteObject(fileRef);
-      toast({ title: "File deleted successfully" });
+      toast({ title: "File deleted" });
       await fetchData();
     } catch (error: any) {
-      console.error("Delete failed:", error);
-      toast({
-        variant: "destructive",
-        title: "Delete failed",
-        description: error.message || "You might not have permission."
-      });
+      toast({ variant: "destructive", title: "Delete failed", description: error.message });
     }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !firebaseApp) return;
-
-    if (!user) {
-      toast({ variant: "destructive", title: "Permission Denied", description: "You must be signed in." });
-      return;
-    }
-
+    if (!file || !firebaseApp || !user) return;
     setIsUploading(true);
     try {
       const storage = getStorage(firebaseApp);
@@ -146,49 +136,93 @@ export default function ManageGalleryPage() {
       toast({ title: "Upload successful" });
       fetchData();
     } catch (error: any) {
-      console.error("Upload failed:", error);
-      toast({
-        variant: "destructive",
-        title: "Upload failed",
-        description: "Check file type and permissions."
-      });
+      toast({ variant: "destructive", title: "Upload failed" });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
-  const openEditDialog = (image: any) => {
+  // Sculpture Info
+  const openEditSculpture = (image: any) => {
     const fileName = image.name.split('.').slice(0, -1).join('.');
     const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
     const existing = firestoreVideos?.find(v => v.id === normalizedKey);
-    
     setEditingSculpture({ ...image, normalizedKey });
     setEditTitle(existing?.title || fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()));
     setEditDesc(existing?.description || '');
     setEditOrder(existing?.order?.toString() || '0');
   };
 
-  const handleSaveDescription = async () => {
+  const saveSculptureInfo = async () => {
     if (!firestore || !editingSculpture) return;
     setIsSaving(true);
     try {
-      const docRef = doc(firestore, 'videos', editingSculpture.normalizedKey);
-      await setDoc(docRef, {
+      await setDoc(doc(firestore, 'videos', editingSculpture.normalizedKey), {
         id: editingSculpture.normalizedKey,
         title: editTitle,
         description: editDesc,
         order: parseInt(editOrder) || 0,
         updatedAt: new Date().toISOString()
       }, { merge: true });
-      
       toast({ title: "Sculpture info saved" });
       setEditingSculpture(null);
     } catch (error: any) {
-      console.error("Save failed:", error);
-      toast({ variant: "destructive", title: "Save failed", description: error.message });
+      toast({ variant: "destructive", title: "Save failed" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // News Items
+  const openEditNews = (item?: any) => {
+    if (item) {
+      setEditingNews(item);
+      setNewsTitle(item.title);
+      setNewsDate(item.date);
+      setNewsContent(item.content);
+      setNewsImagePath(item.imagePath || '');
+      setNewsOrder(item.order?.toString() || '0');
+    } else {
+      setEditingNews({ isNew: true });
+      setNewsTitle('');
+      setNewsDate(new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }));
+      setNewsContent('');
+      setNewsImagePath('');
+      setNewsOrder('0');
+    }
+  };
+
+  const saveNewsItem = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      const id = editingNews.isNew ? doc(collection(firestore, 'news')).id : editingNews.id;
+      await setDoc(doc(firestore, 'news', id), {
+        id,
+        title: newsTitle,
+        date: newsDate,
+        content: newsContent,
+        imagePath: newsImagePath,
+        order: parseInt(newsOrder) || 0,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      toast({ title: "News item saved" });
+      setEditingNews(null);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Save failed" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteNewsItem = async (id: string) => {
+    if (!firestore || !window.confirm("Delete this news item?")) return;
+    try {
+      await deleteDoc(doc(firestore, 'news', id));
+      toast({ title: "News item deleted" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Delete failed" });
     }
   };
 
@@ -203,204 +237,153 @@ export default function ManageGalleryPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
           <div>
             <h1 className="text-[12pt] font-normal uppercase tracking-widest flex items-center gap-2">
-              Cloud Storage Browser (ks- folders)
+              Management Dashboard
               {!user && !isAuthLoading && <Lock className="size-3 text-muted-foreground" />}
             </h1>
-            <p className="text-[12pt] text-muted-foreground mt-1 font-normal">Manage sculpture media, descriptions, and ordering.</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={fetchData} className="rounded-none font-normal text-[11pt]">
-              <RefreshCw className="size-4 mr-2" /> Refresh
-            </Button>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileUpload} 
-              className="hidden" 
-              accept={uploadFolder === 'ks-images' ? "image/*" : "video/mp4"}
-            />
-          </div>
+          <Button variant="outline" size="sm" onClick={fetchData} className="rounded-none font-normal text-[11pt]">
+            <RefreshCw className="size-4 mr-2" /> Refresh
+          </Button>
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
         </div>
 
-        <Alert className="rounded-none border-accent/20 bg-accent/5">
-          <Info className="h-4 w-4 text-accent" />
-          <AlertTitle className="text-[10pt] uppercase tracking-widest font-normal">Management Tips</AlertTitle>
-          <AlertDescription className="text-[10pt] text-muted-foreground font-normal space-y-2 mt-2">
-            <p>Maintain consistent filenames (e.g., <code>wave.jpg</code> and <code>wave.mp4</code>). Use the <strong>Order</strong> field to reorder items in the main gallery (lower numbers show first).</p>
-          </AlertDescription>
-        </Alert>
-
         <Tabs defaultValue="images" className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2 rounded-none bg-muted/50 p-1 mb-8">
-            <TabsTrigger value="images" className="rounded-none data-[state=active]:bg-background">
-              <ImageIcon className="size-4 mr-2" /> Images ({images.length})
-            </TabsTrigger>
-            <TabsTrigger value="videos" className="rounded-none data-[state=active]:bg-background">
-              <Video className="size-4 mr-2" /> Videos ({videos.length})
-            </TabsTrigger>
+          <TabsList className="grid w-full max-w-lg grid-cols-3 rounded-none bg-muted/50 p-1 mb-8">
+            <TabsTrigger value="images" className="rounded-none">Images</TabsTrigger>
+            <TabsTrigger value="videos" className="rounded-none">Videos</TabsTrigger>
+            <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
           </TabsList>
 
+          {/* IMAGES TAB */}
           <TabsContent value="images" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculpture Images (/ks-images)</h2>
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Images</h2>
               <Button size="sm" onClick={() => { setUploadFolder('ks-images'); fileInputRef.current?.click(); }} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
-                {isUploading && uploadFolder === 'ks-images' ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
-                Upload Image
+                {isUploading ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
+                Upload
               </Button>
             </div>
-
-            {isLoading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-                {[...Array(5)].map((_, i) => <Skeleton key={i} className="aspect-square rounded-none" />)}
-              </div>
-            ) : images.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-                {images.map((image) => (
-                  <div key={image.id} className="relative group aspect-square bg-muted border border-border/50 overflow-hidden rounded-none">
-                    <FirebaseStorageImage
-                      path={image.path}
-                      alt={image.name}
-                      width={300}
-                      height={300}
-                      className="w-full h-full object-cover transition-opacity group-hover:opacity-60 rounded-none"
-                    />
-                    <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
-                      {hasMatchingVideo(image.name) ? (
-                        <div className="bg-green-500/90 p-1" title="Has matching video">
-                          <CheckCircle2 className="size-3 text-white" />
-                        </div>
-                      ) : (
-                        <div className="bg-amber-500/90 p-1" title="Missing matching video">
-                          <AlertCircle className="size-3 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 gap-2">
-                      <Button 
-                        variant="secondary" 
-                        size="icon" 
-                        className="rounded-none h-10 w-10" 
-                        onClick={() => openEditDialog(image)}
-                        title="Edit Info"
-                      >
-                        <Edit3 className="size-4" />
-                      </Button>
-                      <Button 
-                        variant="destructive" 
-                        size="icon" 
-                        className="rounded-none h-10 w-10" 
-                        onClick={(e) => handleDelete(e, image.path)}
-                        title="Delete Image"
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 p-2 bg-black/60 text-white text-[9pt] truncate font-normal">
-                      {image.name}
-                    </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
+              {images.map((image) => (
+                <div key={image.id} className="relative group aspect-square bg-muted border border-border/50 overflow-hidden rounded-none">
+                  <FirebaseStorageImage path={image.path} alt={image.name} width={300} height={300} className="w-full h-full object-cover rounded-none" />
+                  <div className="absolute top-2 left-2 z-10">
+                    {hasMatchingVideo(image.name) ? <CheckCircle2 className="size-4 text-green-500 fill-black" /> : <AlertCircle className="size-4 text-amber-500 fill-black" />}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-20 border border-dashed border-border/50 text-muted-foreground font-normal">
-                No images found.
-              </div>
-            )}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 gap-2">
+                    <Button variant="secondary" size="icon" className="rounded-none" onClick={() => openEditSculpture(image)}><Edit3 className="size-4" /></Button>
+                    <Button variant="destructive" size="icon" className="rounded-none" onClick={(e) => handleDelete(e, image.path)}><Trash2 className="size-4" /></Button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </TabsContent>
 
+          {/* VIDEOS TAB */}
           <TabsContent value="videos" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculpture Videos (/ks-videos)</h2>
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Videos</h2>
               <Button size="sm" onClick={() => { setUploadFolder('ks-videos'); fileInputRef.current?.click(); }} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
-                {isUploading && uploadFolder === 'ks-videos' ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
-                Upload Video
+                {isUploading ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
+                Upload
               </Button>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {videos.map((video) => (
+                <div key={video.id} className="p-4 bg-muted/30 border border-border/50 flex justify-between items-center">
+                  <span className="text-[11pt] truncate">{video.name}</span>
+                  <Button variant="ghost" size="icon" onClick={(e) => handleDelete(e, video.path)}><Trash2 className="size-4" /></Button>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
 
-            {isLoading ? (
-              <div className="space-y-2">
-                {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 w-full rounded-none" />)}
-              </div>
-            ) : videos.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {videos.map((video) => (
-                  <div key={video.id} className="p-4 bg-muted/30 border border-border/50 flex justify-between items-center group">
-                    <div className="flex items-center gap-3 overflow-hidden">
-                      <Video className="size-4 text-muted-foreground shrink-0" />
-                      <span className="text-[11pt] font-normal truncate">{video.name}</span>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-muted-foreground hover:text-destructive h-8 w-8 shrink-0" 
-                      onClick={(e) => handleDelete(e, video.path)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+          {/* NEWS TAB */}
+          <TabsContent value="news" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
+              <Button size="sm" onClick={() => openEditNews()} className="rounded-none h-8 font-normal text-[10pt]">
+                <Plus className="size-3 mr-2" /> Add News
+              </Button>
+            </div>
+            <div className="space-y-4">
+              {firestoreNews?.map((item) => (
+                <div key={item.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-start gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[9pt] uppercase tracking-widest text-muted-foreground">{item.date}</p>
+                    <h3 className="text-[12pt] font-normal uppercase">{item.title}</h3>
+                    <p className="text-[10pt] text-muted-foreground line-clamp-2">{item.content}</p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-20 border border-dashed border-border/50 text-muted-foreground font-normal">
-                No videos found.
-              </div>
-            )}
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="icon" className="rounded-none" onClick={() => openEditNews(item)}><Edit3 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="rounded-none text-destructive" onClick={() => deleteNewsItem(item.id)}><Trash2 className="size-4" /></Button>
+                  </div>
+                </div>
+              ))}
+              {firestoreNews?.length === 0 && <p className="text-center py-12 text-muted-foreground">No news items found.</p>}
+            </div>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Edit Sculpture Info Dialog */}
+      {/* Sculpture Dialog */}
       <Dialog open={!!editingSculpture} onOpenChange={() => setEditingSculpture(null)}>
-        <DialogContent className="rounded-none border-none max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="uppercase tracking-widest font-normal text-[12pt]">Edit Sculpture Info</DialogTitle>
-            <DialogDescription className="text-[10pt]">Update details and display order. Lower order numbers show first.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-6 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-6">
-              <div className="sm:col-span-3 space-y-2">
-                <Label htmlFor="title" className="text-[10pt] uppercase tracking-wide">Title</Label>
-                <Input 
-                  id="title" 
-                  value={editTitle} 
-                  onChange={(e) => setEditTitle(e.target.value)} 
-                  className="rounded-none"
-                  placeholder="Sculpture Title"
-                />
+        <DialogContent className="max-w-lg rounded-none">
+          <DialogHeader><DialogTitle className="uppercase tracking-widest font-normal">Edit Sculpture</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-4 gap-4">
+              <div className="col-span-3 space-y-2">
+                <Label>Title</Label>
+                <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="rounded-none" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="order" className="text-[10pt] uppercase tracking-wide flex items-center gap-1">
-                  <ArrowUpDown className="size-3" /> Order
-                </Label>
-                <Input 
-                  id="order" 
-                  type="number"
-                  value={editOrder} 
-                  onChange={(e) => setEditOrder(e.target.value)} 
-                  className="rounded-none"
-                  placeholder="0"
-                />
+                <Label>Order</Label>
+                <Input type="number" value={editOrder} onChange={e => setEditOrder(e.target.value)} className="rounded-none" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="desc" className="text-[10pt] uppercase tracking-wide">Description</Label>
-              <Textarea 
-                id="desc" 
-                value={editDesc} 
-                onChange={(e) => setEditDesc(e.target.value)} 
-                className="rounded-none min-h-[150px]"
-                placeholder="Paste or type the description here..."
-              />
+              <Label>Description</Label>
+              <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className="rounded-none min-h-[150px]" />
             </div>
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditingSculpture(null)} className="rounded-none font-normal">
-              <X className="size-4 mr-2" /> Cancel
-            </Button>
-            <Button onClick={handleSaveDescription} disabled={isSaving} className="rounded-none font-normal">
-              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />}
-              Save Changes
-            </Button>
+          <DialogFooter>
+            <Button onClick={saveSculptureInfo} disabled={isSaving} className="rounded-none"><Save className="size-4 mr-2" /> Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* News Dialog */}
+      <Dialog open={!!editingNews} onOpenChange={() => setEditingNews(null)}>
+        <DialogContent className="max-w-2xl rounded-none">
+          <DialogHeader><DialogTitle className="uppercase tracking-widest font-normal">{editingNews?.isNew ? 'New Update' : 'Edit Update'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input value={newsTitle} onChange={e => setNewsTitle(e.target.value)} className="rounded-none" />
+              </div>
+              <div className="space-y-2">
+                <Label>Date Label (e.g., July 2024)</Label>
+                <Input value={newsDate} onChange={e => setNewsDate(e.target.value)} className="rounded-none" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Image Path (optional)</Label>
+                <Input value={newsImagePath} onChange={e => setNewsImagePath(e.target.value)} className="rounded-none" placeholder="ks-images/sculpture.jpg" />
+              </div>
+              <div className="space-y-2">
+                <Label>Display Order</Label>
+                <Input type="number" value={newsOrder} onChange={e => setNewsOrder(e.target.value)} className="rounded-none" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Content</Label>
+              <Textarea value={newsContent} onChange={e => setNewsContent(e.target.value)} className="rounded-none min-h-[200px]" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={saveNewsItem} disabled={isSaving} className="rounded-none"><Save className="size-4 mr-2" /> Save News</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

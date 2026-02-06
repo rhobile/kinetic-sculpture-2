@@ -1,78 +1,18 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * FIREBASE SECURITY RULES DOCUMENTATION
-     * 
-     * Core Philosophy:
-     * This ruleset implements a "Public Read, Restricted Write" model. The application serves
-     * as a content delivery platform where Video metadata and Static Pages are globally 
-     * accessible to facilitate SEO and anonymous browsing, while write operations are
-     * strictly controlled to prevent unauthorized content modification.
-     * 
-     * Data Structure:
-     * - /videos/{videoId}: Root-level collection containing video metadata (titles, storage links).
-     * - /pages/{pageId}: Root-level collection containing static content for the application UI.
-     * 
-     * Key Security Decisions:
-     * 1. Public Accessibility: Since both 'Video' and 'Page' entities are described as "Publicly readable",
-     *    the 'get' and 'list' operations are permitted for all users, including unauthenticated ones.
-     * 2. Write Restrictions: The current entity definitions lack ownership fields (e.g., 'authorId' or 'ownerId'). 
-     *    Per the security framework, write operations are restricted until an ownership model 
-     *    is established in the schema to prevent anonymous or malicious data injection.
-     * 3. Structural Segregation: Metadata and content are separated into top-level collections 
-     *    to ensure query performance and clear authorization boundaries.
-     * 
-     * Denormalization for Authorization:
-     * This ruleset currently prioritizes data integrity and path-consistency. To support 
-     * owner-based writes in future iterations, an 'ownerId' or 'creatorId' should be 
-     * denormalized onto the documents within the /videos and /pages collections.
-     */
-
-    // --- Helper Functions ---
-
-    // --- Collection Rules ---
-
-    /**
-     * @description Rules for video metadata. Publicly readable for app users and guests.
-     * @path /videos/{videoId}
-     * @allow (get) - Any user requesting a specific video metadata document.
-     * @allow (list) - Any user browsing the video feed.
-     * @deny (create, update, delete) - Any user, because no ownership field exists in the schema.
-     * @principle Public Read with Restricted Writes.
-     */
     match /videos/{videoId} {
-      allow get, list: if true;
-      
-      // CRITICAL: Cannot implement owner-only writes. The 'Video' entity is missing an 'ownerId' or 'authorId' field.
-      allow create: if request.auth != null; // TODO: Add owner validation once the schema is updated with an ownership field.
-      allow update, delete: if request.auth != null; // TODO: Use isExistingOwner(resource.data.ownerId) once schema is updated.
+      allow read: if true;
+      allow write: if request.auth != null;
     }
-
-    /**
-     * @description Rules for static page content (About, Contact, etc.).
-     * @path /pages/{pageId}
-     * @allow (get) - Public access to view page content by ID.
-     * @allow (list) - Public access to list available static pages.
-     * @deny (create) - Unauthorized users attempting to create new pages.
-     * @principle Content-integrity preservation through restricted modification.
-     */
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
     match /pages/{pageId} {
-      allow get, list: if true;
-
-      // CRITICAL: Page content should typically only be managed by an Admin or system process.
-      // Since no admin roles or owner fields are defined in the IR, writes are locked.
-      allow create: if request.auth != null; // TODO: Restrict to users with 'admin' role.
-      allow update: if request.auth != null; // TODO: Ensure resource != null && user.role == 'admin'.
-      allow delete: if request.auth != null; // TODO: Ensure resource != null && user.role == 'admin'.
+      allow read: if true;
+      allow write: if request.auth != null;
     }
-    
-    /**
-     * NOTE: Regarding the user's mention of 'menu-images/cubelargedark.jpg' (Storage error):
-     * This Firestore ruleset does not define a 'menu' or 'images' collection as they were 
-     * not present in the provided Firestore IR. If image metadata is added to Firestore 
-     * in the future, corresponding rules must be added here.
-     */
   }
 }

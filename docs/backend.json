@@ -46,6 +46,21 @@
         "thumbnailUrl"
       ]
     },
+    "NewsItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NewsItem",
+      "type": "object",
+      "description": "An update or news article.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "content": { "type": "string" },
+        "imagePath": { "type": "string", "description": "Path to the image in Storage, e.g., ks-images/news.jpg" },
+        "order": { "type": "number" }
+      },
+      "required": ["title", "date", "content"]
+    },
     "Page": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Page",
@@ -92,13 +107,17 @@
           "schema": {
             "$ref": "#/backend/entities/Video"
           },
-          "description": "Stores video metadata. Publicly readable.",
-          "params": [
-            {
-              "name": "videoId",
-              "description": "Unique identifier for the video."
-            }
-          ]
+          "description": "Stores video metadata. Publicly readable."
+        }
+      },
+      {
+        "path": "/news/{newsId}",
+        "definition": {
+          "entityName": "NewsItem",
+          "schema": {
+            "$ref": "#/backend/entities/NewsItem"
+          },
+          "description": "Stores news updates."
         }
       },
       {
@@ -108,16 +127,9 @@
           "schema": {
             "$ref": "#/backend/entities/Page"
           },
-          "description": "Stores static page content. Publicly readable.",
-          "params": [
-            {
-              "name": "pageId",
-              "description": "Unique identifier for the page."
-            }
-          ]
+          "description": "Stores static page content. Publicly readable."
         }
       }
-    ],
-    "reasoning": "This Firestore structure prioritizes Authorization Independence and QAPs (Rules are not Filters). It segregates data with different access needs and uses path-based ownership where applicable.  The `videos` collection stores video metadata, and the `pages` collection stores static page content.  Both collections are globally readable. The structure is designed to support simple, robust security rules that avoid `get()` calls. Specifically, the structure uses segregation such that different access patterns are stored in different collections to avoid any security complexity. Since global read is available in both the `videos` and `pages` collections, QAPs are satisfied."
+    ]
   }
 }
