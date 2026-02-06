@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
 import { collection } from 'firebase/firestore';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
@@ -14,10 +14,9 @@ import { EXCLUDED_IMAGES, SCULPTURE_DESCRIPTIONS } from '@/lib/constants';
 
 export default function Home() {
   const { firebaseApp, firestore } = useFirebase();
-  const [images, setImages] = useState<FirebaseImage[]>([]);
+  const [storageItems, setStorageItems] = useState<{ images: any[], videos: Set<string> } | null>(null);
   const [selectedImage, setSelectedImage] = useState<FirebaseImage | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [status, setStatus] = useState<{ images: number, videos: number, matches: number } | null>(null);
+  const [isStorageLoading, setIsStorageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Firestore Descriptions and Ordering
@@ -27,50 +26,49 @@ export default function Home() {
   }, [firestore]);
   const { data: firestoreVideos } = useCollection(videosQuery);
 
+  // Fetch Storage items once or when firebaseApp changes
   useEffect(() => {
-    async function fetchGalleryData() {
+    async function fetchStorageData() {
       if (!firebaseApp) {
-        setIsLoading(false);
+        setIsStorageLoading(false);
         return;
       }
       
-      setIsLoading(true);
+      setIsStorageLoading(true);
       setError(null);
       try {
         const storage = getStorage(firebaseApp);
         
+        // List videos to find matches
         const videoListRef = storageRef(storage, 'ks-videos');
-        let videoItems: string[] = [];
+        let availableVideoNames = new Set<string>();
         try {
           const videoRes = await listAll(videoListRef);
-          videoItems = videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase());
+          availableVideoNames = new Set(
+            videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
+          );
         } catch (vidErr: any) {
           console.error("Error listing ks-videos:", vidErr);
           if (vidErr.code === 'storage/unauthorized') {
-            throw new Error("Permission denied for 'ks-videos'. Your Firebase Storage Security Rules are currently blocking public listing. Please wait a moment (up to 60s) for the new rules to deploy globally.");
+            throw new Error("Permission denied for 'ks-videos'. Check your Storage rules.");
           }
           throw vidErr;
         }
         
-        const availableVideoNames = new Set(videoItems);
-
+        // List images
         const imageListRef = storageRef(storage, 'ks-images');
         let imageRes;
         try {
           imageRes = await listAll(imageListRef);
         } catch (imgErr: any) {
           console.error("Error listing ks-images:", imgErr);
-          if (imgErr.code === 'storage/unauthorized') {
-            throw new Error("Permission denied for 'ks-images'. Your Firebase Storage Security Rules are currently blocking public listing. Please wait a moment (up to 60s) for the new rules to deploy globally.");
-          }
           throw imgErr;
         }
         
         const filteredItems = imageRes.items.filter(item => {
           const lowerName = item.name.toLowerCase();
           const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
-          const fileNameWithoutExt = item.name.split('.').slice(0, -1).join('.');
-          const fileNameLower = fileNameWithoutExt.toLowerCase();
+          const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase();
           
           const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameLower === excluded.toLowerCase());
           const videoExists = availableVideoNames.has(fileNameLower);
@@ -78,62 +76,63 @@ export default function Home() {
           return isJpg && !isExcluded && videoExists;
         });
 
-        // Use firestore data if available
-        let storageImages: (FirebaseImage & { order: number })[] = filteredItems.map((item, index) => {
-          const fileName = item.name.split('.').slice(0, -1).join('.');
-          const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
-          
-          // Match with Firestore data
-          const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
-
-          const displayTitle = fsData?.title || fileName
-            .replace(/[-_]/g, ' ')
-            .replace(/\b\w/g, (l) => l.toUpperCase());
-
-          const description = fsData?.description || SCULPTURE_DESCRIPTIONS[normalizedKey];
-          const order = fsData?.order !== undefined ? fsData.order : 999;
-
-          return {
-            id: item.fullPath,
-            path: item.fullPath,
-            alt: displayTitle,
-            description: description,
-            order: order,
-            width: 500,
-            height: index % 2 === 0 ? 600 : 750,
-          };
+        setStorageItems({
+          images: filteredItems,
+          videos: availableVideoNames
         });
 
-        // Sort images based on the 'order' property
-        storageImages.sort((a, b) => a.order - b.order);
-
-        setImages(storageImages);
-        setStatus({
-          images: imageRes.items.length,
-          videos: availableVideoNames.size,
-          matches: storageImages.length
-        });
-
-        if (storageImages.length === 0) {
+        if (filteredItems.length === 0) {
           if (imageRes.items.length === 0) {
             setError("No images found in 'ks-images/'.");
           } else if (availableVideoNames.size === 0) {
             setError(`Found ${imageRes.items.length} images, but no videos found in 'ks-videos/'.`);
           } else {
-            setError(`No matching filenames found between 'ks-images' and 'ks-videos'. Ensure each .jpg has a corresponding .mp4 with the same name.`);
+            setError(`No matching filenames found between 'ks-images' and 'ks-videos'.`);
           }
         }
       } catch (err: any) {
-        console.error("Error fetching gallery data:", err);
+        console.error("Error fetching storage data:", err);
         setError(err.message || 'Failed to connect to storage.');
       } finally {
-        setIsLoading(false);
+        setIsStorageLoading(false);
       }
     }
 
-    // Re-fetch when firestoreVideos updates to ensure sync
-    fetchGalleryData();
-  }, [firebaseApp, firestoreVideos]);
+    fetchStorageData();
+  }, [firebaseApp]);
+
+  // Combine Storage and Firestore data reactively
+  const galleryImages = useMemo(() => {
+    if (!storageItems) return [];
+
+    const mapped = storageItems.images.map((item, index) => {
+      const fileName = item.name.split('.').slice(0, -1).join('.');
+      const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      // Match with Firestore data for titles, descriptions, and custom ordering
+      const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
+
+      const displayTitle = fsData?.title || fileName
+        .replace(/[-_]/g, ' ')
+        .replace(/\b\w/g, (l) => l.toUpperCase());
+
+      const description = fsData?.description || SCULPTURE_DESCRIPTIONS[normalizedKey];
+      const order = fsData?.order !== undefined ? Number(fsData.order) : 999;
+
+      return {
+        id: item.fullPath,
+        path: item.fullPath,
+        alt: displayTitle,
+        description: description,
+        order: order,
+        width: 500,
+        height: index % 2 === 0 ? 600 : 750,
+      } as FirebaseImage & { order: number };
+    });
+
+    // Sort images based on the 'order' property set in Manage dashboard
+    return [...mapped].sort((a, b) => a.order - b.order);
+  }, [storageItems, firestoreVideos]);
 
   const handleImageClick = (image: FirebaseImage) => {
     setSelectedImage(image);
@@ -146,7 +145,7 @@ export default function Home() {
   return (
     <div className="bg-background min-h-screen">
       <main className="w-full">
-        {isLoading ? (
+        {isStorageLoading ? (
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">
             {[...Array(8)].map((_, i) => (
               <Skeleton key={i} className="w-full aspect-[2/3] rounded-none border-0" />
@@ -162,14 +161,13 @@ export default function Home() {
               <p className="text-[10pt] uppercase tracking-wider text-muted-foreground font-semibold">Troubleshooting:</p>
               <ul className="text-[10pt] text-muted-foreground space-y-2 list-disc pl-4 font-normal">
                 <li>Ensure matching filenames (e.g. 'art.jpg' and 'art.mp4').</li>
-                <li>Wait 60s for security rules to deploy if this is a new setup.</li>
-                <li>Check the <a href="/manage" className="text-accent underline">Manage Gallery</a> dashboard.</li>
+                <li>Check the <a href="/manage" className="text-accent underline">Manage Gallery</a> dashboard to set ordering.</li>
               </ul>
             </div>
           </div>
         ) : (
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">
-            {images.map((image) => (
+            {galleryImages.map((image) => (
               <div
                 key={image.id}
                 className="break-inside-avoid cursor-pointer group"

@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { getStorage, ref as storageRef, listAll, deleteObject, uploadBytes } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
@@ -9,8 +10,7 @@ import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
   Trash2, Upload, Loader2, RefreshCw, Lock, 
-  CheckCircle2, AlertCircle, Edit3, Save, Plus,
-  Info
+  CheckCircle2, AlertCircle, Edit3, Save, Plus
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
@@ -108,6 +108,16 @@ export default function ManageGalleryPage() {
     }
   }, [firebaseApp]);
 
+  // Sorted Images for the dashboard to match Home view
+  const sortedDashboardImages = useMemo(() => {
+    return [...images].map(img => {
+      const fileName = img.name.split('.').slice(0, -1).join('.');
+      const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
+      return { ...img, order: fsData?.order ?? 999 };
+    }).sort((a, b) => a.order - b.order);
+  }, [images, firestoreVideos]);
+
   const handleDelete = async (e: React.MouseEvent, path: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -140,7 +150,6 @@ export default function ManageGalleryPage() {
     }
   };
 
-  // Sculpture Info
   const openEditSculpture = (image: any) => {
     const fileName = image.name.split('.').slice(0, -1).join('.');
     const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -159,7 +168,7 @@ export default function ManageGalleryPage() {
         id: editingSculpture.normalizedKey,
         title: editTitle,
         description: editDesc,
-        order: parseInt(editOrder) || 0,
+        order: Number(editOrder) || 0,
         updatedAt: new Date().toISOString()
       }, { merge: true });
       toast({ title: "Sculpture info saved" });
@@ -171,7 +180,7 @@ export default function ManageGalleryPage() {
     }
   };
 
-  // News Items
+  // News Items Handling
   const openEditNews = (item?: any) => {
     if (item) {
       setEditingNews(item);
@@ -201,7 +210,7 @@ export default function ManageGalleryPage() {
         date: newsDate,
         content: newsContent,
         imagePath: newsImagePath,
-        order: parseInt(newsOrder) || 0,
+        order: Number(newsOrder) || 0,
         updatedAt: new Date().toISOString()
       }, { merge: true });
       toast({ title: "News item saved" });
@@ -275,12 +284,11 @@ export default function ManageGalleryPage() {
             <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
           </TabsList>
 
-          {/* IMAGES TAB */}
           <TabsContent value="images" className="space-y-6">
             <div className="flex justify-between items-center">
               <div className="space-y-1">
                 <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Images</h2>
-                <p className="text-[9pt] text-muted-foreground">Recommended: JPG, 30 FPS for corresponding videos.</p>
+                <p className="text-[9pt] text-muted-foreground">Order numbers determine display sequence on home page.</p>
               </div>
               <Button type="button" size="sm" onClick={() => { setUploadFolder('ks-images'); fileInputRef.current?.click(); }} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
                 {isUploading ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
@@ -288,12 +296,11 @@ export default function ManageGalleryPage() {
               </Button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
-              {images.map((image) => (
+              {sortedDashboardImages.map((image) => (
                 <div key={image.id} className="relative group aspect-square bg-muted border border-border/50 overflow-hidden rounded-none">
                   <FirebaseStorageImage path={image.path} alt={image.name} width={300} height={300} className="w-full h-full object-cover rounded-none" />
                   
-                  {/* Status Indicator (Tick/Alert) */}
-                  <div className="absolute top-2 left-2 z-10">
+                  <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -310,6 +317,11 @@ export default function ManageGalleryPage() {
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                    {image.order !== 999 && (
+                       <span className="bg-black/60 text-white text-[10px] px-1 py-0.5 rounded-sm w-fit font-mono">
+                         #{image.order}
+                       </span>
+                    )}
                   </div>
 
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 gap-2">
@@ -337,7 +349,6 @@ export default function ManageGalleryPage() {
             </div>
           </TabsContent>
 
-          {/* VIDEOS TAB */}
           <TabsContent value="videos" className="space-y-6">
             <div className="flex justify-between items-center">
               <div className="space-y-1">
@@ -367,7 +378,6 @@ export default function ManageGalleryPage() {
             </div>
           </TabsContent>
 
-          {/* NEWS TAB */}
           <TabsContent value="news" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
@@ -395,7 +405,6 @@ export default function ManageGalleryPage() {
         </Tabs>
       </div>
 
-      {/* Sculpture Dialog */}
       <Dialog open={!!editingSculpture} onOpenChange={() => setEditingSculpture(null)}>
         <DialogContent className="max-w-lg rounded-none">
           <DialogHeader><DialogTitle className="tracking-widest font-normal">Edit Sculpture Info</DialogTitle></DialogHeader>
@@ -421,7 +430,6 @@ export default function ManageGalleryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* News Dialog */}
       <Dialog open={!!editingNews} onOpenChange={() => setEditingNews(null)}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader><DialogTitle className="tracking-widest font-normal">{editingNews?.isNew ? 'New Update' : 'Edit Update'}</DialogTitle></DialogHeader>
