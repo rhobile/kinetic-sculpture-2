@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
-import { collection, doc, query, orderBy, where } from 'firebase/firestore';
+import { collection, doc, query, orderBy } from 'firebase/firestore';
 import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';

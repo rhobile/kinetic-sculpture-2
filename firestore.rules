@@ -1,14 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow public read access to all documents in the database.
-    // This supports the public gallery, news, and pages.
+    // Allow public read and list access to all documents.
+    // This ensures that collection-wide queries for the gallery and news work without permission errors.
     match /{document=**} {
       allow read, list: if true;
-      // Writing still requires authentication (anonymous or otherwise).
+      // Allow writes for authenticated users (including anonymous sessions used by the dashboard).
       allow write: if request.auth != null;
     }
     
-    // Deployment trigger version: 1.1.4
+    // Deployment trigger version: 1.1.9
   }
 }
