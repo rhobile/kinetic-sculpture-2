@@ -12,9 +12,31 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Menu, Settings } from 'lucide-react';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { firestore } = useFirebase();
+
+  const sidebarQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'pages', 'sidebar');
+  }, [firestore]);
+
+  const { data: sidebarData, isLoading } = useDoc(sidebarQuery);
+
+  // Fallback values
+  const content = {
+    introTitle: sidebarData?.introTitle || "Kinetic sculptures by Andrew Jones.",
+    introSub: sidebarData?.introSub || "Mainly linear elements balanced and articulated to move simply in the wind, light or strong.",
+    commissionNote: sidebarData?.commissionNote || "I work to commission. Guide prices are given below the videos or a price for a limited edition.",
+    gardenNotice: sidebarData?.gardenNotice || "It is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in Ely during Cambridge Open Studios which is in July each year.",
+    email: sidebarData?.email || "andrew@rhobile.com",
+    phone: sidebarData?.phone || "Telephone +44 (0)1353 610406",
+    mobile: sidebarData?.mobile || "Mobile +44 (0)781 4179181",
+    social: sidebarData?.social || "@Rhobile"
+  };
 
   return (
     <SidebarProvider>
@@ -29,13 +51,13 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SidebarContent className="px-6 py-4 space-y-8 text-sm leading-relaxed overflow-y-auto font-normal">
           <div className="space-y-4">
             <p className="text-[12pt] text-foreground">
-              Kinetic sculptures by Andrew Jones.
+              {content.introTitle}
             </p>
             <p className="text-[12pt] text-muted-foreground">
-              Mainly linear elements balanced and articulated to move simply in the wind, light or strong.
+              {content.introSub}
             </p>
             <p className="text-[12pt] text-muted-foreground">
-              I work to commission. Guide prices are given below the videos or a price for a limited edition.
+              {content.commissionNote}
             </p>
             <p>
               <Link href="/news" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30">
@@ -46,7 +68,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <div className="space-y-4 text-muted-foreground text-[12pt]">
             <p>
-              It is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in Ely during <a href="https://camopenstudios.org/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline underline-offset-4 decoration-accent/30">Cambridge Open Studios</a> which is in July each year.
+              {content.gardenNotice}
             </p>
             <p>
               If you would like to visit at another time, please <Link href="/contact" className="text-accent hover:underline underline-offset-4 decoration-accent/30">contact me</Link>.
@@ -55,12 +77,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           <div className="space-y-1 text-muted-foreground pt-2 border-t border-border/50 text-[12pt]">
             <p>
-              <a href="mailto:andrew@rhobile.com" className="hover:text-accent transition-colors">andrew@rhobile.com</a>
+              <a href={`mailto:${content.email}`} className="hover:text-accent transition-colors">{content.email}</a>
             </p>
-            <p>Telephone +44 (0)1353 610406</p>
-            <p>Mobile +44 (0)781 4179181</p>
+            <p>{content.phone}</p>
+            <p>{content.mobile}</p>
             <p>
-              <a href="#" className="hover:text-accent transition-colors">@Rhobile</a>
+              <a href="#" className="hover:text-accent transition-colors">{content.social}</a>
             </p>
           </div>
 

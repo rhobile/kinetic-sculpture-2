@@ -1,16 +1,15 @@
-
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { getStorage, ref as storageRef, listAll, deleteObject, uploadBytes } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
   Trash2, Upload, Loader2, RefreshCw, Lock, 
-  CheckCircle2, AlertCircle, Edit3, Save, Plus
+  CheckCircle2, AlertCircle, Edit3, Save, Plus, Layout
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
@@ -43,6 +42,12 @@ export default function ManageGalleryPage() {
   }, [firestore]);
   const { data: firestoreNews } = useCollection(newsQuery);
 
+  const sidebarQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return doc(firestore, 'pages', 'sidebar');
+  }, [firestore]);
+  const { data: sidebarData } = useDoc(sidebarQuery);
+
   // Editing State (Sculptures)
   const [editingSculpture, setEditingSculpture] = useState<any | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -56,6 +61,33 @@ export default function ManageGalleryPage() {
   const [newsContent, setNewsContent] = useState('');
   const [newsImagePath, setNewsImagePath] = useState('');
   const [newsOrder, setNewsOrder] = useState('0');
+
+  // Sidebar State
+  const [sidebarState, setSidebarState] = useState({
+    introTitle: '',
+    introSub: '',
+    commissionNote: '',
+    gardenNotice: '',
+    email: '',
+    phone: '',
+    mobile: '',
+    social: ''
+  });
+
+  useEffect(() => {
+    if (sidebarData) {
+      setSidebarState({
+        introTitle: sidebarData.introTitle || '',
+        introSub: sidebarData.introSub || '',
+        commissionNote: sidebarData.commissionNote || '',
+        gardenNotice: sidebarData.gardenNotice || '',
+        email: sidebarData.email || '',
+        phone: sidebarData.phone || '',
+        mobile: sidebarData.mobile || '',
+        social: sidebarData.social || ''
+      });
+    }
+  }, [sidebarData]);
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -180,6 +212,22 @@ export default function ManageGalleryPage() {
     }
   };
 
+  const saveSidebar = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      await setDoc(doc(firestore, 'pages', 'sidebar'), {
+        ...sidebarState,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      toast({ title: "Sidebar content updated" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Update failed" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   // News Items Handling
   const openEditNews = (item?: any) => {
     if (item) {
@@ -278,10 +326,11 @@ export default function ManageGalleryPage() {
         </div>
 
         <Tabs defaultValue="images" className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3 rounded-none bg-muted/50 p-1 mb-8">
+          <TabsList className="grid w-full max-w-xl grid-cols-4 rounded-none bg-muted/50 p-1 mb-8">
             <TabsTrigger value="images" className="rounded-none">Images</TabsTrigger>
             <TabsTrigger value="videos" className="rounded-none">Videos</TabsTrigger>
             <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
+            <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
           </TabsList>
 
           <TabsContent value="images" className="space-y-6">
@@ -400,6 +449,85 @@ export default function ManageGalleryPage() {
                 </div>
               ))}
               {firestoreNews?.length === 0 && <p className="text-center py-12 text-muted-foreground">No news items found.</p>}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="sidebar" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div className="space-y-1">
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar Content</h2>
+                <p className="text-[9pt] text-muted-foreground">Edit the global site information shown in the left sidebar.</p>
+              </div>
+              <Button type="button" size="sm" onClick={saveSidebar} disabled={isSaving} className="rounded-none h-8 font-normal text-[10pt]">
+                {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />}
+                Save Changes
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-muted/20 border border-border/50 p-6">
+              <div className="space-y-6">
+                <h3 className="text-[11pt] font-normal uppercase tracking-wider border-b border-border/50 pb-2">Main Introduction</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[9pt] uppercase tracking-widest">Main Title Line</Label>
+                    <Input 
+                      value={sidebarState.introTitle} 
+                      onChange={e => setSidebarState({...sidebarState, introTitle: e.target.value})} 
+                      className="rounded-none" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[9pt] uppercase tracking-widest">Sub-Introduction</Label>
+                    <Textarea 
+                      value={sidebarState.introSub} 
+                      onChange={e => setSidebarState({...sidebarState, introSub: e.target.value})} 
+                      className="rounded-none h-24" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[9pt] uppercase tracking-widest">Commission Note</Label>
+                    <Textarea 
+                      value={sidebarState.commissionNote} 
+                      onChange={e => setSidebarState({...sidebarState, commissionNote: e.target.value})} 
+                      className="rounded-none h-24" 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <h3 className="text-[11pt] font-normal uppercase tracking-wider border-b border-border/50 pb-2">Notices & Contact</h3>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[9pt] uppercase tracking-widest">Garden/Visit Notice</Label>
+                    <Textarea 
+                      value={sidebarState.gardenNotice} 
+                      onChange={e => setSidebarState({...sidebarState, gardenNotice: e.target.value})} 
+                      className="rounded-none h-32" 
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[9pt] uppercase tracking-widest">Email Address</Label>
+                      <Input value={sidebarState.email} onChange={e => setSidebarState({...sidebarState, email: e.target.value})} className="rounded-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[9pt] uppercase tracking-widest">Phone</Label>
+                      <Input value={sidebarState.phone} onChange={e => setSidebarState({...sidebarState, phone: e.target.value})} className="rounded-none" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[9pt] uppercase tracking-widest">Mobile</Label>
+                      <Input value={sidebarState.mobile} onChange={e => setSidebarState({...sidebarState, mobile: e.target.value})} className="rounded-none" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[9pt] uppercase tracking-widest">Social Handle</Label>
+                      <Input value={sidebarState.social} onChange={e => setSidebarState({...sidebarState, social: e.target.value})} className="rounded-none" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
