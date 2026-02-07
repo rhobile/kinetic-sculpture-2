@@ -9,7 +9,7 @@ import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonB
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Image as ImageIcon, Search
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Image as ImageIcon, Search, AlertCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -326,7 +326,14 @@ export default function ManageGalleryPage() {
                     <h3 className="text-[12pt] font-normal">{item.title}</h3>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="icon" onClick={() => { setEditingNews(item); setNewsTitle(item.title); setNewsDate(item.date); setNewsContent(item.content); setNewsImagePath(item.imagePath || ''); setNewsOrder(item.order?.toString() || '0'); }}><Edit3 className="size-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={() => { 
+                      setEditingNews(item); 
+                      setNewsTitle(item.title); 
+                      setNewsDate(item.date); 
+                      setNewsContent(item.content); 
+                      setNewsImagePath(item.imagePath || ''); 
+                      setNewsOrder(item.order?.toString() || '0'); 
+                    }}><Edit3 className="size-4" /></Button>
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -354,7 +361,12 @@ export default function ManageGalleryPage() {
                     <p className="text-[9pt] font-mono text-muted-foreground">/p/{page.slug}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="icon" onClick={() => { setEditingPage(page); setPageTitle(page.title); setPageSlug(page.slug); setPageContent(page.content); }}><Edit3 className="size-4" /></Button>
+                    <Button variant="outline" size="icon" onClick={() => { 
+                      setEditingPage(page); 
+                      setPageTitle(page.title); 
+                      setPageSlug(page.slug); 
+                      setPageContent(page.content); 
+                    }}><Edit3 className="size-4" /></Button>
                     <Button 
                       variant="ghost" 
                       size="icon" 
@@ -394,6 +406,7 @@ export default function ManageGalleryPage() {
         </Tabs>
       </div>
 
+      {/* Sculpture Edit Dialog */}
       <Dialog open={isSculptureDialogOpen} onOpenChange={setIsSculptureDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader>
@@ -430,16 +443,61 @@ export default function ManageGalleryPage() {
           </div>
           <DialogFooter>
             <Button onClick={saveSculpture} disabled={isSaving || !sculptureTitle} className="rounded-none w-full sm:w-auto">
-              <Save className="size-4 mr-2" /> {editingSculpture?.isNew ? 'Add to Index' : 'Save Changes'}
+              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} {editingSculpture?.isNew ? 'Add to Index' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* News Edit Dialog */}
+      <Dialog open={!!editingNews} onOpenChange={(open) => !open && setEditingNews(null)}>
+        <DialogContent className="max-w-2xl rounded-none">
+          <DialogHeader>
+            <DialogTitle>{editingNews?.isNew ? 'Add News' : 'Edit News'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2"><Label>Title</Label><Input value={newsTitle} onChange={e => setNewsTitle(e.target.value)} className="rounded-none" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Date String (e.g. July 2024)</Label><Input value={newsDate} onChange={e => setNewsDate(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label>Order</Label><Input type="number" value={newsOrder} onChange={e => setNewsOrder(e.target.value)} className="rounded-none" /></div>
+            </div>
+            <div className="space-y-2"><Label>Content</Label><Textarea value={newsContent} onChange={e => setNewsContent(e.target.value)} className="rounded-none h-32" /></div>
+            <div className="space-y-2"><Label>Image Path (Optional)</Label><Input value={newsImagePath} onChange={e => setNewsImagePath(e.target.value)} placeholder="ks-images/news.jpg" className="rounded-none" /></div>
+          </div>
+          <DialogFooter>
+            <Button onClick={saveNewsItem} disabled={isSaving || !newsTitle} className="rounded-none">
+              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} Save News
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Page Edit Dialog */}
+      <Dialog open={!!editingPage} onOpenChange={(open) => !open && setEditingPage(null)}>
+        <DialogContent className="max-w-3xl rounded-none">
+          <DialogHeader>
+            <DialogTitle>{editingPage?.isNew ? 'Create Page' : 'Edit Page'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Page Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label>Slug (e.g. my-new-page)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" /></div>
+            </div>
+            <div className="space-y-2"><Label>Content</Label><Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-64" /></div>
+          </div>
+          <DialogFooter>
+            <Button onClick={savePage} disabled={isSaving || !pageSlug} className="rounded-none">
+              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} Save Page
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Cloud Browser Dialog */}
       <Dialog open={isCloudBrowserOpen} onOpenChange={setIsCloudBrowserOpen}>
         <DialogContent className="max-w-lg rounded-none">
           <DialogHeader><DialogTitle>Cloud Storage Browser</DialogTitle></DialogHeader>
-          <div className="max-h-[400px] overflow-y-auto space-y-2 py-4">
+          <div className="max-h-[400px] overflow-y-auto space-y-2 py-4 px-2">
             {images.map((item) => (
               <div key={item.path} className="flex items-center gap-4 p-3 border border-border/50 bg-muted/20 hover:bg-muted/40 cursor-pointer" onClick={() => {
                 setSculptureTitle(item.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
@@ -456,6 +514,12 @@ export default function ManageGalleryPage() {
                 <Button variant="ghost" size="sm" className="rounded-none">Select</Button>
               </div>
             ))}
+            {images.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center space-y-2">
+                <AlertCircle className="size-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">No files found in ks-images/</p>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
