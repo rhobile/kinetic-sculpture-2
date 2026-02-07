@@ -1,29 +1,24 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Rules for videos collection
-    // Allows anyone to read individual videos and list the collection (queries).
-    // Requires authentication for any write operations (create, update, delete).
+    // Explicitly allow public reading and listing for core collections
+    // to support real-time queries (useCollection).
+    
     match /videos/{document=**} {
-      allow read: if true;
+      allow read, list: if true;
       allow write: if request.auth != null;
     }
 
-    // Rules for news collection
-    // Allows public reading of news updates.
-    // Requires authentication for managing news.
     match /news/{document=**} {
-      allow read: if true;
+      allow read, list: if true;
       allow write: if request.auth != null;
     }
 
-    // Rules for pages collection
-    // Allows public reading of static page content (about, contact, sidebar).
-    // Requires authentication for editing page content.
     match /pages/{document=**} {
-      allow read: if true;
+      allow read, list: if true;
       allow write: if request.auth != null;
     }
+    
+    // Deployment trigger version: 1.1.1
   }
 }
