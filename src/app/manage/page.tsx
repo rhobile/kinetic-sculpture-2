@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { getStorage, ref as storageRef, listAll, deleteObject, uploadBytes } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 export default function ManageGalleryPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -34,7 +35,7 @@ export default function ManageGalleryPage() {
     introTitle: "Kinetic sculptures by Andrew Jones.",
     introSub: "Mainly linear elements balanced and articulated to move simply in the wind, light or strong.",
     commissionNote: "I work to commission. Guide prices are given below the videos or a price for a limited edition.",
-    gardenNotice: "It is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in Ely during Cambridge Open Studios which is in July each year.",
+    gardenNotice: "It is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.",
     email: "andrew@rhobile.com",
     phone: "Telephone +44 (0)1353 610406",
     mobile: "Mobile +44 (0)781 4179181",
@@ -114,7 +115,7 @@ export default function ManageGalleryPage() {
     }
   }, [auth, user, isAuthLoading]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     if (!firebaseApp) return;
     setIsLoading(true);
     try {
@@ -144,16 +145,17 @@ export default function ManageGalleryPage() {
 
     } catch (error: any) {
       console.error("Error loading storage content:", error);
+      toast({ variant: "destructive", title: "Refresh failed", description: "Could not connect to storage." });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [firebaseApp]);
 
   useEffect(() => {
     if (firebaseApp) {
       fetchData();
     }
-  }, [firebaseApp]);
+  }, [firebaseApp, fetchData]);
 
   const sortedDashboardImages = useMemo(() => {
     return [...images].map(img => {
@@ -349,8 +351,14 @@ export default function ManageGalleryPage() {
             {!user && !isAuthLoading && <Lock className="size-3 text-muted-foreground" />}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={fetchData} className="rounded-none font-normal text-[11pt]">
-              <RefreshCw className="size-4 mr-2" /> Refresh
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => fetchData()} 
+              disabled={isLoading}
+              className="rounded-none font-normal text-[11pt]"
+            >
+              <RefreshCw className={cn("size-4 mr-2", isLoading && "animate-spin")} /> Refresh
             </Button>
           </div>
           <input type="file" ref={fileInputRef} onChange={async (e) => {
