@@ -16,17 +16,23 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
 
   const { data: pageData, isLoading } = useDoc(pageQuery);
 
-  if (isLoading) {
+  // Display skeleton during initial load or if parameters are still being resolved
+  if (isLoading || !firestore || !slug) {
     return (
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-3xl mx-auto space-y-6">
-          <Skeleton className="h-10 w-3/4" />
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-10 w-3/4 mb-10" />
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+          </div>
         </div>
       </main>
     );
   }
 
+  // If loading is finished and no data was found, then show 404
   if (!pageData) {
     return (
       <main className="p-4 sm:p-6 lg:p-8">

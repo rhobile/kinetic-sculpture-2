@@ -143,6 +143,7 @@ export default function ManageGalleryPage() {
       }));
       setVideos(videoItems);
 
+      toast({ title: "Data refreshed" });
     } catch (error: any) {
       console.error("Error loading storage content:", error);
       toast({ variant: "destructive", title: "Refresh failed", description: "Could not connect to storage." });
@@ -306,16 +307,28 @@ export default function ManageGalleryPage() {
       toast({ variant: "destructive", title: "Slug is required" });
       return;
     }
+
+    // Clean slug: lowercase, no spaces, remove special chars
+    const cleanedSlug = pageSlug.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    
     setIsSaving(true);
     try {
-      const id = editingPage.isNew ? pageSlug : editingPage.id;
-      await setDoc(doc(firestore, 'pages', id), {
-        id,
+      const pageId = cleanedSlug;
+      
+      // Use setDoc to ensure the document ID is always the cleaned slug
+      await setDoc(doc(firestore, 'pages', pageId), {
+        id: pageId,
         title: pageTitle,
-        slug: pageSlug,
+        slug: cleanedSlug,
         content: pageContent,
         updatedAt: new Date().toISOString()
       }, { merge: true });
+
+      // If renaming (slug changed), delete the old document
+      if (!editingPage.isNew && editingPage.id !== pageId) {
+        await deleteDoc(doc(firestore, 'pages', editingPage.id));
+      }
+
       toast({ title: "Page saved successfully" });
       setEditingPage(null);
     } catch (error: any) {
