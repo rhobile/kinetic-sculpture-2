@@ -1,7 +1,7 @@
 
 'use client';
 
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, where } from 'firebase/firestore';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,7 +14,12 @@ export default function FlowObservationsPage() {
 
   const observationsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'videos'), orderBy('order', 'asc'));
+    // Only show items explicitly marked as observations
+    return query(
+      collection(firestore, 'videos'), 
+      where('isObservation', '==', true),
+      orderBy('order', 'asc')
+    );
   }, [firestore]);
 
   const { data: observations, isLoading } = useCollection(observationsQuery);
@@ -74,7 +79,7 @@ export default function FlowObservationsPage() {
                 </article>
               ))
             ) : (
-              <p className="text-[12px] text-muted-foreground italic font-normal">No flow observations found. Use the Management Dashboard to add titles and descriptions.</p>
+              <p className="text-[12px] text-muted-foreground italic font-normal">No flow observations found. Use the Management Dashboard to curate this list.</p>
             )}
           </div>
         </div>

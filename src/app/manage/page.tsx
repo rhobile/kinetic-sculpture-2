@@ -4,12 +4,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
-import { collection, doc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, query, orderBy, where } from 'firebase/firestore';
 import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Search, AlertCircle, EyeOff, Eye, Info, ListFilter
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Search, AlertCircle, EyeOff, Eye, Info, ListFilter, LayoutGrid
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,12 +32,12 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-export default function ManageGalleryPage() {
+export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
   const [storageData, setStorageData] = useState<{ images: any[], videos: Set<string> }>({ images: [], videos: new Set() });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages', msg: string } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages', msg: string, actionType?: 'delete' | 'remove-observation' } | null>(null);
 
   // Sidebar Defaults
   const SIDEBAR_DEFAULTS = {
@@ -52,11 +52,11 @@ export default function ManageGalleryPage() {
   };
 
   // Firestore Data
-  const observationsQuery = useMemoFirebase(() => {
+  const allVideosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'videos'), orderBy('order', 'asc'));
   }, [firestore]);
-  const { data: firestoreObservations } = useCollection(observationsQuery);
+  const { data: firestoreVideos } = useCollection(allVideosQuery);
 
   const newsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -76,16 +76,17 @@ export default function ManageGalleryPage() {
   }, [firestore]);
   const { data: sidebarData } = useDoc(sidebarQuery);
 
-  // Observation Editing State
-  const [isObservationDialogOpen, setIsObservationDialogOpen] = useState(false);
+  // Observation / Gallery Editing State
+  const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isCloudBrowserOpen, setIsCloudBrowserOpen] = useState(false);
-  const [editingObservation, setEditingObservation] = useState<any | null>(null);
-  const [obsTitle, setObsTitle] = useState('');
-  const [obsDesc, setObsDesc] = useState('');
-  const [obsOrder, setObsOrder] = useState('0');
-  const [obsImagePath, setObsImagePath] = useState('');
-  const [obsVideoPath, setObsVideoPath] = useState('');
-  const [obsHidden, setObsHidden] = useState(false);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [itemTitle, setItemTitle] = useState('');
+  const [itemDesc, setItemDesc] = useState('');
+  const [itemOrder, setItemOrder] = useState('0');
+  const [itemImagePath, setItemImagePath] = useState('');
+  const [itemVideoPath, setItemVideoPath] = useState('');
+  const [itemHidden, setItemHidden] = useState(false);
+  const [itemIsObservation, setItemIsObservation] = useState(false);
 
   // News Editing State
   const [editingNews, setEditingNews] = useState<any | null>(null);
@@ -155,49 +156,70 @@ export default function ManageGalleryPage() {
     if (firebaseApp) fetchData();
   }, [firebaseApp, fetchData]);
 
-  // Observations logic: Only show curated Firestore entries
-  const curatedObservations = useMemo(() => {
-    if (!firestoreObservations) return [];
-    return firestoreObservations.map(fsData => {
-      const storageImg = storageData.images.find(img => img.id === fsData.id);
+  // Derived Data: Flow Observations (Curated items for the list page)
+  const observationItems = useMemo(() => {
+    if (!firestoreVideos) return [];
+    return firestoreVideos.filter(v => v.isObservation === true);
+  }, [firestoreVideos]);
+
+  // Derived Data: Home Gallery (All items appearing in the masonry)
+  const homeGalleryItems = useMemo(() => {
+    return storageData.images.map(img => {
+      const fsData = firestoreVideos?.find(v => v.id === img.id);
+      const videoExists = storageData.videos.has(img.id);
+      if (!videoExists) return null; // Masonry only shows items with video
+
       return {
-        ...fsData,
-        normalizedId: fsData.id,
-        isIndexed: true,
-        imagePath: fsData.imagePath || (storageImg ? storageImg.path : ''),
-        videoPath: fsData.videoPath || `ks-videos/${fsData.id}.mp4`
+        id: img.id,
+        title: fsData?.title || img.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        description: fsData?.description || "",
+        hidden: fsData?.hidden || false,
+        order: fsData?.order || 999,
+        imagePath: fsData?.imagePath || img.path,
+        videoPath: fsData?.videoPath || `ks-videos/${img.id}.mp4`,
+        isObservation: fsData?.isObservation || false,
+        isIndexed: !!fsData
       };
-    }).sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [storageData, firestoreObservations]);
+    }).filter(Boolean).sort((a: any, b: any) => a.order - b.order);
+  }, [storageData, firestoreVideos]);
 
   const confirmDelete = () => {
     if (!itemToDelete || !firestore) return;
-    deleteDocumentNonBlocking(doc(firestore, itemToDelete.collection, itemToDelete.id));
-    toast({ title: "Item removed", description: "The content has been removed from the list." });
+
+    if (itemToDelete.actionType === 'remove-observation') {
+      updateDocumentNonBlocking(doc(firestore, 'videos', itemToDelete.id), {
+        isObservation: false
+      });
+      toast({ title: "Removed from Flow Observations" });
+    } else {
+      deleteDocumentNonBlocking(doc(firestore, itemToDelete.collection, itemToDelete.id));
+      toast({ title: "Item removed", description: "Metadata has been cleared." });
+    }
     setItemToDelete(null);
   };
 
-  const saveObservation = async () => {
-    if (!firestore || !obsTitle) return;
+  const saveItem = async () => {
+    if (!firestore || !itemTitle) return;
     setIsSaving(true);
     try {
-      const id = editingObservation?.normalizedId || obsTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const id = editingItem?.id || itemTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const docRef = doc(firestore, 'videos', id);
       
       setDocumentNonBlocking(docRef, {
         id,
-        title: obsTitle,
-        description: obsDesc,
-        order: Number(obsOrder) || 0,
-        hidden: obsHidden,
-        imagePath: obsImagePath,
-        videoPath: obsVideoPath,
+        title: itemTitle,
+        description: itemDesc,
+        order: Number(itemOrder) || 0,
+        hidden: itemHidden,
+        isObservation: itemIsObservation,
+        imagePath: itemImagePath,
+        videoPath: itemVideoPath,
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      toast({ title: "Observation saved" });
-      setIsObservationDialogOpen(false);
-      setEditingObservation(null);
+      toast({ title: "Changes saved" });
+      setIsItemDialogOpen(false);
+      setEditingItem(null);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save failed" });
     } finally {
@@ -210,7 +232,7 @@ export default function ManageGalleryPage() {
     updateDocumentNonBlocking(doc(firestore, 'videos', item.id), {
       hidden: !item.hidden
     });
-    toast({ title: item.hidden ? "Unhidden" : "Hidden" });
+    toast({ title: item.hidden ? "Now visible in gallery" : "Hidden from gallery" });
   };
 
   const saveNewsItem = async () => {
@@ -276,19 +298,32 @@ export default function ManageGalleryPage() {
     }
   };
 
+  const openItemEditor = (item: any) => {
+    setEditingItem(item);
+    setItemTitle(item.title || '');
+    setItemDesc(item.description || '');
+    setItemOrder(item.order?.toString() || '0');
+    setItemImagePath(item.imagePath || '');
+    setItemVideoPath(item.videoPath || '');
+    setItemHidden(item.hidden || false);
+    setItemIsObservation(item.isObservation || false);
+    setIsItemDialogOpen(true);
+  };
+
   return (
     <main className="p-4 sm:p-6 lg:p-8 bg-background min-h-screen">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
           <h1 className="text-[12pt] font-normal uppercase tracking-widest">Management Dashboard</h1>
           <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
-            <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Refresh Files
+            <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Refresh Gallery State
           </Button>
         </div>
 
         <Tabs defaultValue="observations" className="w-full">
-          <TabsList className="grid w-full max-w-3xl grid-cols-4 rounded-none bg-muted/50 p-1 mb-8">
+          <TabsList className="grid w-full max-w-4xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
             <TabsTrigger value="observations" className="rounded-none">Flow Observations</TabsTrigger>
+            <TabsTrigger value="gallery" className="rounded-none">Home Gallery</TabsTrigger>
             <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
             <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
             <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
@@ -297,93 +332,107 @@ export default function ManageGalleryPage() {
           <TabsContent value="observations" className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Flow Observations List</h2>
-                <p className="text-[9pt] text-muted-foreground mt-1">Manage the curated items that appear in the Flow Observations index.</p>
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Curated Flow Observations</h2>
+                <p className="text-[9pt] text-muted-foreground mt-1">Manage items appearing on the dedicated Flow Observations page.</p>
               </div>
-              <Button size="sm" onClick={() => {
-                setEditingObservation({ isNew: true });
-                setObsTitle('');
-                setObsDesc('');
-                setObsOrder('0');
-                setObsImagePath('');
-                setObsVideoPath('');
-                setObsHidden(false);
-                setIsObservationDialogOpen(true);
-              }} className="rounded-none h-8 font-normal">
+              <Button size="sm" onClick={() => openItemEditor({ isNew: true, isObservation: true })} className="rounded-none h-8 font-normal">
                 <Plus className="size-3 mr-2" /> Add Observation
               </Button>
             </div>
 
             <div className="space-y-4">
-              {curatedObservations.map((item) => (
-                <div key={item.id} className={cn("p-6 bg-muted/20 border border-border/50 flex justify-between items-center group", item.hidden && "opacity-60")}>
+              {observationItems.map((item) => (
+                <div key={item.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-center group">
                   <div className="flex items-center gap-6">
-                    <div className="size-16 bg-black flex items-center justify-center shrink-0 border border-border/50 relative">
+                    <div className="size-16 bg-black flex items-center justify-center shrink-0 border border-border/50">
                       <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover opacity-80" />
-                      {item.hidden && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/60">
-                          <EyeOff className="size-4 text-white" />
-                        </div>
-                      )}
                     </div>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <h3 className="text-[12pt] font-normal">{item.title}</h3>
-                        {item.hidden && <Badge variant="destructive" className="rounded-none text-[8px] uppercase tracking-wider font-normal">Hidden</Badge>}
-                      </div>
-                      <div className="flex items-center gap-4 text-[9pt] uppercase tracking-widest text-muted-foreground">
-                        <span>Order: {item.order}</span>
-                        <span className="flex items-center gap-1"><Info className="size-3" /> Indexed</span>
-                      </div>
+                      <h3 className="text-[12pt] font-normal">{item.title}</h3>
+                      <p className="text-[9pt] uppercase tracking-widest text-muted-foreground">Order: {item.order}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" size="icon" onClick={() => toggleVisibility(item)} className="rounded-none border-border/50">
-                            {item.hidden ? <EyeOff className="size-4 text-destructive" /> : <Eye className="size-4" />}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="rounded-none text-[10px] uppercase tracking-widest">{item.hidden ? "Show" : "Hide"}</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-
-                    <Button variant="outline" size="icon" className="rounded-none border-border/50" onClick={() => {
-                      setEditingObservation(item);
-                      setObsTitle(item.title);
-                      setObsDesc(item.description);
-                      setObsOrder(item.order.toString());
-                      setObsImagePath(item.imagePath);
-                      setObsVideoPath(item.videoPath);
-                      setObsHidden(item.hidden);
-                      setIsObservationDialogOpen(true);
-                    }}><Edit3 className="size-4" /></Button>
-
+                    <Button variant="outline" size="icon" className="rounded-none" onClick={() => openItemEditor(item)}><Edit3 className="size-4" /></Button>
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       className="text-destructive rounded-none" 
-                      onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Remove this flow observation from the list? The files will remain in Storage." })}
+                      onClick={() => setItemToDelete({ 
+                        id: item.id, 
+                        collection: 'videos', 
+                        actionType: 'remove-observation',
+                        msg: "Remove this from the Flow Observations list? It will still remain in the Home Gallery." 
+                      })}
                     >
                       <Trash2 className="size-4" />
                     </Button>
                   </div>
                 </div>
               ))}
-              {curatedObservations.length === 0 && !isRefreshing && (
-                <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-muted/10 border border-dashed border-border/50">
-                  <ListFilter className="size-10 text-muted-foreground/30" />
-                  <div className="space-y-1">
-                    <p className="text-[11pt] font-normal">No flow observations indexed.</p>
-                    <p className="text-[9pt] text-muted-foreground">Click "Add Observation" and use the Cloud Browser to link storage files.</p>
-                  </div>
+              {observationItems.length === 0 && (
+                <div className="py-20 text-center border border-dashed border-border/50 bg-muted/5">
+                  <ListFilter className="size-8 mx-auto text-muted-foreground/30 mb-4" />
+                  <p className="text-[10pt] text-muted-foreground uppercase tracking-widest">No curated observations found.</p>
                 </div>
               )}
             </div>
           </TabsContent>
 
-          {/* Other tabs remain unchanged */}
+          <TabsContent value="gallery" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Home Gallery Masonry</h2>
+                <p className="text-[9pt] text-muted-foreground mt-1">Manage visibility and metadata for every item on your home page.</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {homeGalleryItems.map((item: any) => (
+                <div key={item.id} className={cn("p-4 bg-muted/20 border border-border/50 flex items-center gap-4 transition-opacity", item.hidden && "opacity-60")}>
+                  <div className="size-20 bg-black shrink-0 relative border border-border/50">
+                    <FirebaseStorageImage path={item.imagePath} alt={item.title} width={80} height={80} className="object-cover w-full h-full" />
+                    {item.hidden && <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><EyeOff className="size-4 text-white" /></div>}
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[11pt] font-normal truncate">{item.title}</h3>
+                      {item.isObservation && <Badge variant="outline" className="text-[8px] h-4 rounded-none uppercase tracking-tighter">Obs</Badge>}
+                    </div>
+                    <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">Order: {item.order}</p>
+                    <div className="flex gap-2 pt-1">
+                      <Button variant="outline" size="xs" className="h-7 text-[9px] rounded-none uppercase tracking-widest" onClick={() => openItemEditor(item)}>Edit Details</Button>
+                      <Button variant="ghost" size="xs" className={cn("h-7 text-[9px] rounded-none uppercase tracking-widest", item.hidden ? "text-accent" : "text-muted-foreground")} onClick={() => toggleVisibility(item)}>
+                        {item.hidden ? "Show" : "Hide"}
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="size-8 text-destructive rounded-none" 
+                            onClick={() => setItemToDelete({ 
+                              id: item.id, 
+                              collection: 'videos', 
+                              msg: "Clear custom title and description for this item? It will remain in the gallery with default settings unless you toggle visibility." 
+                            })}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="text-[9px] rounded-none uppercase">Reset Metadata</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
           <TabsContent value="news" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
@@ -409,7 +458,7 @@ export default function ManageGalleryPage() {
                       variant="ghost" 
                       size="icon" 
                       className="text-destructive" 
-                      onClick={() => setItemToDelete({ id: item.id, collection: 'news', msg: "Delete this news update?" })}
+                      onClick={() => setItemToDelete({ id: item.id, collection: 'news', msg: "Delete this news update permanently?" })}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -442,7 +491,7 @@ export default function ManageGalleryPage() {
                       variant="ghost" 
                       size="icon" 
                       className="text-destructive" 
-                      onClick={() => setItemToDelete({ id: page.id, collection: 'pages', msg: "Delete this page?" })}
+                      onClick={() => setItemToDelete({ id: page.id, collection: 'pages', msg: "Delete this page permanently?" })}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -454,9 +503,9 @@ export default function ManageGalleryPage() {
 
           <TabsContent value="sidebar" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar Content</h2>
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar Branding</h2>
               <Button size="sm" onClick={saveSidebar} disabled={isSaving} className="rounded-none h-8 font-normal">
-                {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save
+                {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Changes
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-muted/20 border border-border/50 p-6">
@@ -477,50 +526,43 @@ export default function ManageGalleryPage() {
         </Tabs>
       </div>
 
-      {/* Confirmation Dialog */}
-      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
-        <AlertDialogContent className="rounded-none">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>{itemToDelete?.msg}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="rounded-none bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Confirm Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Observation Edit Dialog */}
-      <Dialog open={isObservationDialogOpen} onOpenChange={setIsObservationDialogOpen}>
+      {/* Item (Observation/Gallery) Edit Dialog */}
+      <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader>
-            <DialogTitle>{editingObservation?.isIndexed ? 'Edit Observation' : 'Add Flow Observation'}</DialogTitle>
-            <DialogDescription>Curate this observation with a title and description for the Flow Observations list.</DialogDescription>
+            <DialogTitle>Edit Content</DialogTitle>
+            <DialogDescription>Update title, description, and visibility settings.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
-            <div className="flex items-center justify-between p-4 bg-muted/30 border border-border/50">
-              <div className="space-y-0.5">
-                <Label className="text-sm">Hide from Observation List</Label>
-                <p className="text-xs text-muted-foreground">Keep data but remove from public index.</p>
+            <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 border border-border/50">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-xs">Hide from Gallery</Label>
+                  <p className="text-[10px] text-muted-foreground">Remove from home masonry.</p>
+                </div>
+                <Switch checked={itemHidden} onCheckedChange={setItemHidden} />
               </div>
-              <Switch checked={obsHidden} onCheckedChange={setObsHidden} />
+              <div className="flex items-center justify-between border-l pl-4">
+                <div className="space-y-0.5">
+                  <Label className="text-xs">Mark as Observation</Label>
+                  <p className="text-[10px] text-muted-foreground">Show in curated list page.</p>
+                </div>
+                <Switch checked={itemIsObservation} onCheckedChange={setItemIsObservation} />
+              </div>
             </div>
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3">
                 <Label>Title</Label>
-                <Input value={obsTitle} onChange={e => setObsTitle(e.target.value)} className="rounded-none" />
+                <Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none" />
               </div>
               <div>
                 <Label>Order</Label>
-                <Input type="number" value={obsOrder} onChange={e => setObsOrder(e.target.value)} className="rounded-none" />
+                <Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none" />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea value={obsDesc} onChange={e => setObsDesc(e.target.value)} className="rounded-none min-h-[100px]" />
+              <Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none min-h-[100px]" />
             </div>
             <div className="space-y-4 border-t pt-4">
               <div className="flex items-center justify-between">
@@ -530,58 +572,14 @@ export default function ManageGalleryPage() {
                 </Button>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Image Path</Label><Input value={obsImagePath} onChange={e => setObsImagePath(e.target.value)} placeholder="ks-images/art.jpg" className="rounded-none" /></div>
-                <div className="space-y-2"><Label>Video Path</Label><Input value={obsVideoPath} onChange={e => setObsVideoPath(e.target.value)} placeholder="ks-videos/art.mp4" className="rounded-none" /></div>
+                <div className="space-y-2"><Label>Image Path</Label><Input value={itemImagePath} onChange={e => setItemImagePath(e.target.value)} placeholder="ks-images/art.jpg" className="rounded-none text-xs" /></div>
+                <div className="space-y-2"><Label>Video Path</Label><Input value={itemVideoPath} onChange={e => setItemVideoPath(e.target.value)} placeholder="ks-videos/art.mp4" className="rounded-none text-xs" /></div>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={saveObservation} disabled={isSaving || !obsTitle} className="rounded-none w-full sm:w-auto">
-              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} Save Observation
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* News Edit Dialog */}
-      <Dialog open={!!editingNews} onOpenChange={(open) => !open && setEditingNews(null)}>
-        <DialogContent className="max-w-2xl rounded-none">
-          <DialogHeader>
-            <DialogTitle>{editingNews?.isNew ? 'Add News' : 'Edit News'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2"><Label>Title</Label><Input value={newsTitle} onChange={e => setNewsTitle(e.target.value)} className="rounded-none" /></div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Date String (e.g. July 2024)</Label><Input value={newsDate} onChange={e => setNewsDate(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label>Order</Label><Input type="number" value={newsOrder} onChange={e => setNewsOrder(e.target.value)} className="rounded-none" /></div>
-            </div>
-            <div className="space-y-2"><Label>Content</Label><Textarea value={newsContent} onChange={e => setNewsContent(e.target.value)} className="rounded-none h-32" /></div>
-            <div className="space-y-2"><Label>Image Path (Optional)</Label><Input value={newsImagePath} onChange={e => setNewsImagePath(e.target.value)} placeholder="ks-images/news.jpg" className="rounded-none" /></div>
-          </div>
-          <DialogFooter>
-            <Button onClick={saveNewsItem} disabled={isSaving || !newsTitle} className="rounded-none">
-              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} Save News
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Page Edit Dialog */}
-      <Dialog open={!!editingPage} onOpenChange={(open) => !open && setEditingPage(null)}>
-        <DialogContent className="max-w-3xl rounded-none">
-          <DialogHeader>
-            <DialogTitle>{editingPage?.isNew ? 'Create Page' : 'Edit Page'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Page Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label>Slug (e.g. my-new-page)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" /></div>
-            </div>
-            <div className="space-y-2"><Label>Content</Label><Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-64" /></div>
-          </div>
-          <DialogFooter>
-            <Button onClick={savePage} disabled={isSaving || !pageSlug} className="rounded-none">
-              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} Save Page
+            <Button onClick={saveItem} disabled={isSaving || !itemTitle} className="rounded-none w-full sm:w-auto">
+              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -594,9 +592,9 @@ export default function ManageGalleryPage() {
           <div className="max-h-[400px] overflow-y-auto space-y-2 py-4 px-2">
             {storageData.images.map((item) => (
               <div key={item.path} className="flex items-center gap-4 p-3 border border-border/50 bg-muted/20 hover:bg-muted/40 cursor-pointer" onClick={() => {
-                setObsTitle(item.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
-                setObsImagePath(item.path);
-                setObsVideoPath(`ks-videos/${item.name.replace(/\.[^/.]+$/, ".mp4")}`);
+                setItemTitle(item.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+                setItemImagePath(item.path);
+                setItemVideoPath(`ks-videos/${item.name.replace(/\.[^/.]+$/, ".mp4")}`);
                 setIsCloudBrowserOpen(false);
               }}>
                 <div className="size-12 bg-black flex items-center justify-center shrink-0 border border-border/50">
@@ -608,15 +606,53 @@ export default function ManageGalleryPage() {
                 <Button variant="ghost" size="sm" className="rounded-none">Select</Button>
               </div>
             ))}
-            {storageData.images.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-center space-y-2">
-                <AlertCircle className="size-8 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">No files found in ks-images/</p>
-              </div>
-            )}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Other dialogs for News and Pages (same as before) */}
+      <Dialog open={!!editingNews} onOpenChange={(open) => !open && setEditingNews(null)}>
+        <DialogContent className="max-w-2xl rounded-none">
+          <DialogHeader><DialogTitle>{editingNews?.isNew ? 'Add News' : 'Edit News'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2"><Label>Title</Label><Input value={newsTitle} onChange={e => setNewsTitle(e.target.value)} className="rounded-none" /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Date</Label><Input value={newsDate} onChange={e => setNewsDate(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label>Order</Label><Input type="number" value={newsOrder} onChange={e => setNewsOrder(e.target.value)} className="rounded-none" /></div>
+            </div>
+            <div className="space-y-2"><Label>Content</Label><Textarea value={newsContent} onChange={e => setNewsContent(e.target.value)} className="rounded-none h-32" /></div>
+            <div className="space-y-2"><Label>Image Path</Label><Input value={newsImagePath} onChange={e => setNewsImagePath(e.target.value)} className="rounded-none" /></div>
+          </div>
+          <DialogFooter><Button onClick={saveNewsItem} disabled={isSaving} className="rounded-none">Save News</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingPage} onOpenChange={(open) => !open && setEditingPage(null)}>
+        <DialogContent className="max-w-3xl rounded-none">
+          <DialogHeader><DialogTitle>{editingPage?.isNew ? 'Create Page' : 'Edit Page'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Page Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label>Slug</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" /></div>
+            </div>
+            <div className="space-y-2"><Label>Content</Label><Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-64" /></div>
+          </div>
+          <DialogFooter><Button onClick={savePage} disabled={isSaving} className="rounded-none">Save Page</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+        <AlertDialogContent className="rounded-none">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>{itemToDelete?.msg}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="rounded-none bg-destructive text-destructive-foreground">Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
