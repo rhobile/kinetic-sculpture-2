@@ -5,18 +5,29 @@ import { useState, useEffect, useCallback } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
-import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Image as ImageIcon, Search, AlertCircle
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Image as ImageIcon, Search, AlertCircle, EyeOff, Eye
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 export default function ManageGalleryPage() {
@@ -24,6 +35,7 @@ export default function ManageGalleryPage() {
   const [images, setImages] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages', msg: string } | null>(null);
 
   // Sidebar Defaults
   const SIDEBAR_DEFAULTS = {
@@ -71,6 +83,7 @@ export default function ManageGalleryPage() {
   const [sculptureOrder, setSculptureOrder] = useState('0');
   const [sculptureImagePath, setSculptureImagePath] = useState('');
   const [sculptureVideoPath, setSculptureVideoPath] = useState('');
+  const [sculptureHidden, setSculptureHidden] = useState(false);
 
   // News Editing State
   const [editingNews, setEditingNews] = useState<any | null>(null);
@@ -133,19 +146,11 @@ export default function ManageGalleryPage() {
     if (firebaseApp) fetchData();
   }, [firebaseApp, fetchData]);
 
-  const handleDelete = (e: React.MouseEvent, id: string, collectionName: 'videos' | 'news' | 'pages', confirmMsg: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    if (!firestore || !user) {
-      toast({ variant: "destructive", title: "Wait a moment", description: "Connecting to database..." });
-      return;
-    }
-
-    if (!window.confirm(confirmMsg)) return;
-
-    deleteDocumentNonBlocking(doc(firestore, collectionName, id));
-    toast({ title: "Removal requested", description: "The item will be removed from the list." });
+  const confirmDelete = () => {
+    if (!itemToDelete || !firestore) return;
+    deleteDocumentNonBlocking(doc(firestore, itemToDelete.collection, itemToDelete.id));
+    toast({ title: "Item removed", description: "The content has been removed from the website." });
+    setItemToDelete(null);
   };
 
   const saveSculpture = async () => {
@@ -160,6 +165,7 @@ export default function ManageGalleryPage() {
         title: sculptureTitle,
         description: sculptureDesc,
         order: Number(sculptureOrder) || 0,
+        hidden: sculptureHidden,
         imagePath: sculptureImagePath || `ks-images/${id}.jpg`,
         videoPath: sculptureVideoPath || `ks-videos/${id}.mp4`,
         updatedAt: new Date().toISOString()
@@ -173,6 +179,14 @@ export default function ManageGalleryPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const toggleVisibility = (item: any) => {
+    if (!firestore) return;
+    updateDocumentNonBlocking(doc(firestore, 'videos', item.id), {
+      hidden: !item.hidden
+    });
+    toast({ title: item.hidden ? "Sculpture unhidden" : "Sculpture hidden" });
   };
 
   const saveNewsItem = async () => {
@@ -266,6 +280,7 @@ export default function ManageGalleryPage() {
                 setSculptureOrder('0');
                 setSculptureImagePath('');
                 setSculptureVideoPath('');
+                setSculptureHidden(false);
                 setIsSculptureDialogOpen(true);
               }} className="rounded-none h-8 font-normal">
                 <Plus className="size-3 mr-2" /> Add Sculpture
@@ -274,19 +289,30 @@ export default function ManageGalleryPage() {
 
             <div className="space-y-4">
               {firestoreVideos?.map((item) => (
-                <div key={item.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-center group">
+                <div key={item.id} className={cn("p-6 bg-muted/20 border border-border/50 flex justify-between items-center group", item.hidden && "opacity-60")}>
                   <div className="flex items-center gap-6">
-                    <div className="size-16 bg-black flex items-center justify-center shrink-0 border border-border/50">
+                    <div className="size-16 bg-black flex items-center justify-center shrink-0 border border-border/50 relative">
                       {item.imagePath ? (
                         <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover opacity-80" />
                       ) : <ImageIcon className="size-6 text-muted-foreground" />}
+                      {item.hidden && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                          <EyeOff className="size-4 text-white" />
+                        </div>
+                      )}
                     </div>
                     <div className="space-y-1">
                       <h3 className="text-[12pt] font-normal">{item.title}</h3>
-                      <p className="text-[9pt] uppercase tracking-widest text-muted-foreground">Order: {item.order}</p>
+                      <div className="flex items-center gap-4 text-[9pt] uppercase tracking-widest text-muted-foreground">
+                        <span>Order: {item.order}</span>
+                        {item.hidden && <span className="text-destructive font-semibold">Hidden</span>}
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Button variant="outline" size="icon" onClick={() => toggleVisibility(item)} title={item.hidden ? "Show in Gallery" : "Hide from Gallery"}>
+                      {item.hidden ? <EyeOff className="size-4 text-destructive" /> : <Eye className="size-4" />}
+                    </Button>
                     <Button variant="outline" size="icon" onClick={() => {
                       setEditingSculpture(item);
                       setSculptureTitle(item.title);
@@ -294,13 +320,14 @@ export default function ManageGalleryPage() {
                       setSculptureOrder(item.order.toString());
                       setSculptureImagePath(item.imagePath || '');
                       setSculptureVideoPath(item.videoPath || '');
+                      setSculptureHidden(item.hidden || false);
                       setIsSculptureDialogOpen(true);
                     }}><Edit3 className="size-4" /></Button>
                     <Button 
                       variant="ghost" 
                       size="icon" 
                       className="text-destructive" 
-                      onClick={(e) => handleDelete(e, item.id, 'videos', "Remove this sculpture from the Index? This will NOT delete your files from Storage.")}
+                      onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Remove this sculpture from the Index? This will NOT delete your files from Storage." })}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -338,7 +365,7 @@ export default function ManageGalleryPage() {
                       variant="ghost" 
                       size="icon" 
                       className="text-destructive" 
-                      onClick={(e) => handleDelete(e, item.id, 'news', "Delete this news update?")}
+                      onClick={() => setItemToDelete({ id: item.id, collection: 'news', msg: "Delete this news update?" })}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -371,7 +398,7 @@ export default function ManageGalleryPage() {
                       variant="ghost" 
                       size="icon" 
                       className="text-destructive" 
-                      onClick={(e) => handleDelete(e, page.id, 'pages', "Delete this page?")}
+                      onClick={() => setItemToDelete({ id: page.id, collection: 'pages', msg: "Delete this page?" })}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -406,6 +433,22 @@ export default function ManageGalleryPage() {
         </Tabs>
       </div>
 
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
+        <AlertDialogContent className="rounded-none">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>{itemToDelete?.msg}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="rounded-none bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Confirm Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Sculpture Edit Dialog */}
       <Dialog open={isSculptureDialogOpen} onOpenChange={setIsSculptureDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
@@ -414,6 +457,13 @@ export default function ManageGalleryPage() {
             <DialogDescription>Index a sculpture to show in the detailed list.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
+            <div className="flex items-center justify-between p-4 bg-muted/30 border border-border/50">
+              <div className="space-y-0.5">
+                <Label className="text-sm">Hide from Gallery</Label>
+                <p className="text-xs text-muted-foreground">Keep the metadata but remove from the public masonry.</p>
+              </div>
+              <Switch checked={sculptureHidden} onCheckedChange={setSculptureHidden} />
+            </div>
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3">
                 <Label>Title</Label>

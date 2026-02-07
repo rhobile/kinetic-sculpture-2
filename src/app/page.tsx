@@ -109,8 +109,11 @@ export default function Home() {
       const fileName = item.name.split('.').slice(0, -1).join('.');
       const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
       
-      // Match with Firestore data for titles, descriptions, and custom ordering
+      // Match with Firestore data for titles, descriptions, custom ordering, and visibility
       const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
+
+      // If marked as hidden in Firestore, exclude it from the gallery
+      if (fsData?.hidden) return null;
 
       const displayTitle = fsData?.title || fileName
         .replace(/[-_]/g, ' ')
@@ -128,7 +131,7 @@ export default function Home() {
         width: 500,
         height: index % 2 === 0 ? 600 : 750,
       } as FirebaseImage & { order: number };
-    });
+    }).filter(img => img !== null);
 
     // Sort images based on the 'order' property set in Manage dashboard
     return [...mapped].sort((a, b) => a.order - b.order);

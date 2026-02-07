@@ -23,6 +23,10 @@
           "type": "number",
           "description": "The display order of the sculpture (lower numbers first)."
         },
+        "hidden": {
+          "type": "boolean",
+          "description": "If true, this sculpture is hidden from the public masonry and index."
+        },
         "uploadDate": {
           "type": "string",
           "description": "Date and time when the video was uploaded.",
