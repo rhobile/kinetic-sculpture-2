@@ -1,24 +1,14 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Explicitly allow public reading and listing for core collections
-    // to support real-time queries (useCollection).
-    
-    match /videos/{document=**} {
+    // Allow public read access to all documents in the database.
+    // This supports the public gallery, news, and pages.
+    match /{document=**} {
       allow read, list: if true;
-      allow write: if request.auth != null;
-    }
-
-    match /news/{document=**} {
-      allow read, list: if true;
-      allow write: if request.auth != null;
-    }
-
-    match /pages/{document=**} {
-      allow read, list: if true;
+      // Writing still requires authentication (anonymous or otherwise).
       allow write: if request.auth != null;
     }
     
-    // Deployment trigger version: 1.1.1
+    // Deployment trigger version: 1.1.4
   }
 }
