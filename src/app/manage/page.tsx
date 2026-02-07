@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
@@ -9,7 +8,7 @@ import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonB
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Image as ImageIcon, Search, AlertCircle, EyeOff, Eye
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Image as ImageIcon, Search, AlertCircle, EyeOff, Eye, Info
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,10 +28,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export default function ManageGalleryPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
-  const [images, setImages] = useState<any[]>([]);
+  const [storageData, setStorageData] = useState<{ images: any[], videos: Set<string> }>({ images: [], videos: new Set() });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages', msg: string } | null>(null);
@@ -52,7 +53,7 @@ export default function ManageGalleryPage() {
   // Firestore Data
   const videosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'videos'), orderBy('order', 'asc'));
+    return collection(firestore, 'videos');
   }, [firestore]);
   const { data: firestoreVideos } = useCollection(videosQuery);
 
@@ -128,12 +129,19 @@ export default function ManageGalleryPage() {
     setIsRefreshing(true);
     try {
       const storage = getStorage(firebaseApp);
-      const imgRes = await listAll(storageRef(storage, 'ks-images'));
-      setImages(imgRes.items.map(item => ({ 
+      const [imgRes, vidRes] = await Promise.all([
+        listAll(storageRef(storage, 'ks-images')),
+        listAll(storageRef(storage, 'ks-videos'))
+      ]);
+
+      const videos = new Set(vidRes.items.map(v => v.name.split('.').slice(0, -1).join('.').toLowerCase()));
+      const images = imgRes.items.map(item => ({ 
         id: item.name.split('.').slice(0, -1).join('.').toLowerCase(), 
         path: item.fullPath, 
         name: item.name 
-      })));
+      }));
+
+      setStorageData({ images, videos });
       toast({ title: "Gallery refreshed" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Refresh failed" });
@@ -146,6 +154,26 @@ export default function ManageGalleryPage() {
     if (firebaseApp) fetchData();
   }, [firebaseApp, fetchData]);
 
+  // Combined Sculptures logic: Base it on storage images that have videos
+  const combinedSculptures = useMemo(() => {
+    return storageData.images.filter(img => storageData.videos.has(img.id)).map(img => {
+      const normalizedKey = img.id.replace(/[^a-z0-9]/g, '');
+      const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
+      
+      return {
+        ...img,
+        normalizedId: normalizedKey,
+        isIndexed: !!fsData,
+        title: fsData?.title || img.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        description: fsData?.description || '',
+        order: fsData?.order ?? 999,
+        hidden: fsData?.hidden ?? false,
+        imagePath: fsData?.imagePath || img.path,
+        videoPath: fsData?.videoPath || `ks-videos/${img.id}.mp4`
+      };
+    }).sort((a, b) => a.order - b.order);
+  }, [storageData, firestoreVideos]);
+
   const confirmDelete = () => {
     if (!itemToDelete || !firestore) return;
     deleteDocumentNonBlocking(doc(firestore, itemToDelete.collection, itemToDelete.id));
@@ -157,7 +185,7 @@ export default function ManageGalleryPage() {
     if (!firestore || !sculptureTitle) return;
     setIsSaving(true);
     try {
-      const id = editingSculpture?.id || sculptureTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const id = editingSculpture?.normalizedId || sculptureTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const docRef = doc(firestore, 'videos', id);
       
       setDocumentNonBlocking(docRef, {
@@ -166,8 +194,8 @@ export default function ManageGalleryPage() {
         description: sculptureDesc,
         order: Number(sculptureOrder) || 0,
         hidden: sculptureHidden,
-        imagePath: sculptureImagePath || `ks-images/${id}.jpg`,
-        videoPath: sculptureVideoPath || `ks-videos/${id}.mp4`,
+        imagePath: sculptureImagePath,
+        videoPath: sculptureVideoPath,
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
@@ -183,7 +211,8 @@ export default function ManageGalleryPage() {
 
   const toggleVisibility = (item: any) => {
     if (!firestore) return;
-    updateDocumentNonBlocking(doc(firestore, 'videos', item.id), {
+    const id = item.normalizedId;
+    updateDocumentNonBlocking(doc(firestore, 'videos', id), {
       hidden: !item.hidden
     });
     toast({ title: item.hidden ? "Sculpture unhidden" : "Sculpture hidden" });
@@ -272,7 +301,10 @@ export default function ManageGalleryPage() {
 
           <TabsContent value="sculptures" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Indexed Sculptures</h2>
+              <div>
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Masonry & Index</h2>
+                <p className="text-[9pt] text-muted-foreground mt-1">Manage titles, descriptions, and ordering for items appearing in your masonry.</p>
+              </div>
               <Button size="sm" onClick={() => {
                 setEditingSculpture({ isNew: true });
                 setSculptureTitle('');
@@ -288,13 +320,11 @@ export default function ManageGalleryPage() {
             </div>
 
             <div className="space-y-4">
-              {firestoreVideos?.map((item) => (
+              {combinedSculptures.map((item) => (
                 <div key={item.id} className={cn("p-6 bg-muted/20 border border-border/50 flex justify-between items-center group", item.hidden && "opacity-60")}>
                   <div className="flex items-center gap-6">
                     <div className="size-16 bg-black flex items-center justify-center shrink-0 border border-border/50 relative">
-                      {item.imagePath ? (
-                        <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover opacity-80" />
-                      ) : <ImageIcon className="size-6 text-muted-foreground" />}
+                      <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover opacity-80" />
                       {item.hidden && (
                         <div className="absolute inset-0 flex items-center justify-center bg-black/60">
                           <EyeOff className="size-4 text-white" />
@@ -302,40 +332,61 @@ export default function ManageGalleryPage() {
                       )}
                     </div>
                     <div className="space-y-1">
-                      <h3 className="text-[12pt] font-normal">{item.title}</h3>
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-[12pt] font-normal">{item.title}</h3>
+                        {!item.isIndexed && <Badge variant="secondary" className="rounded-none text-[8px] uppercase tracking-wider font-normal bg-accent/10 text-accent border-accent/20">Needs Indexing</Badge>}
+                        {item.hidden && <Badge variant="destructive" className="rounded-none text-[8px] uppercase tracking-wider font-normal">Hidden</Badge>}
+                      </div>
                       <div className="flex items-center gap-4 text-[9pt] uppercase tracking-widest text-muted-foreground">
-                        <span>Order: {item.order}</span>
-                        {item.hidden && <span className="text-destructive font-semibold">Hidden</span>}
+                        <span>Order: {item.order === 999 ? 'Default' : item.order}</span>
+                        {item.isIndexed && <span className="flex items-center gap-1"><Info className="size-3" /> Indexed in List</span>}
                       </div>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="icon" onClick={() => toggleVisibility(item)} title={item.hidden ? "Show in Gallery" : "Hide from Gallery"}>
-                      {item.hidden ? <EyeOff className="size-4 text-destructive" /> : <Eye className="size-4" />}
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => {
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" onClick={() => toggleVisibility(item)} className="rounded-none border-border/50">
+                            {item.hidden ? <EyeOff className="size-4 text-destructive" /> : <Eye className="size-4" />}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent className="rounded-none text-[10px] uppercase tracking-widest">{item.hidden ? "Show in Gallery" : "Hide from Gallery"}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    <Button variant="outline" size="icon" className="rounded-none border-border/50" onClick={() => {
                       setEditingSculpture(item);
                       setSculptureTitle(item.title);
                       setSculptureDesc(item.description);
                       setSculptureOrder(item.order.toString());
-                      setSculptureImagePath(item.imagePath || '');
-                      setSculptureVideoPath(item.videoPath || '');
-                      setSculptureHidden(item.hidden || false);
+                      setSculptureImagePath(item.imagePath);
+                      setSculptureVideoPath(item.videoPath);
+                      setSculptureHidden(item.hidden);
                       setIsSculptureDialogOpen(true);
                     }}><Edit3 className="size-4" /></Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="text-destructive" 
-                      onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Remove this sculpture from the Index? This will NOT delete your files from Storage." })}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+
+                    {item.isIndexed && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-destructive rounded-none" 
+                        onClick={() => setItemToDelete({ id: item.normalizedId, collection: 'videos', msg: "Remove this sculpture from the Index? This will hide the Title/Description and set it to default order, but will NOT delete your files from Storage." })}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
-              {(!firestoreVideos || firestoreVideos.length === 0) && (
-                <p className="text-[10pt] text-muted-foreground italic text-center py-10">No indexed sculptures. Click 'Add Sculpture' to start.</p>
+              {combinedSculptures.length === 0 && !isRefreshing && (
+                <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-muted/10 border border-dashed border-border/50">
+                  <ImageIcon className="size-10 text-muted-foreground/30" />
+                  <div className="space-y-1">
+                    <p className="text-[11pt] font-normal">No sculptures found in storage.</p>
+                    <p className="text-[9pt] text-muted-foreground">Upload matching .jpg and .mp4 files to the ks- folders to see them here.</p>
+                  </div>
+                </div>
               )}
             </div>
           </TabsContent>
@@ -453,14 +504,14 @@ export default function ManageGalleryPage() {
       <Dialog open={isSculptureDialogOpen} onOpenChange={setIsSculptureDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader>
-            <DialogTitle>{editingSculpture?.isNew ? 'Add Sculpture' : 'Edit Sculpture'}</DialogTitle>
-            <DialogDescription>Index a sculpture to show in the detailed list.</DialogDescription>
+            <DialogTitle>{editingSculpture?.isIndexed ? 'Edit Sculpture' : 'Index Sculpture'}</DialogTitle>
+            <DialogDescription>Set metadata for this sculpture to include it in the Index list and masonry gallery details.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="flex items-center justify-between p-4 bg-muted/30 border border-border/50">
               <div className="space-y-0.5">
                 <Label className="text-sm">Hide from Gallery</Label>
-                <p className="text-xs text-muted-foreground">Keep the metadata but remove from the public masonry.</p>
+                <p className="text-xs text-muted-foreground">Keep metadata but remove from the public masonry.</p>
               </div>
               <Switch checked={sculptureHidden} onCheckedChange={setSculptureHidden} />
             </div>
@@ -493,7 +544,7 @@ export default function ManageGalleryPage() {
           </div>
           <DialogFooter>
             <Button onClick={saveSculpture} disabled={isSaving || !sculptureTitle} className="rounded-none w-full sm:w-auto">
-              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} {editingSculpture?.isNew ? 'Add to Index' : 'Save Changes'}
+              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} {editingSculpture?.isIndexed ? 'Save Changes' : 'Index Sculpture'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -548,7 +599,7 @@ export default function ManageGalleryPage() {
         <DialogContent className="max-w-lg rounded-none">
           <DialogHeader><DialogTitle>Cloud Storage Browser</DialogTitle></DialogHeader>
           <div className="max-h-[400px] overflow-y-auto space-y-2 py-4 px-2">
-            {images.map((item) => (
+            {storageData.images.map((item) => (
               <div key={item.path} className="flex items-center gap-4 p-3 border border-border/50 bg-muted/20 hover:bg-muted/40 cursor-pointer" onClick={() => {
                 setSculptureTitle(item.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
                 setSculptureImagePath(item.path);
@@ -564,7 +615,7 @@ export default function ManageGalleryPage() {
                 <Button variant="ghost" size="sm" className="rounded-none">Select</Button>
               </div>
             ))}
-            {images.length === 0 && (
+            {storageData.images.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 text-center space-y-2">
                 <AlertCircle className="size-8 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">No files found in ks-images/</p>
