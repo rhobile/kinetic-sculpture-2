@@ -8,23 +8,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useState } from 'react';
 import { VideoPlayerModal } from '@/components/video-player-modal';
 
-export default function SculpturesListPage() {
+export default function FlowObservationsPage() {
   const { firestore } = useFirebase();
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
 
-  const sculpturesQuery = useMemoFirebase(() => {
+  const observationsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'videos'), orderBy('order', 'asc'));
   }, [firestore]);
 
-  const { data: sculptures, isLoading } = useCollection(sculpturesQuery);
+  const { data: observations, isLoading } = useCollection(observationsQuery);
 
   return (
     <div className="bg-background min-h-screen">
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-2xl font-normal mb-10 tracking-widest uppercase border-b border-border/50 pb-6">
-            Index of Sculptures
+            Flow Observations
           </h1>
           
           <div className="space-y-16">
@@ -38,8 +38,8 @@ export default function SculpturesListPage() {
                   </div>
                 </div>
               ))
-            ) : sculptures && sculptures.length > 0 ? (
-              sculptures.map((item) => (
+            ) : observations && observations.length > 0 ? (
+              observations.map((item) => (
                 <article 
                   key={item.id} 
                   className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start group cursor-pointer"
@@ -68,13 +68,13 @@ export default function SculpturesListPage() {
                       {item.description || "A balance of form and articulated movement."}
                     </p>
                     <p className="text-[10pt] uppercase tracking-widest text-accent font-medium pt-2 group-hover:underline underline-offset-4">
-                      View Video &rarr;
+                      View Observation &rarr;
                     </p>
                   </div>
                 </article>
               ))
             ) : (
-              <p className="text-[12px] text-muted-foreground italic font-normal">No sculptures found in the Index. Use the Management Dashboard to add titles and descriptions.</p>
+              <p className="text-[12px] text-muted-foreground italic font-normal">No flow observations found. Use the Management Dashboard to add titles and descriptions.</p>
             )}
           </div>
         </div>

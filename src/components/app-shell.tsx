@@ -66,7 +66,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="space-y-2">
               <p>
                 <Link href="/sculptures" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30 font-medium">
-                  Index of Sculptures
+                  Flow observations
                 </Link>
               </p>
               <p>

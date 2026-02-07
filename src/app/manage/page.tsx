@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -8,7 +9,7 @@ import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonB
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Image as ImageIcon, Search, AlertCircle, EyeOff, Eye, Info
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Search, AlertCircle, EyeOff, Eye, Info, ListFilter
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -51,11 +52,11 @@ export default function ManageGalleryPage() {
   };
 
   // Firestore Data
-  const videosQuery = useMemoFirebase(() => {
+  const observationsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'videos');
+    return query(collection(firestore, 'videos'), orderBy('order', 'asc'));
   }, [firestore]);
-  const { data: firestoreVideos } = useCollection(videosQuery);
+  const { data: firestoreObservations } = useCollection(observationsQuery);
 
   const newsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -75,16 +76,16 @@ export default function ManageGalleryPage() {
   }, [firestore]);
   const { data: sidebarData } = useDoc(sidebarQuery);
 
-  // Sculpture Editing State
-  const [isSculptureDialogOpen, setIsSculptureDialogOpen] = useState(false);
+  // Observation Editing State
+  const [isObservationDialogOpen, setIsObservationDialogOpen] = useState(false);
   const [isCloudBrowserOpen, setIsCloudBrowserOpen] = useState(false);
-  const [editingSculpture, setEditingSculpture] = useState<any | null>(null);
-  const [sculptureTitle, setSculptureTitle] = useState('');
-  const [sculptureDesc, setSculptureDesc] = useState('');
-  const [sculptureOrder, setSculptureOrder] = useState('0');
-  const [sculptureImagePath, setSculptureImagePath] = useState('');
-  const [sculptureVideoPath, setSculptureVideoPath] = useState('');
-  const [sculptureHidden, setSculptureHidden] = useState(false);
+  const [editingObservation, setEditingObservation] = useState<any | null>(null);
+  const [obsTitle, setObsTitle] = useState('');
+  const [obsDesc, setObsDesc] = useState('');
+  const [obsOrder, setObsOrder] = useState('0');
+  const [obsImagePath, setObsImagePath] = useState('');
+  const [obsVideoPath, setObsVideoPath] = useState('');
+  const [obsHidden, setObsHidden] = useState(false);
 
   // News Editing State
   const [editingNews, setEditingNews] = useState<any | null>(null);
@@ -154,54 +155,49 @@ export default function ManageGalleryPage() {
     if (firebaseApp) fetchData();
   }, [firebaseApp, fetchData]);
 
-  // Combined Sculptures logic: Base it on storage images that have videos
-  const combinedSculptures = useMemo(() => {
-    return storageData.images.filter(img => storageData.videos.has(img.id)).map(img => {
-      const normalizedKey = img.id.replace(/[^a-z0-9]/g, '');
-      const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
-      
+  // Observations logic: Only show curated Firestore entries
+  const curatedObservations = useMemo(() => {
+    if (!firestoreObservations) return [];
+    return firestoreObservations.map(fsData => {
+      const storageImg = storageData.images.find(img => img.id === fsData.id);
       return {
-        ...img,
-        normalizedId: normalizedKey,
-        isIndexed: !!fsData,
-        title: fsData?.title || img.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        description: fsData?.description || '',
-        order: fsData?.order ?? 999,
-        hidden: fsData?.hidden ?? false,
-        imagePath: fsData?.imagePath || img.path,
-        videoPath: fsData?.videoPath || `ks-videos/${img.id}.mp4`
+        ...fsData,
+        normalizedId: fsData.id,
+        isIndexed: true,
+        imagePath: fsData.imagePath || (storageImg ? storageImg.path : ''),
+        videoPath: fsData.videoPath || `ks-videos/${fsData.id}.mp4`
       };
-    }).sort((a, b) => a.order - b.order);
-  }, [storageData, firestoreVideos]);
+    }).sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [storageData, firestoreObservations]);
 
   const confirmDelete = () => {
     if (!itemToDelete || !firestore) return;
     deleteDocumentNonBlocking(doc(firestore, itemToDelete.collection, itemToDelete.id));
-    toast({ title: "Item removed", description: "The content has been removed from the website." });
+    toast({ title: "Item removed", description: "The content has been removed from the list." });
     setItemToDelete(null);
   };
 
-  const saveSculpture = async () => {
-    if (!firestore || !sculptureTitle) return;
+  const saveObservation = async () => {
+    if (!firestore || !obsTitle) return;
     setIsSaving(true);
     try {
-      const id = editingSculpture?.normalizedId || sculptureTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const id = editingObservation?.normalizedId || obsTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const docRef = doc(firestore, 'videos', id);
       
       setDocumentNonBlocking(docRef, {
         id,
-        title: sculptureTitle,
-        description: sculptureDesc,
-        order: Number(sculptureOrder) || 0,
-        hidden: sculptureHidden,
-        imagePath: sculptureImagePath,
-        videoPath: sculptureVideoPath,
+        title: obsTitle,
+        description: obsDesc,
+        order: Number(obsOrder) || 0,
+        hidden: obsHidden,
+        imagePath: obsImagePath,
+        videoPath: obsVideoPath,
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      toast({ title: "Sculpture saved" });
-      setIsSculptureDialogOpen(false);
-      setEditingSculpture(null);
+      toast({ title: "Observation saved" });
+      setIsObservationDialogOpen(false);
+      setEditingObservation(null);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save failed" });
     } finally {
@@ -211,11 +207,10 @@ export default function ManageGalleryPage() {
 
   const toggleVisibility = (item: any) => {
     if (!firestore) return;
-    const id = item.normalizedId;
-    updateDocumentNonBlocking(doc(firestore, 'videos', id), {
+    updateDocumentNonBlocking(doc(firestore, 'videos', item.id), {
       hidden: !item.hidden
     });
-    toast({ title: item.hidden ? "Sculpture unhidden" : "Sculpture hidden" });
+    toast({ title: item.hidden ? "Unhidden" : "Hidden" });
   };
 
   const saveNewsItem = async () => {
@@ -291,36 +286,36 @@ export default function ManageGalleryPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue="sculptures" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4 rounded-none bg-muted/50 p-1 mb-8">
-            <TabsTrigger value="sculptures" className="rounded-none">Sculptures</TabsTrigger>
+        <Tabs defaultValue="observations" className="w-full">
+          <TabsList className="grid w-full max-w-3xl grid-cols-4 rounded-none bg-muted/50 p-1 mb-8">
+            <TabsTrigger value="observations" className="rounded-none">Flow Observations</TabsTrigger>
             <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
             <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
             <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="sculptures" className="space-y-6">
+          <TabsContent value="observations" className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Masonry & Index</h2>
-                <p className="text-[9pt] text-muted-foreground mt-1">Manage titles, descriptions, and ordering for items appearing in your masonry.</p>
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Flow Observations List</h2>
+                <p className="text-[9pt] text-muted-foreground mt-1">Manage the curated items that appear in the Flow Observations index.</p>
               </div>
               <Button size="sm" onClick={() => {
-                setEditingSculpture({ isNew: true });
-                setSculptureTitle('');
-                setSculptureDesc('');
-                setSculptureOrder('0');
-                setSculptureImagePath('');
-                setSculptureVideoPath('');
-                setSculptureHidden(false);
-                setIsSculptureDialogOpen(true);
+                setEditingObservation({ isNew: true });
+                setObsTitle('');
+                setObsDesc('');
+                setObsOrder('0');
+                setObsImagePath('');
+                setObsVideoPath('');
+                setObsHidden(false);
+                setIsObservationDialogOpen(true);
               }} className="rounded-none h-8 font-normal">
-                <Plus className="size-3 mr-2" /> Add Sculpture
+                <Plus className="size-3 mr-2" /> Add Observation
               </Button>
             </div>
 
             <div className="space-y-4">
-              {combinedSculptures.map((item) => (
+              {curatedObservations.map((item) => (
                 <div key={item.id} className={cn("p-6 bg-muted/20 border border-border/50 flex justify-between items-center group", item.hidden && "opacity-60")}>
                   <div className="flex items-center gap-6">
                     <div className="size-16 bg-black flex items-center justify-center shrink-0 border border-border/50 relative">
@@ -334,12 +329,11 @@ export default function ManageGalleryPage() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-3">
                         <h3 className="text-[12pt] font-normal">{item.title}</h3>
-                        {!item.isIndexed && <Badge variant="secondary" className="rounded-none text-[8px] uppercase tracking-wider font-normal bg-accent/10 text-accent border-accent/20">Needs Indexing</Badge>}
                         {item.hidden && <Badge variant="destructive" className="rounded-none text-[8px] uppercase tracking-wider font-normal">Hidden</Badge>}
                       </div>
                       <div className="flex items-center gap-4 text-[9pt] uppercase tracking-widest text-muted-foreground">
-                        <span>Order: {item.order === 999 ? 'Default' : item.order}</span>
-                        {item.isIndexed && <span className="flex items-center gap-1"><Info className="size-3" /> Indexed in List</span>}
+                        <span>Order: {item.order}</span>
+                        <span className="flex items-center gap-1"><Info className="size-3" /> Indexed</span>
                       </div>
                     </div>
                   </div>
@@ -351,46 +345,45 @@ export default function ManageGalleryPage() {
                             {item.hidden ? <EyeOff className="size-4 text-destructive" /> : <Eye className="size-4" />}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent className="rounded-none text-[10px] uppercase tracking-widest">{item.hidden ? "Show in Gallery" : "Hide from Gallery"}</TooltipContent>
+                        <TooltipContent className="rounded-none text-[10px] uppercase tracking-widest">{item.hidden ? "Show" : "Hide"}</TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
 
                     <Button variant="outline" size="icon" className="rounded-none border-border/50" onClick={() => {
-                      setEditingSculpture(item);
-                      setSculptureTitle(item.title);
-                      setSculptureDesc(item.description);
-                      setSculptureOrder(item.order.toString());
-                      setSculptureImagePath(item.imagePath);
-                      setSculptureVideoPath(item.videoPath);
-                      setSculptureHidden(item.hidden);
-                      setIsSculptureDialogOpen(true);
+                      setEditingObservation(item);
+                      setObsTitle(item.title);
+                      setObsDesc(item.description);
+                      setObsOrder(item.order.toString());
+                      setObsImagePath(item.imagePath);
+                      setObsVideoPath(item.videoPath);
+                      setObsHidden(item.hidden);
+                      setIsObservationDialogOpen(true);
                     }}><Edit3 className="size-4" /></Button>
 
-                    {item.isIndexed && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="text-destructive rounded-none" 
-                        onClick={() => setItemToDelete({ id: item.normalizedId, collection: 'videos', msg: "Remove this sculpture from the Index? This will hide the Title/Description and set it to default order, but will NOT delete your files from Storage." })}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive rounded-none" 
+                      onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Remove this flow observation from the list? The files will remain in Storage." })}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
-              {combinedSculptures.length === 0 && !isRefreshing && (
+              {curatedObservations.length === 0 && !isRefreshing && (
                 <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 bg-muted/10 border border-dashed border-border/50">
-                  <ImageIcon className="size-10 text-muted-foreground/30" />
+                  <ListFilter className="size-10 text-muted-foreground/30" />
                   <div className="space-y-1">
-                    <p className="text-[11pt] font-normal">No sculptures found in storage.</p>
-                    <p className="text-[9pt] text-muted-foreground">Upload matching .jpg and .mp4 files to the ks- folders to see them here.</p>
+                    <p className="text-[11pt] font-normal">No flow observations indexed.</p>
+                    <p className="text-[9pt] text-muted-foreground">Click "Add Observation" and use the Cloud Browser to link storage files.</p>
                   </div>
                 </div>
               )}
             </div>
           </TabsContent>
 
+          {/* Other tabs remain unchanged */}
           <TabsContent value="news" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
@@ -500,34 +493,34 @@ export default function ManageGalleryPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Sculpture Edit Dialog */}
-      <Dialog open={isSculptureDialogOpen} onOpenChange={setIsSculptureDialogOpen}>
+      {/* Observation Edit Dialog */}
+      <Dialog open={isObservationDialogOpen} onOpenChange={setIsObservationDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader>
-            <DialogTitle>{editingSculpture?.isIndexed ? 'Edit Sculpture' : 'Index Sculpture'}</DialogTitle>
-            <DialogDescription>Set metadata for this sculpture to include it in the Index list and masonry gallery details.</DialogDescription>
+            <DialogTitle>{editingObservation?.isIndexed ? 'Edit Observation' : 'Add Flow Observation'}</DialogTitle>
+            <DialogDescription>Curate this observation with a title and description for the Flow Observations list.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="flex items-center justify-between p-4 bg-muted/30 border border-border/50">
               <div className="space-y-0.5">
-                <Label className="text-sm">Hide from Gallery</Label>
-                <p className="text-xs text-muted-foreground">Keep metadata but remove from the public masonry.</p>
+                <Label className="text-sm">Hide from Observation List</Label>
+                <p className="text-xs text-muted-foreground">Keep data but remove from public index.</p>
               </div>
-              <Switch checked={sculptureHidden} onCheckedChange={setSculptureHidden} />
+              <Switch checked={obsHidden} onCheckedChange={setObsHidden} />
             </div>
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3">
                 <Label>Title</Label>
-                <Input value={sculptureTitle} onChange={e => setSculptureTitle(e.target.value)} className="rounded-none" />
+                <Input value={obsTitle} onChange={e => setObsTitle(e.target.value)} className="rounded-none" />
               </div>
               <div>
                 <Label>Order</Label>
-                <Input type="number" value={sculptureOrder} onChange={e => setSculptureOrder(e.target.value)} className="rounded-none" />
+                <Input type="number" value={obsOrder} onChange={e => setObsOrder(e.target.value)} className="rounded-none" />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea value={sculptureDesc} onChange={e => setSculptureDesc(e.target.value)} className="rounded-none min-h-[100px]" />
+              <Textarea value={obsDesc} onChange={e => setObsDesc(e.target.value)} className="rounded-none min-h-[100px]" />
             </div>
             <div className="space-y-4 border-t pt-4">
               <div className="flex items-center justify-between">
@@ -537,14 +530,14 @@ export default function ManageGalleryPage() {
                 </Button>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Image Path</Label><Input value={sculptureImagePath} onChange={e => setSculptureImagePath(e.target.value)} placeholder="ks-images/art.jpg" className="rounded-none" /></div>
-                <div className="space-y-2"><Label>Video Path</Label><Input value={sculptureVideoPath} onChange={e => setSculptureVideoPath(e.target.value)} placeholder="ks-videos/art.mp4" className="rounded-none" /></div>
+                <div className="space-y-2"><Label>Image Path</Label><Input value={obsImagePath} onChange={e => setObsImagePath(e.target.value)} placeholder="ks-images/art.jpg" className="rounded-none" /></div>
+                <div className="space-y-2"><Label>Video Path</Label><Input value={obsVideoPath} onChange={e => setObsVideoPath(e.target.value)} placeholder="ks-videos/art.mp4" className="rounded-none" /></div>
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={saveSculpture} disabled={isSaving || !sculptureTitle} className="rounded-none w-full sm:w-auto">
-              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} {editingSculpture?.isIndexed ? 'Save Changes' : 'Index Sculpture'}
+            <Button onClick={saveObservation} disabled={isSaving || !obsTitle} className="rounded-none w-full sm:w-auto">
+              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} Save Observation
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -601,9 +594,9 @@ export default function ManageGalleryPage() {
           <div className="max-h-[400px] overflow-y-auto space-y-2 py-4 px-2">
             {storageData.images.map((item) => (
               <div key={item.path} className="flex items-center gap-4 p-3 border border-border/50 bg-muted/20 hover:bg-muted/40 cursor-pointer" onClick={() => {
-                setSculptureTitle(item.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
-                setSculptureImagePath(item.path);
-                setSculptureVideoPath(`ks-videos/${item.name.replace(/\.[^/.]+$/, ".mp4")}`);
+                setObsTitle(item.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+                setObsImagePath(item.path);
+                setObsVideoPath(`ks-videos/${item.name.replace(/\.[^/.]+$/, ".mp4")}`);
                 setIsCloudBrowserOpen(false);
               }}>
                 <div className="size-12 bg-black flex items-center justify-center shrink-0 border border-border/50">
