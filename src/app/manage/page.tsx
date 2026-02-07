@@ -11,12 +11,12 @@ import { Button } from '@/components/ui/button';
 import { 
   Trash2, Upload, Loader2, RefreshCw, Lock, 
   CheckCircle2, AlertCircle, Edit3, Save, Plus, FileText, Settings,
-  Video, Image as ImageIcon, Info
+  Video, Image as ImageIcon, Info, Search
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -28,8 +28,7 @@ export default function ManageGalleryPage() {
   const [images, setImages] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Sidebar Defaults
   const SIDEBAR_DEFAULTS = {
@@ -68,8 +67,9 @@ export default function ManageGalleryPage() {
   }, [firestore]);
   const { data: sidebarData } = useDoc(sidebarQuery);
 
-  // Unified Sculpture Editing State
+  // Sculpture Editing State
   const [isSculptureDialogOpen, setIsSculptureDialogOpen] = useState(false);
+  const [isCloudBrowserOpen, setIsCloudBrowserOpen] = useState(false);
   const [editingSculpture, setEditingSculpture] = useState<any | null>(null);
   const [sculptureTitle, setSculptureTitle] = useState('');
   const [sculptureDesc, setSculptureDesc] = useState('');
@@ -93,7 +93,6 @@ export default function ManageGalleryPage() {
 
   // Sidebar State
   const [sidebarState, setSidebarState] = useState(SIDEBAR_DEFAULTS);
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (sidebarData) {
@@ -167,13 +166,20 @@ export default function ManageGalleryPage() {
     }).sort((a, b) => a.order - b.order);
   }, [images, videos, firestoreVideos]);
 
+  // Filters for Cloud Browser (items in storage but not yet indexed)
+  const unindexedItems = useMemo(() => {
+    return combinedSculptures.filter(s => !s.hasMetadata);
+  }, [combinedSculptures]);
+
   const saveSculpture = async () => {
     if (!firestore || !firebaseApp || !sculptureTitle) return;
     setIsSaving(true);
     try {
       const storage = getStorage(firebaseApp);
+      // Slug-ify the title to create a consistent ID
       const normalizedKey = sculptureTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       
+      // Only upload if new files were picked from PC
       if (sculptureImage) {
         const iRef = storageRef(storage, `ks-images/${normalizedKey}.jpg`);
         await uploadBytes(iRef, sculptureImage);
@@ -206,7 +212,7 @@ export default function ManageGalleryPage() {
 
   const removeSculptureFromIndex = async (sculpture: any) => {
     if (!firestore) return;
-    if (!window.confirm(`Remove "${sculpture.title}" from the Index? This will delete the title and description, but keep the files in the home gallery.`)) return;
+    if (!window.confirm(`Remove "${sculpture.title}" from the Index? This will delete the title and description text, but keep the files in your masonry gallery.`)) return;
     
     setIsSaving(true);
     try {
@@ -325,7 +331,7 @@ export default function ManageGalleryPage() {
             <div className="flex justify-between items-center">
               <div className="space-y-1">
                 <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculptures Index</h2>
-                <p className="text-[9pt] text-muted-foreground">Add details to appear in the Index. "Delete" only removes metadata, not home gallery files.</p>
+                <p className="text-[9pt] text-muted-foreground">"Delete" only removes the Index entry, keeping files in the gallery.</p>
               </div>
               <Button onClick={() => {
                 setEditingSculpture(null);
@@ -342,12 +348,12 @@ export default function ManageGalleryPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {combinedSculptures.map((sculpture) => (
-                <div key={sculpture.id} className="bg-muted/20 border border-border/50 overflow-hidden flex flex-col">
+                <div key={sculpture.id} className="bg-muted/20 border border-border/50 overflow-hidden flex flex-col group relative">
                   <div className="aspect-video relative bg-black">
                     {sculpture.imagePath ? (
                       <FirebaseStorageImage path={sculpture.imagePath} alt={sculpture.title} width={400} height={225} className="w-full h-full object-cover opacity-80" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px] uppercase">Missing Image</div>
+                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px] uppercase">No Image</div>
                     )}
                     <div className="absolute top-2 left-2 flex gap-1">
                       <span className="bg-black/60 text-white text-[10px] px-2 py-1 rounded-sm font-mono">#{sculpture.order}</span>
@@ -388,6 +394,7 @@ export default function ManageGalleryPage() {
             </div>
           </TabsContent>
 
+          {/* News Content */}
           <TabsContent value="news" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
@@ -409,6 +416,7 @@ export default function ManageGalleryPage() {
             </div>
           </TabsContent>
 
+          {/* Pages Content */}
           <TabsContent value="pages" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Custom Pages</h2>
@@ -430,6 +438,7 @@ export default function ManageGalleryPage() {
             </div>
           </TabsContent>
 
+          {/* Sidebar Content */}
           <TabsContent value="sidebar" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar Content</h2>
@@ -458,7 +467,10 @@ export default function ManageGalleryPage() {
       {/* Add/Edit Sculpture Dialog */}
       <Dialog open={isSculptureDialogOpen} onOpenChange={setIsSculptureDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
-          <DialogHeader><DialogTitle>{editingSculpture ? 'Edit Sculpture' : 'Add New Sculpture'}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editingSculpture ? 'Edit Sculpture' : 'Add New Sculpture'}</DialogTitle>
+            <DialogDescription>Add titles and descriptions to items in your collection.</DialogDescription>
+          </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3">
@@ -474,14 +486,28 @@ export default function ManageGalleryPage() {
               <Label>Description</Label>
               <Textarea value={sculptureDesc} onChange={e => setSculptureDesc(e.target.value)} className="rounded-none min-h-[100px]" />
             </div>
-            <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2"><ImageIcon className="size-4" /> Sculpture Image (.jpg)</Label>
-                <Input type="file" accept=".jpg,.jpeg" onChange={e => setSculptureImage(e.target.files?.[0] || null)} className="rounded-none" />
+
+            <div className="space-y-4 border-t border-border pt-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-muted-foreground uppercase text-[10px] tracking-widest">Storage Files</Label>
+                {!editingSculpture && (
+                  <Button variant="link" size="sm" className="h-auto p-0 text-[10px] uppercase tracking-wider" onClick={() => setIsCloudBrowserOpen(true)}>
+                    <Search className="size-3 mr-1" /> Import from Cloud Storage
+                  </Button>
+                )}
               </div>
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2"><Video className="size-4" /> Sculpture Video (.mp4)</Label>
-                <Input type="file" accept=".mp4" onChange={e => setSculptureVideo(e.target.files?.[0] || null)} className="rounded-none" />
+              
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><ImageIcon className="size-4" /> Sculpture Image (.jpg)</Label>
+                  <Input type="file" accept=".jpg,.jpeg" onChange={e => setSculptureImage(e.target.files?.[0] || null)} className="rounded-none" />
+                  {editingSculpture?.imagePath && <p className="text-[9px] text-muted-foreground truncate">{editingSculpture.imagePath}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><Video className="size-4" /> Sculpture Video (.mp4)</Label>
+                  <Input type="file" accept=".mp4" onChange={e => setSculptureVideo(e.target.files?.[0] || null)} className="rounded-none" />
+                  {editingSculpture?.videoPath && <p className="text-[9px] text-muted-foreground truncate">{editingSculpture.videoPath}</p>}
+                </div>
               </div>
             </div>
           </div>
@@ -494,7 +520,49 @@ export default function ManageGalleryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Other Edit Dialogs */}
+      {/* Cloud Browser Dialog */}
+      <Dialog open={isCloudBrowserOpen} onOpenChange={setIsCloudBrowserOpen}>
+        <DialogContent className="max-w-lg rounded-none">
+          <DialogHeader>
+            <DialogTitle>Cloud Storage Browser</DialogTitle>
+            <DialogDescription>Pick a sculpture already in your cloud storage to add to the index.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-2 py-4">
+            {unindexedItems.length > 0 ? (
+              unindexedItems.map((item) => (
+                <div 
+                  key={item.id} 
+                  className="flex items-center gap-4 p-3 border border-border/50 bg-muted/20 hover:bg-muted/40 cursor-pointer"
+                  onClick={() => {
+                    setEditingSculpture(null);
+                    setSculptureTitle(item.title);
+                    setSculptureDesc('');
+                    setSculptureOrder('0');
+                    setIsCloudBrowserOpen(false);
+                  }}
+                >
+                  <div className="size-12 bg-black flex items-center justify-center shrink-0">
+                    {item.imagePath ? (
+                      <FirebaseStorageImage path={item.imagePath} alt={item.title} width={48} height={48} className="object-cover opacity-50" />
+                    ) : <ImageIcon className="size-4 text-white/20" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{item.title}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">
+                      {item.hasImage && "JPG"} {item.hasVideo && "MP4"}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" className="rounded-none">Select</Button>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-8 italic">No unindexed items found in Storage.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* News Dialog */}
       <Dialog open={!!editingNews} onOpenChange={() => setEditingNews(null)}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader><DialogTitle>{editingNews?.isNew ? 'New Update' : 'Edit Update'}</DialogTitle></DialogHeader>
@@ -509,6 +577,7 @@ export default function ManageGalleryPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Page Dialog */}
       <Dialog open={!!editingPage} onOpenChange={() => setEditingPage(null)}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader><DialogTitle>{editingPage?.isNew ? 'New Page' : 'Edit Page'}</DialogTitle></DialogHeader>
