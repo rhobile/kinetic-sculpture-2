@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -144,7 +143,7 @@ export default function ManageDashboardPage() {
       }));
 
       setStorageData({ images, videos });
-      toast({ title: "Gallery refreshed" });
+      toast({ title: "Gallery state refreshed" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Refresh failed" });
     } finally {
@@ -229,10 +228,16 @@ export default function ManageDashboardPage() {
 
   const toggleVisibility = (item: any) => {
     if (!firestore) return;
-    updateDocumentNonBlocking(doc(firestore, 'videos', item.id), {
+    // Use setDocumentNonBlocking with merge to avoid update errors on non-existent docs
+    const docRef = doc(firestore, 'videos', item.id);
+    setDocumentNonBlocking(docRef, {
       hidden: !item.hidden
+    }, { merge: true });
+    
+    toast({ 
+      title: !item.hidden ? "Hidden from gallery" : "Now visible in gallery",
+      description: item.title
     });
-    toast({ title: item.hidden ? "Now visible in gallery" : "Hidden from gallery" });
   };
 
   const saveNewsItem = async () => {
@@ -610,7 +615,6 @@ export default function ManageDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Other dialogs for News and Pages (same as before) */}
       <Dialog open={!!editingNews} onOpenChange={(open) => !open && setEditingNews(null)}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader><DialogTitle>{editingNews?.isNew ? 'Add News' : 'Edit News'}</DialogTitle></DialogHeader>
