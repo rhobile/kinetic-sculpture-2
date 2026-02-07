@@ -12,26 +12,35 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Menu, Settings } from 'lucide-react';
-import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { firestore } = useFirebase();
 
+  // Sidebar dynamic content
   const sidebarQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'pages', 'sidebar');
   }, [firestore]);
+  const { data: sidebarData } = useDoc(sidebarQuery);
 
-  const { data: sidebarData, isLoading } = useDoc(sidebarQuery);
+  // Dynamic custom pages links
+  const pagesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'pages');
+  }, [firestore]);
+  const { data: pages } = useCollection(pagesQuery);
+
+  const customPages = pages?.filter(p => p.id !== 'sidebar') || [];
 
   // Fallback values
   const content = {
     introTitle: sidebarData?.introTitle || "Kinetic sculptures by Andrew Jones.",
     introSub: sidebarData?.introSub || "Mainly linear elements balanced and articulated to move simply in the wind, light or strong.",
     commissionNote: sidebarData?.commissionNote || "I work to commission. Guide prices are given below the videos or a price for a limited edition.",
-    gardenNotice: sidebarData?.gardenNotice || "It is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in Ely during Cambridge Open Studios which is in July each year.",
+    gardenNotice: sidebarData?.gardenNotice || "It is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.",
     email: sidebarData?.email || "andrew@rhobile.com",
     phone: sidebarData?.phone || "Telephone +44 (0)1353 610406",
     mobile: sidebarData?.mobile || "Mobile +44 (0)781 4179181",
@@ -50,15 +59,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </SidebarHeader>
         <SidebarContent className="px-6 py-4 space-y-8 text-sm leading-relaxed overflow-y-auto font-normal">
           <div className="space-y-4">
-            <p className="text-[12pt] text-foreground">
-              {content.introTitle}
-            </p>
-            <p className="text-[12pt] text-muted-foreground">
-              {content.introSub}
-            </p>
-            <p className="text-[12pt] text-muted-foreground">
-              {content.commissionNote}
-            </p>
+            <p className="text-[12pt] text-foreground">{content.introTitle}</p>
+            <p className="text-[12pt] text-muted-foreground">{content.introSub}</p>
+            <p className="text-[12pt] text-muted-foreground">{content.commissionNote}</p>
             <p>
               <Link href="/news" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30">
                 News (if there is any)
@@ -67,42 +70,31 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <div className="space-y-4 text-muted-foreground text-[12pt]">
-            <p>
-              {content.gardenNotice}
-            </p>
+            <p>{content.gardenNotice}</p>
             <p>
               If you would like to visit at another time, please <Link href="/contact" className="text-accent hover:underline underline-offset-4 decoration-accent/30">contact me</Link>.
             </p>
           </div>
 
           <div className="space-y-1 text-muted-foreground pt-2 border-t border-border/50 text-[12pt]">
-            <p>
-              <a href={`mailto:${content.email}`} className="hover:text-accent transition-colors">{content.email}</a>
-            </p>
+            <p><a href={`mailto:${content.email}`} className="hover:text-accent transition-colors">{content.email}</a></p>
             <p>{content.phone}</p>
             <p>{content.mobile}</p>
-            <p>
-              <a href="#" className="hover:text-accent transition-colors">{content.social}</a>
-            </p>
+            <p><a href="#" className="hover:text-accent transition-colors">{content.social}</a></p>
           </div>
 
           <nav className="flex flex-col gap-4 pt-4 border-t border-border/50 text-[12pt]">
-            <Link href="/about" className="text-foreground hover:text-accent transition-colors">
-              My background
-            </Link>
-            <Link href="#" className="text-foreground hover:text-accent transition-colors">
-              Introduction to the sculptures
-            </Link>
-            <div className="space-y-0">
-              <Link href="#" className="text-foreground hover:text-accent transition-colors block">
-                Flow observations of wind and water.
+            <Link href="/about" className="text-foreground hover:text-accent transition-colors">About Us</Link>
+            {customPages.map((page) => (
+              <Link 
+                key={page.id} 
+                href={`/p/${page.slug}`} 
+                className="text-foreground hover:text-accent transition-colors"
+              >
+                {page.title}
               </Link>
-              <span className="text-muted-foreground text-[10pt]">(short videos)</span>
-            </div>
-            <Link href="#" className="text-foreground hover:text-accent transition-colors italic">
-              Sign up for news by email....
-            </Link>
-            <Link href="/manage" className="text-muted-foreground/50 hover:text-accent transition-colors flex items-center gap-2 mt-4 pt-4 border-t border-border/20 text-[10pt]">
+            ))}
+            <Link href="/manage" className="text-muted-foreground/30 hover:text-accent transition-colors flex items-center gap-2 mt-4 pt-4 border-t border-border/20 text-[10pt]">
               <Settings className="size-3" /> Manage Gallery
             </Link>
           </nav>
@@ -111,16 +103,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       
       <SidebarInset>
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 sm:hidden">
-          <SidebarTrigger>
-            <Menu className="size-6" />
-          </SidebarTrigger>
+          <SidebarTrigger><Menu className="size-6" /></SidebarTrigger>
           <div className="flex-1 overflow-hidden">
             <h1 className="text-base font-headline tracking-[0.15em] uppercase whitespace-nowrap font-normal truncate">R H O B I L E</h1>
           </div>
         </header>
-        <div className="flex-1">
-          {children}
-        </div>
+        <div className="flex-1">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );

@@ -9,7 +9,7 @@ import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
   Trash2, Upload, Loader2, RefreshCw, Lock, 
-  CheckCircle2, AlertCircle, Edit3, Save, Plus, Layout
+  CheckCircle2, AlertCircle, Edit3, Save, Plus, FileText, Settings
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
@@ -29,7 +29,7 @@ export default function ManageGalleryPage() {
   const [uploadFolder, setUploadFolder] = useState<'ks-images' | 'ks-videos'>('ks-images');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Default Sidebar Values (Match AppShell fallbacks)
+  // Default Sidebar Values
   const SIDEBAR_DEFAULTS = {
     introTitle: "Kinetic sculptures by Andrew Jones.",
     introSub: "Mainly linear elements balanced and articulated to move simply in the wind, light or strong.",
@@ -54,6 +54,12 @@ export default function ManageGalleryPage() {
   }, [firestore]);
   const { data: firestoreNews } = useCollection(newsQuery);
 
+  const pagesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'pages');
+  }, [firestore]);
+  const { data: firestorePages } = useCollection(pagesQuery);
+
   const sidebarQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'pages', 'sidebar');
@@ -73,6 +79,12 @@ export default function ManageGalleryPage() {
   const [newsContent, setNewsContent] = useState('');
   const [newsImagePath, setNewsImagePath] = useState('');
   const [newsOrder, setNewsOrder] = useState('0');
+
+  // Editing State (Custom Pages)
+  const [editingPage, setEditingPage] = useState<any | null>(null);
+  const [pageTitle, setPageTitle] = useState('');
+  const [pageSlug, setPageSlug] = useState('');
+  const [pageContent, setPageContent] = useState('');
 
   // Sidebar State
   const [sidebarState, setSidebarState] = useState(SIDEBAR_DEFAULTS);
@@ -143,7 +155,6 @@ export default function ManageGalleryPage() {
     }
   }, [firebaseApp]);
 
-  // Sorted Images for the dashboard to match Home view
   const sortedDashboardImages = useMemo(() => {
     return [...images].map(img => {
       const fileName = img.name.split('.').slice(0, -1).join('.');
@@ -158,11 +169,7 @@ export default function ManageGalleryPage() {
     e.stopPropagation();
     
     if (!user) {
-      toast({
-        variant: "destructive",
-        title: "Authentication Required",
-        description: "Please wait while the app connects. If this persists, refresh the page."
-      });
+      toast({ variant: "destructive", title: "Authentication Required" });
       return;
     }
 
@@ -176,12 +183,7 @@ export default function ManageGalleryPage() {
       toast({ title: "File deleted successfully" });
       await fetchData();
     } catch (error: any) {
-      console.error("Delete failed:", error);
-      toast({ 
-        variant: "destructive", 
-        title: "Delete failed", 
-        description: error.message || "Could not delete file."
-      });
+      toast({ variant: "destructive", title: "Delete failed", description: error.message });
     }
   };
 
@@ -231,7 +233,6 @@ export default function ManageGalleryPage() {
     }
   };
 
-  // News Items Handling
   const openEditNews = (item?: any) => {
     if (item) {
       setEditingNews(item);
@@ -283,6 +284,55 @@ export default function ManageGalleryPage() {
     }
   };
 
+  // Custom Pages Handling
+  const openEditPage = (item?: any) => {
+    if (item) {
+      setEditingPage(item);
+      setPageTitle(item.title);
+      setPageSlug(item.slug);
+      setPageContent(item.content);
+    } else {
+      setEditingPage({ isNew: true });
+      setPageTitle('');
+      setPageSlug('');
+      setPageContent('');
+    }
+  };
+
+  const savePage = async () => {
+    if (!firestore || !pageSlug) {
+      toast({ variant: "destructive", title: "Slug is required" });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const id = editingPage.isNew ? pageSlug : editingPage.id;
+      await setDoc(doc(firestore, 'pages', id), {
+        id,
+        title: pageTitle,
+        slug: pageSlug,
+        content: pageContent,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      toast({ title: "Page saved successfully" });
+      setEditingPage(null);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Save failed" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deletePage = async (id: string) => {
+    if (!firestore || id === 'sidebar' || !window.confirm("Delete this page?")) return;
+    try {
+      await deleteDoc(doc(firestore, 'pages', id));
+      toast({ title: "Page deleted" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Delete failed" });
+    }
+  };
+
   const hasMatchingVideo = (imageName: string) => {
     const nameWithoutExt = imageName.split('.').slice(0, -1).join('.').toLowerCase();
     return videos.some(v => v.name.split('.').slice(0, -1).join('.').toLowerCase() === nameWithoutExt);
@@ -299,13 +349,7 @@ export default function ManageGalleryPage() {
             {!user && !isAuthLoading && <Lock className="size-3 text-muted-foreground" />}
           </div>
           <div className="flex gap-2">
-            <Button 
-              type="button"
-              variant="outline" 
-              size="sm" 
-              onClick={fetchData} 
-              className="rounded-none font-normal text-[11pt]"
-            >
+            <Button variant="outline" size="sm" onClick={fetchData} className="rounded-none font-normal text-[11pt]">
               <RefreshCw className="size-4 mr-2" /> Refresh
             </Button>
           </div>
@@ -320,7 +364,7 @@ export default function ManageGalleryPage() {
               toast({ title: "Upload successful" });
               fetchData();
             } catch (error: any) {
-              toast({ variant: "destructive", title: "Upload failed", description: error.message });
+              toast({ variant: "destructive", title: "Upload failed" });
             } finally {
               setIsUploading(false);
               if (fileInputRef.current) fileInputRef.current.value = '';
@@ -329,10 +373,11 @@ export default function ManageGalleryPage() {
         </div>
 
         <Tabs defaultValue="images" className="w-full">
-          <TabsList className="grid w-full max-w-xl grid-cols-4 rounded-none bg-muted/50 p-1 mb-8">
+          <TabsList className="grid w-full max-w-2xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
             <TabsTrigger value="images" className="rounded-none">Images</TabsTrigger>
             <TabsTrigger value="videos" className="rounded-none">Videos</TabsTrigger>
             <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
+            <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
             <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
           </TabsList>
 
@@ -351,50 +396,22 @@ export default function ManageGalleryPage() {
               {sortedDashboardImages.map((image) => (
                 <div key={image.id} className="relative group aspect-square bg-muted border border-border/50 overflow-hidden rounded-none">
                   <FirebaseStorageImage path={image.path} alt={image.name} width={300} height={300} className="w-full h-full object-cover rounded-none" />
-                  
                   <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="cursor-help">
-                            {hasMatchingVideo(image.name) ? (
-                              <CheckCircle2 className="size-5 text-green-500 fill-black/50" />
-                            ) : (
-                              <AlertCircle className="size-5 text-amber-500 fill-black/50" />
-                            )}
+                            {hasMatchingVideo(image.name) ? <CheckCircle2 className="size-5 text-green-500 fill-black/50" /> : <AlertCircle className="size-5 text-amber-500 fill-black/50" />}
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="right">
-                          <p>{hasMatchingVideo(image.name) ? 'Matching video found' : 'No matching video (.mp4) found'}</p>
-                        </TooltipContent>
+                        <TooltipContent side="right"><p>{hasMatchingVideo(image.name) ? 'Matching video found' : 'No matching video found'}</p></TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
-                    {image.order !== 999 && (
-                       <span className="bg-black/60 text-white text-[10px] px-1 py-0.5 rounded-sm w-fit font-mono">
-                         #{image.order}
-                       </span>
-                    )}
+                    {image.order !== 999 && <span className="bg-black/60 text-white text-[10px] px-1 py-0.5 rounded-sm w-fit font-mono">#{image.order}</span>}
                   </div>
-
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 gap-2">
-                    <Button 
-                      type="button" 
-                      variant="secondary" 
-                      size="icon" 
-                      className="rounded-none shadow-lg" 
-                      onClick={() => openEditSculpture(image)}
-                    >
-                      <Edit3 className="size-4" />
-                    </Button>
-                    <Button 
-                      type="button"
-                      variant="destructive" 
-                      size="icon" 
-                      className="rounded-none shadow-lg" 
-                      onClick={(e) => handleDelete(e, image.path)}
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                    <Button variant="secondary" size="icon" className="rounded-none shadow-lg" onClick={() => openEditSculpture(image)}><Edit3 className="size-4" /></Button>
+                    <Button variant="destructive" size="icon" className="rounded-none shadow-lg" onClick={(e) => handleDelete(e, image.path)}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -403,10 +420,7 @@ export default function ManageGalleryPage() {
 
           <TabsContent value="videos" className="space-y-6">
             <div className="flex justify-between items-center">
-              <div className="space-y-1">
-                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Videos</h2>
-                <p className="text-[9pt] text-muted-foreground">Best format: MP4 (H.264) at 30 FPS.</p>
-              </div>
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Videos</h2>
               <Button type="button" size="sm" onClick={() => { setUploadFolder('ks-videos'); fileInputRef.current?.click(); }} disabled={isUploading} className="rounded-none h-8 font-normal text-[10pt]">
                 {isUploading ? <Loader2 className="size-3 animate-spin mr-2" /> : <Upload className="size-3 mr-2" />}
                 Upload Video
@@ -416,15 +430,7 @@ export default function ManageGalleryPage() {
               {videos.map((video) => (
                 <div key={video.id} className="p-4 bg-muted/30 border border-border/50 flex justify-between items-center">
                   <span className="text-[11pt] truncate">{video.name}</span>
-                  <Button 
-                    type="button"
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-destructive hover:bg-destructive/10"
-                    onClick={(e) => handleDelete(e, video.path)}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
+                  <Button variant="ghost" size="icon" className="text-destructive" onClick={(e) => handleDelete(e, video.path)}><Trash2 className="size-4" /></Button>
                 </div>
               ))}
             </div>
@@ -433,9 +439,7 @@ export default function ManageGalleryPage() {
           <TabsContent value="news" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
-              <Button type="button" size="sm" onClick={() => openEditNews()} className="rounded-none h-8 font-normal text-[10pt]">
-                <Plus className="size-3 mr-2" /> Add News
-              </Button>
+              <Button type="button" size="sm" onClick={() => openEditNews()} className="rounded-none h-8 font-normal text-[10pt]"><Plus className="size-3 mr-2" /> Add News</Button>
             </div>
             <div className="space-y-4">
               {firestoreNews?.map((item) => (
@@ -446,89 +450,60 @@ export default function ManageGalleryPage() {
                     <p className="text-[10pt] text-muted-foreground line-clamp-2">{item.content}</p>
                   </div>
                   <div className="flex gap-2">
-                    <Button type="button" variant="outline" size="icon" className="rounded-none" onClick={() => openEditNews(item)}><Edit3 className="size-4" /></Button>
-                    <Button type="button" variant="ghost" size="icon" className="rounded-none text-destructive" onClick={() => deleteNewsItem(item.id)}><Trash2 className="size-4" /></Button>
+                    <Button variant="outline" size="icon" className="rounded-none" onClick={() => openEditNews(item)}><Edit3 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="rounded-none text-destructive" onClick={() => deleteNewsItem(item.id)}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
-              {firestoreNews?.length === 0 && <p className="text-center py-12 text-muted-foreground">No news items found.</p>}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="pages" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <div className="space-y-1">
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Custom Pages</h2>
+                <p className="text-[9pt] text-muted-foreground">Manage static pages like 'Background' or 'Introduction'.</p>
+              </div>
+              <Button type="button" size="sm" onClick={() => openEditPage()} className="rounded-none h-8 font-normal text-[10pt]"><Plus className="size-3 mr-2" /> Add Page</Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {firestorePages?.filter(p => p.id !== 'sidebar').map((page) => (
+                <div key={page.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-center gap-4">
+                  <div className="space-y-1">
+                    <h3 className="text-[12pt] font-normal">{page.title}</h3>
+                    <p className="text-[9pt] font-mono text-muted-foreground">/p/{page.slug}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="icon" className="rounded-none" onClick={() => openEditPage(page)}><Edit3 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="rounded-none text-destructive" onClick={() => deletePage(page.id)}><Trash2 className="size-4" /></Button>
+                  </div>
+                </div>
+              ))}
             </div>
           </TabsContent>
 
           <TabsContent value="sidebar" className="space-y-6">
             <div className="flex justify-between items-center">
-              <div className="space-y-1">
-                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar Content</h2>
-                <p className="text-[9pt] text-muted-foreground">Edit the global site information shown in the left sidebar.</p>
-              </div>
-              <Button type="button" size="sm" onClick={saveSidebar} disabled={isSaving} className="rounded-none h-8 font-normal text-[10pt]">
-                {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />}
-                Save Changes
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar Content</h2>
+              <Button size="sm" onClick={saveSidebar} disabled={isSaving} className="rounded-none h-8 font-normal text-[10pt]">
+                {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save
               </Button>
             </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-muted/20 border border-border/50 p-6">
-              <div className="space-y-6">
-                <h3 className="text-[11pt] font-normal uppercase tracking-wider border-b border-border/50 pb-2">Main Introduction</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-[9pt] uppercase tracking-widest">Main Title Line</Label>
-                    <Input 
-                      value={sidebarState.introTitle} 
-                      onChange={e => setSidebarState({...sidebarState, introTitle: e.target.value})} 
-                      className="rounded-none" 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[9pt] uppercase tracking-widest">Sub-Introduction</Label>
-                    <Textarea 
-                      value={sidebarState.introSub} 
-                      onChange={e => setSidebarState({...sidebarState, introSub: e.target.value})} 
-                      className="rounded-none h-24" 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-[9pt] uppercase tracking-widest">Commission Note</Label>
-                    <Textarea 
-                      value={sidebarState.commissionNote} 
-                      onChange={e => setSidebarState({...sidebarState, commissionNote: e.target.value})} 
-                      className="rounded-none h-24" 
-                    />
-                  </div>
-                </div>
+              <div className="space-y-4">
+                <div className="space-y-2"><Label>Title Line</Label><Input value={sidebarState.introTitle} onChange={e => setSidebarState({...sidebarState, introTitle: e.target.value})} className="rounded-none" /></div>
+                <div className="space-y-2"><Label>Sub-Intro</Label><Textarea value={sidebarState.introSub} onChange={e => setSidebarState({...sidebarState, introSub: e.target.value})} className="rounded-none h-24" /></div>
+                <div className="space-y-2"><Label>Commission Note</Label><Textarea value={sidebarState.commissionNote} onChange={e => setSidebarState({...sidebarState, commissionNote: e.target.value})} className="rounded-none h-24" /></div>
               </div>
-
-              <div className="space-y-6">
-                <h3 className="text-[11pt] font-normal uppercase tracking-wider border-b border-border/50 pb-2">Notices & Contact</h3>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-[9pt] uppercase tracking-widest">Garden/Visit Notice</Label>
-                    <Textarea 
-                      value={sidebarState.gardenNotice} 
-                      onChange={e => setSidebarState({...sidebarState, gardenNotice: e.target.value})} 
-                      className="rounded-none h-32" 
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[9pt] uppercase tracking-widest">Email Address</Label>
-                      <Input value={sidebarState.email} onChange={e => setSidebarState({...sidebarState, email: e.target.value})} className="rounded-none" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[9pt] uppercase tracking-widest">Phone</Label>
-                      <Input value={sidebarState.phone} onChange={e => setSidebarState({...sidebarState, phone: e.target.value})} className="rounded-none" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[9pt] uppercase tracking-widest">Mobile</Label>
-                      <Input value={sidebarState.mobile} onChange={e => setSidebarState({...sidebarState, mobile: e.target.value})} className="rounded-none" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[9pt] uppercase tracking-widest">Social Handle</Label>
-                      <Input value={sidebarState.social} onChange={e => setSidebarState({...sidebarState, social: e.target.value})} className="rounded-none" />
-                    </div>
-                  </div>
+              <div className="space-y-4">
+                <div className="space-y-2"><Label>Garden Notice</Label><Textarea value={sidebarState.gardenNotice} onChange={e => setSidebarState({...sidebarState, gardenNotice: e.target.value})} className="rounded-none h-24" /></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Email</Label><Input value={sidebarState.email} onChange={e => setSidebarState({...sidebarState, email: e.target.value})} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Phone</Label><Input value={sidebarState.phone} onChange={e => setSidebarState({...sidebarState, phone: e.target.value})} className="rounded-none" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Mobile</Label><Input value={sidebarState.mobile} onChange={e => setSidebarState({...sidebarState, mobile: e.target.value})} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Social</Label><Input value={sidebarState.social} onChange={e => setSidebarState({...sidebarState, social: e.target.value})} className="rounded-none" /></div>
                 </div>
               </div>
             </div>
@@ -536,63 +511,48 @@ export default function ManageGalleryPage() {
         </Tabs>
       </div>
 
+      {/* Edit Sculpture Dialog */}
       <Dialog open={!!editingSculpture} onOpenChange={() => setEditingSculpture(null)}>
-        <DialogContent className="max-w-lg rounded-none">
-          <DialogHeader><DialogTitle className="tracking-widest font-normal">Edit Sculpture Info</DialogTitle></DialogHeader>
+        <DialogContent className="rounded-none">
+          <DialogHeader><DialogTitle>Edit Sculpture Info</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-4 gap-4">
-              <div className="col-span-3 space-y-2">
-                <Label>Title</Label>
-                <Input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="rounded-none" />
-              </div>
-              <div className="space-y-2">
-                <Label>Order</Label>
-                <Input type="number" value={editOrder} onChange={e => setEditOrder(e.target.value)} className="rounded-none" />
-              </div>
+              <div className="col-span-3"><Label>Title</Label><Input value={editTitle} onChange={e => setEditTitle(e.target.value)} className="rounded-none" /></div>
+              <div><Label>Order</Label><Input type="number" value={editOrder} onChange={e => setEditOrder(e.target.value)} className="rounded-none" /></div>
             </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className="rounded-none min-h-[150px]" />
-            </div>
+            <div><Label>Description</Label><Textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} className="rounded-none min-h-[150px]" /></div>
           </div>
-          <DialogFooter>
-            <Button type="button" onClick={saveSculptureInfo} disabled={isSaving} className="rounded-none"><Save className="size-4 mr-2" /> Save</Button>
-          </DialogFooter>
+          <DialogFooter><Button onClick={saveSculptureInfo} disabled={isSaving} className="rounded-none">Save</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
+      {/* Edit News Dialog */}
       <Dialog open={!!editingNews} onOpenChange={() => setEditingNews(null)}>
         <DialogContent className="max-w-2xl rounded-none">
-          <DialogHeader><DialogTitle className="tracking-widest font-normal">{editingNews?.isNew ? 'New Update' : 'Edit Update'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingNews?.isNew ? 'New Update' : 'Edit Update'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Title</Label>
-                <Input value={newsTitle} onChange={e => setNewsTitle(e.target.value)} className="rounded-none" />
-              </div>
-              <div className="space-y-2">
-                <Label>Date Label (e.g., July 2024)</Label>
-                <Input value={newsDate} onChange={e => setNewsDate(e.target.value)} className="rounded-none" />
-              </div>
+              <div><Label>Title</Label><Input value={newsTitle} onChange={e => setNewsTitle(e.target.value)} className="rounded-none" /></div>
+              <div><Label>Date</Label><Input value={newsDate} onChange={e => setNewsDate(e.target.value)} className="rounded-none" /></div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Image Path (optional)</Label>
-                <Input value={newsImagePath} onChange={e => setNewsImagePath(e.target.value)} className="rounded-none" placeholder="ks-images/sculpture.jpg" />
-              </div>
-              <div className="space-y-2">
-                <Label>Display Order</Label>
-                <Input type="number" value={newsOrder} onChange={e => setNewsOrder(e.target.value)} className="rounded-none" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Content</Label>
-              <Textarea value={newsContent} onChange={e => setNewsContent(e.target.value)} className="rounded-none min-h-[200px]" />
-            </div>
+            <div><Label>Content</Label><Textarea value={newsContent} onChange={e => setNewsContent(e.target.value)} className="rounded-none min-h-[200px]" /></div>
           </div>
-          <DialogFooter>
-            <Button type="button" onClick={saveNewsItem} disabled={isSaving} className="rounded-none"><Save className="size-4 mr-2" /> Save News</Button>
-          </DialogFooter>
+          <DialogFooter><Button onClick={saveNewsItem} disabled={isSaving} className="rounded-none">Save News</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Page Dialog */}
+      <Dialog open={!!editingPage} onOpenChange={() => setEditingPage(null)}>
+        <DialogContent className="max-w-2xl rounded-none">
+          <DialogHeader><DialogTitle>{editingPage?.isNew ? 'New Page' : 'Edit Page'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label>Slug (e.g. background)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" placeholder="background" /></div>
+            </div>
+            <div className="space-y-2"><Label>Content</Label><Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none min-h-[300px]" /></div>
+          </div>
+          <DialogFooter><Button onClick={savePage} disabled={isSaving} className="rounded-none">Save Page</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </main>
