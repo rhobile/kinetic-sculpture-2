@@ -43,10 +43,15 @@ export default function SculpturesListPage() {
 
   const listItems = useMemo(() => {
     if (!storageItems) return [];
+    
+    // Filter Storage files to ONLY those that have a corresponding entry in Firestore
+    // This allows the user to "delete" from the index without deleting files from Storage
     return storageItems.images
       .filter(item => {
         const name = item.name.split('.').slice(0, -1).join('.').toLowerCase();
-        return storageItems.videos.has(name);
+        const normalizedKey = name.replace(/[^a-z0-9]/g, '');
+        const hasFirestoreEntry = firestoreVideos?.some(v => v.id === normalizedKey);
+        return storageItems.videos.has(name) && hasFirestoreEntry;
       })
       .map(item => {
         const name = item.name.split('.').slice(0, -1).join('.').toLowerCase();
@@ -116,7 +121,7 @@ export default function SculpturesListPage() {
                 </article>
               ))
             ) : (
-              <p className="text-[12pt] text-muted-foreground italic">No matched sculptures found.</p>
+              <p className="text-[12pt] text-muted-foreground italic">No sculptures found in the Index. Use the Management Dashboard to add titles and descriptions.</p>
             )}
           </div>
         </div>

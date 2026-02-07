@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { getStorage, ref as storageRef, listAll, deleteObject, uploadBytes } from 'firebase/storage';
+import { getStorage, ref as storageRef, listAll, uploadBytes } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { 
   Trash2, Upload, Loader2, RefreshCw, Lock, 
   CheckCircle2, AlertCircle, Edit3, Save, Plus, FileText, Settings,
-  Video, Image as ImageIcon
+  Video, Image as ImageIcon, Info
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
@@ -128,7 +128,7 @@ export default function ManageGalleryPage() {
       const vidRes = await listAll(storageRef(storage, 'ks-videos'));
       setVideos(vidRes.items.map(item => ({ id: item.fullPath, path: item.fullPath, name: item.name })));
 
-      toast({ title: "Data refreshed" });
+      toast({ title: "Gallery refreshed" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Refresh failed" });
     } finally {
@@ -161,7 +161,8 @@ export default function ManageGalleryPage() {
         imagePath: img?.path,
         videoPath: vid?.path,
         hasImage: !!img,
-        hasVideo: !!vid
+        hasVideo: !!vid,
+        hasMetadata: !!fsData
       };
     }).sort((a, b) => a.order - b.order);
   }, [images, videos, firestoreVideos]);
@@ -173,7 +174,6 @@ export default function ManageGalleryPage() {
       const storage = getStorage(firebaseApp);
       const normalizedKey = sculptureTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       
-      // 1. Upload media if provided
       if (sculptureImage) {
         const iRef = storageRef(storage, `ks-images/${normalizedKey}.jpg`);
         await uploadBytes(iRef, sculptureImage);
@@ -183,7 +183,6 @@ export default function ManageGalleryPage() {
         await uploadBytes(vRef, sculptureVideo);
       }
 
-      // 2. Save metadata
       await setDoc(doc(firestore, 'videos', normalizedKey), {
         id: normalizedKey,
         title: sculptureTitle,
@@ -205,24 +204,21 @@ export default function ManageGalleryPage() {
     }
   };
 
-  const deleteSculpture = async (sculpture: any) => {
-    if (!window.confirm(`Delete sculpture "${sculpture.title}" and its associated files?`)) return;
+  const removeSculptureFromIndex = async (sculpture: any) => {
+    if (!firestore) return;
+    if (!window.confirm(`Remove "${sculpture.title}" from the Index? This will delete the title and description, but keep the files in the home gallery.`)) return;
+    
     setIsSaving(true);
     try {
-      const storage = getStorage(firebaseApp);
-      if (sculpture.imagePath) await deleteObject(storageRef(storage, sculpture.imagePath));
-      if (sculpture.videoPath) await deleteObject(storageRef(storage, sculpture.videoPath));
-      if (firestore) await deleteDoc(doc(firestore, 'videos', sculpture.id));
-      toast({ title: "Sculpture deleted" });
-      await fetchData();
+      await deleteDoc(doc(firestore, 'videos', sculpture.id));
+      toast({ title: "Removed from index" });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Delete failed" });
+      toast({ variant: "destructive", title: "Failed to remove entry" });
     } finally {
       setIsSaving(false);
     }
   };
 
-  // News and Pages handlers remain similar...
   const saveNewsItem = async () => {
     if (!firestore) return;
     setIsSaving(true);
@@ -241,6 +237,19 @@ export default function ManageGalleryPage() {
       setEditingNews(null);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save failed" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const deleteNewsItem = async (id: string) => {
+    if (!firestore || !window.confirm("Delete this news update?")) return;
+    setIsSaving(true);
+    try {
+      await deleteDoc(doc(firestore, 'news', id));
+      toast({ title: "News item deleted" });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Delete failed" });
     } finally {
       setIsSaving(false);
     }
@@ -268,6 +277,19 @@ export default function ManageGalleryPage() {
     }
   };
 
+  const deletePage = async (id: string) => {
+    if (!firestore || !window.confirm("Delete this page?")) return;
+    setIsSaving(true);
+    try {
+      await deleteDoc(doc(firestore, 'pages', id));
+      toast({ title: "Page deleted" });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Delete failed" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const saveSidebar = async () => {
     if (!firestore) return;
     setIsSaving(true);
@@ -287,7 +309,7 @@ export default function ManageGalleryPage() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
           <h1 className="text-[12pt] font-normal uppercase tracking-widest">Management Dashboard</h1>
           <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isLoading} className="rounded-none font-normal">
-            <RefreshCw className={cn("size-4 mr-2", isLoading && "animate-spin")} /> Refresh
+            <RefreshCw className={cn("size-4 mr-2", isLoading && "animate-spin")} /> Refresh Files
           </Button>
         </div>
 
@@ -303,7 +325,7 @@ export default function ManageGalleryPage() {
             <div className="flex justify-between items-center">
               <div className="space-y-1">
                 <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculptures Index</h2>
-                <p className="text-[9pt] text-muted-foreground">Add new jpg and mp4 pairs with descriptions.</p>
+                <p className="text-[9pt] text-muted-foreground">Add details to appear in the Index. "Delete" only removes metadata, not home gallery files.</p>
               </div>
               <Button onClick={() => {
                 setEditingSculpture(null);
@@ -329,6 +351,9 @@ export default function ManageGalleryPage() {
                     )}
                     <div className="absolute top-2 left-2 flex gap-1">
                       <span className="bg-black/60 text-white text-[10px] px-2 py-1 rounded-sm font-mono">#{sculpture.order}</span>
+                      {sculpture.hasMetadata && (
+                        <span className="bg-green-600/80 text-white text-[9px] px-2 py-1 rounded-sm uppercase tracking-tighter">In Index</span>
+                      )}
                     </div>
                   </div>
                   <div className="p-4 flex-1 space-y-2">
@@ -352,14 +377,17 @@ export default function ManageGalleryPage() {
                       setSculptureOrder(sculpture.order.toString());
                       setIsSculptureDialogOpen(true);
                     }}><Edit3 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive rounded-none" onClick={() => deleteSculpture(sculpture)}><Trash2 className="size-4" /></Button>
+                    {sculpture.hasMetadata && (
+                      <Button variant="ghost" size="icon" className="text-destructive rounded-none" onClick={() => removeSculptureFromIndex(sculpture)}>
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           </TabsContent>
 
-          {/* Other tabs content remains essentially the same as before */}
           <TabsContent value="news" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
@@ -374,7 +402,7 @@ export default function ManageGalleryPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="icon" onClick={() => { setEditingNews(item); setNewsTitle(item.title); setNewsDate(item.date); setNewsContent(item.content); setNewsImagePath(item.imagePath || ''); setNewsOrder(item.order?.toString() || '0'); }}><Edit3 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={async () => { if (firestore && window.confirm("Delete?")) await deleteDoc(doc(firestore, 'news', item.id)); }}><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteNewsItem(item.id)}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -395,7 +423,7 @@ export default function ManageGalleryPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="icon" onClick={() => { setEditingPage(page); setPageTitle(page.title); setPageSlug(page.slug); setPageContent(page.content); }}><Edit3 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={async () => { if (firestore && window.confirm("Delete?")) await deleteDoc(doc(firestore, 'pages', page.id)); }}><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deletePage(page.id)}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -450,17 +478,12 @@ export default function ManageGalleryPage() {
               <div className="space-y-2">
                 <Label className="flex items-center gap-2"><ImageIcon className="size-4" /> Sculpture Image (.jpg)</Label>
                 <Input type="file" accept=".jpg,.jpeg" onChange={e => setSculptureImage(e.target.files?.[0] || null)} className="rounded-none" />
-                {editingSculpture?.hasImage && <p className="text-[10px] text-muted-foreground italic">Currently has an image.</p>}
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-2"><Video className="size-4" /> Sculpture Video (.mp4)</Label>
                 <Input type="file" accept=".mp4" onChange={e => setSculptureVideo(e.target.files?.[0] || null)} className="rounded-none" />
-                {editingSculpture?.hasVideo && <p className="text-[10px] text-muted-foreground italic">Currently has a video.</p>}
               </div>
             </div>
-            <p className="text-[10px] text-muted-foreground border-t border-border/50 pt-2 italic">
-              Note: Files will be automatically named based on the title to link them together correctly.
-            </p>
           </div>
           <DialogFooter>
             <Button onClick={saveSculpture} disabled={isSaving || !sculptureTitle} className="rounded-none w-full sm:w-auto">
@@ -471,7 +494,7 @@ export default function ManageGalleryPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Other Edit Dialogs (News, Pages) remain similar... */}
+      {/* Other Edit Dialogs */}
       <Dialog open={!!editingNews} onOpenChange={() => setEditingNews(null)}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader><DialogTitle>{editingNews?.isNew ? 'New Update' : 'Edit Update'}</DialogTitle></DialogHeader>
