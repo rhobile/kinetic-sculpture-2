@@ -8,7 +8,7 @@ import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonB
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Search, AlertCircle, EyeOff, Eye, Info, ListFilter, LayoutGrid
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Search, EyeOff, ListFilter, Settings
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -29,7 +29,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -155,18 +155,16 @@ export default function ManageDashboardPage() {
     if (firebaseApp) fetchData();
   }, [firebaseApp, fetchData]);
 
-  // Derived Data: Flow Observations (Curated items for the list page)
   const observationItems = useMemo(() => {
     if (!firestoreVideos) return [];
     return firestoreVideos.filter(v => v.isObservation === true);
   }, [firestoreVideos]);
 
-  // Derived Data: Home Gallery (All items appearing in the masonry)
   const homeGalleryItems = useMemo(() => {
     return storageData.images.map(img => {
       const fsData = firestoreVideos?.find(v => v.id === img.id);
       const videoExists = storageData.videos.has(img.id);
-      if (!videoExists) return null; // Masonry only shows items with video
+      if (!videoExists) return null;
 
       return {
         id: img.id,
@@ -219,6 +217,66 @@ export default function ManageDashboardPage() {
       toast({ title: "Changes saved" });
       setIsItemDialogOpen(false);
       setEditingItem(null);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Save failed" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveNewsItem = async () => {
+    if (!firestore || !newsTitle) return;
+    setIsSaving(true);
+    try {
+      const id = editingNews?.id || newsTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const docRef = doc(firestore, 'news', id);
+      setDocumentNonBlocking(docRef, {
+        id,
+        title: newsTitle,
+        date: newsDate,
+        content: newsContent,
+        imagePath: newsImagePath,
+        order: Number(newsOrder) || 0,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      toast({ title: "News item saved" });
+      setEditingNews(null);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Save failed" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const savePage = async () => {
+    if (!firestore || !pageTitle || !pageSlug) return;
+    setIsSaving(true);
+    try {
+      const id = editingPage?.id || pageSlug.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const docRef = doc(firestore, 'pages', id);
+      setDocumentNonBlocking(docRef, {
+        id,
+        title: pageTitle,
+        slug: pageSlug,
+        content: pageContent,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      toast({ title: "Page saved" });
+      setEditingPage(null);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Save failed" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const saveSidebar = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    try {
+      const docRef = doc(firestore, 'pages', 'sidebar');
+      setDocumentNonBlocking(docRef, sidebarState, { merge: true });
+      toast({ title: "Sidebar branding updated" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save failed" });
     } finally {
@@ -329,7 +387,7 @@ export default function ManageDashboardPage() {
                     </div>
                     <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">Order: {item.order}</p>
                     <div className="flex gap-2 pt-1">
-                      <Button variant="outline" size="xs" className="h-7 text-[9px] rounded-none uppercase tracking-widest" onClick={() => openItemEditor(item)}>Edit Details</Button>
+                      <Button variant="outline" size="sm" className="h-7 text-[9px] rounded-none uppercase tracking-widest" onClick={() => openItemEditor(item)}>Edit Details</Button>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -361,7 +419,7 @@ export default function ManageDashboardPage() {
           <TabsContent value="news" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
-              <Button size="sm" onClick={() => { setEditingNews({ isNew: true }); setNewsTitle(''); setNewsDate(new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })); setNewsContent(''); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add News</Button>
+              <Button size="sm" onClick={() => { setEditingNews({ isNew: true }); setNewsTitle(''); setNewsDate(new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })); setNewsContent(''); setNewsImagePath(''); setNewsOrder('0'); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add News</Button>
             </div>
             <div className="space-y-4">
               {firestoreNews?.map((item) => (
@@ -445,6 +503,8 @@ export default function ManageDashboardPage() {
                   <div className="space-y-2"><Label>Email</Label><Input value={sidebarState.email} onChange={e => setSidebarState({...sidebarState, email: e.target.value})} className="rounded-none" /></div>
                   <div className="space-y-2"><Label>Phone</Label><Input value={sidebarState.phone} onChange={e => setSidebarState({...sidebarState, phone: e.target.value})} className="rounded-none" /></div>
                 </div>
+                <div className="space-y-2"><Label>Mobile</Label><Input value={sidebarState.mobile} onChange={e => setSidebarState({...sidebarState, mobile: e.target.value})} className="rounded-none" /></div>
+                <div className="space-y-2"><Label>Social Link</Label><Input value={sidebarState.social} onChange={e => setSidebarState({...sidebarState, social: e.target.value})} className="rounded-none" /></div>
               </div>
             </div>
           </TabsContent>
@@ -535,6 +595,7 @@ export default function ManageDashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* News Edit Dialog */}
       <Dialog open={!!editingNews} onOpenChange={(open) => !open && setEditingNews(null)}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader><DialogTitle>{editingNews?.isNew ? 'Add News' : 'Edit News'}</DialogTitle></DialogHeader>
@@ -551,6 +612,7 @@ export default function ManageDashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Custom Page Edit Dialog */}
       <Dialog open={!!editingPage} onOpenChange={(open) => !open && setEditingPage(null)}>
         <DialogContent className="max-w-3xl rounded-none">
           <DialogHeader><DialogTitle>{editingPage?.isNew ? 'Create Page' : 'Edit Page'}</DialogTitle></DialogHeader>
@@ -565,6 +627,7 @@ export default function ManageDashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Universal Delete Confirmation */}
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent className="rounded-none">
           <AlertDialogHeader>
