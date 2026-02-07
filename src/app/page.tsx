@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -107,13 +106,14 @@ export default function Home() {
 
     const mapped = storageItems.images.map((item, index) => {
       const fileName = item.name.split('.').slice(0, -1).join('.');
-      const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      // Use the raw filename without extension as the key, consistent with management dashboard
+      const normalizedKey = fileName.toLowerCase();
       
       // Match with Firestore data for titles, descriptions, custom ordering, and visibility
       const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
 
       // If marked as hidden in Firestore, exclude it from the gallery
-      if (fsData?.hidden) return null;
+      if (fsData?.hidden === true) return null;
 
       const displayTitle = fsData?.title || fileName
         .replace(/[-_]/g, ' ')
@@ -131,7 +131,7 @@ export default function Home() {
         width: 500,
         height: index % 2 === 0 ? 600 : 750,
       } as FirebaseImage & { order: number };
-    }).filter(img => img !== null);
+    }).filter((img): img is (FirebaseImage & { order: number }) => img !== null);
 
     // Sort images based on the 'order' property set in Manage dashboard
     return [...mapped].sort((a, b) => a.order - b.order);

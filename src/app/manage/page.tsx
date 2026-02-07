@@ -226,83 +226,6 @@ export default function ManageDashboardPage() {
     }
   };
 
-  const toggleVisibility = (item: any) => {
-    if (!firestore) return;
-    // Use setDocumentNonBlocking with merge to avoid update errors on non-existent docs
-    const docRef = doc(firestore, 'videos', item.id);
-    setDocumentNonBlocking(docRef, {
-      hidden: !item.hidden
-    }, { merge: true });
-    
-    toast({ 
-      title: !item.hidden ? "Hidden from gallery" : "Now visible in gallery",
-      description: item.title
-    });
-  };
-
-  const saveNewsItem = async () => {
-    if (!firestore) return;
-    setIsSaving(true);
-    try {
-      const id = editingNews.isNew ? doc(collection(firestore, 'news')).id : editingNews.id;
-      const docRef = doc(firestore, 'news', id);
-      setDocumentNonBlocking(docRef, {
-        id,
-        title: newsTitle,
-        date: newsDate,
-        content: newsContent,
-        imagePath: newsImagePath,
-        order: Number(newsOrder) || 0,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-      toast({ title: "News item saved" });
-      setEditingNews(null);
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Save failed" });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const savePage = async () => {
-    if (!firestore || !pageSlug) return;
-    setIsSaving(true);
-    try {
-      const cleanedSlug = pageSlug.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      const docRef = doc(firestore, 'pages', cleanedSlug);
-      setDocumentNonBlocking(docRef, {
-        id: cleanedSlug,
-        title: pageTitle,
-        slug: cleanedSlug,
-        content: pageContent,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-      if (!editingPage.isNew && editingPage.id !== cleanedSlug) {
-        deleteDocumentNonBlocking(doc(firestore, 'pages', editingPage.id));
-      }
-      toast({ title: "Page saved" });
-      setEditingPage(null);
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Save failed" });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const saveSidebar = async () => {
-    if (!firestore) return;
-    setIsSaving(true);
-    try {
-      const docRef = doc(firestore, 'pages', 'sidebar');
-      setDocumentNonBlocking(docRef, { ...sidebarState, updatedAt: new Date().toISOString() }, { merge: true });
-      toast({ title: "Sidebar updated" });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Update failed" });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const openItemEditor = (item: any) => {
     setEditingItem(item);
     setItemTitle(item.title || '');
@@ -407,9 +330,6 @@ export default function ManageDashboardPage() {
                     <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">Order: {item.order}</p>
                     <div className="flex gap-2 pt-1">
                       <Button variant="outline" size="xs" className="h-7 text-[9px] rounded-none uppercase tracking-widest" onClick={() => openItemEditor(item)}>Edit Details</Button>
-                      <Button variant="ghost" size="xs" className={cn("h-7 text-[9px] rounded-none uppercase tracking-widest", item.hidden ? "text-accent" : "text-muted-foreground")} onClick={() => toggleVisibility(item)}>
-                        {item.hidden ? "Show" : "Hide"}
-                      </Button>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
