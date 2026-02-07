@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
@@ -62,11 +63,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p className="text-[12pt] text-foreground">{content.introTitle}</p>
             <p className="text-[12pt] text-muted-foreground">{content.introSub}</p>
             <p className="text-[12pt] text-muted-foreground">{content.commissionNote}</p>
-            <p>
-              <Link href="/news" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30">
-                News (if there is any)
-              </Link>
-            </p>
+            <div className="space-y-2">
+              <p>
+                <Link href="/sculptures" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30 font-medium">
+                  Index of Sculptures
+                </Link>
+              </p>
+              <p>
+                <Link href="/news" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30">
+                  News (if there is any)
+                </Link>
+              </p>
+            </div>
           </div>
 
           <div className="space-y-4 text-muted-foreground text-[12pt]">
