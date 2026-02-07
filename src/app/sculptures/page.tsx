@@ -1,75 +1,23 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
-import { collection } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
-import { VideoPlayerModal } from '@/components/video-player-modal';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { FirebaseImage } from '@/lib/firebase-images';
+import { useState } from 'react';
+import { VideoPlayerModal } from '@/components/video-player-modal';
 
 export default function SculpturesListPage() {
-  const { firebaseApp, firestore } = useFirebase();
-  const [storageItems, setStorageItems] = useState<{ images: any[], videos: Set<string> } | null>(null);
-  const [selectedImage, setSelectedImage] = useState<FirebaseImage | null>(null);
-  const [isStorageLoading, setIsStorageLoading] = useState(true);
+  const { firestore } = useFirebase();
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
 
-  const videosQuery = useMemoFirebase(() => {
+  const sculpturesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'videos');
+    return query(collection(firestore, 'videos'), orderBy('order', 'asc'));
   }, [firestore]);
-  const { data: firestoreVideos } = useCollection(videosQuery);
 
-  useEffect(() => {
-    async function fetchStorageData() {
-      if (!firebaseApp) return;
-      setIsStorageLoading(true);
-      try {
-        const storage = getStorage(firebaseApp);
-        const vidRes = await listAll(storageRef(storage, 'ks-videos'));
-        const availableVideoNames = new Set(vidRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase()));
-        const imgRes = await listAll(storageRef(storage, 'ks-images'));
-        setStorageItems({ images: imgRes.items, videos: availableVideoNames });
-      } catch (err) {
-        console.error("Storage fetch failed", err);
-      } finally {
-        setIsStorageLoading(false);
-      }
-    }
-    fetchStorageData();
-  }, [firebaseApp]);
-
-  const listItems = useMemo(() => {
-    if (!storageItems) return [];
-    
-    // Filter Storage files to ONLY those that have a corresponding entry in Firestore
-    // This allows the user to "delete" from the index without deleting files from Storage
-    return storageItems.images
-      .filter(item => {
-        const name = item.name.split('.').slice(0, -1).join('.').toLowerCase();
-        const normalizedKey = name.replace(/[^a-z0-9]/g, '');
-        const hasFirestoreEntry = firestoreVideos?.some(v => v.id === normalizedKey);
-        return storageItems.videos.has(name) && hasFirestoreEntry;
-      })
-      .map(item => {
-        const name = item.name.split('.').slice(0, -1).join('.').toLowerCase();
-        const normalizedKey = name.replace(/[^a-z0-9]/g, '');
-        const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
-        
-        return {
-          id: item.fullPath,
-          path: item.fullPath,
-          alt: fsData?.title || name.replace(/[-_]/g, ' '),
-          description: fsData?.description || '',
-          order: fsData?.order ?? 999,
-          width: 800,
-          height: 800
-        };
-      })
-      .sort((a, b) => a.order - b.order);
-  }, [storageItems, firestoreVideos]);
+  const { data: sculptures, isLoading } = useCollection(sculpturesQuery);
 
   return (
     <div className="bg-background min-h-screen">
@@ -79,59 +27,70 @@ export default function SculpturesListPage() {
             Index of Sculptures
           </h1>
           
-          <div className="space-y-20">
-            {isStorageLoading ? (
+          <div className="space-y-16">
+            {isLoading ? (
               [...Array(3)].map((_, i) => (
-                <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                  <Skeleton className="aspect-square rounded-none" />
-                  <div className="space-y-4">
-                    <Skeleton className="h-8 w-3/4" />
-                    <Skeleton className="h-32 w-full" />
+                <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
+                  <Skeleton className="aspect-square md:col-span-1" />
+                  <div className="md:col-span-3 space-y-4">
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-20 w-full" />
                   </div>
                 </div>
               ))
-            ) : listItems.length > 0 ? (
-              listItems.map((image) => (
+            ) : sculptures && sculptures.length > 0 ? (
+              sculptures.map((item) => (
                 <article 
-                  key={image.id} 
-                  className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start group cursor-pointer"
-                  onClick={() => setSelectedImage(image as any)}
+                  key={item.id} 
+                  className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start group cursor-pointer"
+                  onClick={() => setSelectedItem(item)}
                 >
-                  <div className="relative aspect-square overflow-hidden bg-muted border border-border/50">
-                    <FirebaseStorageImage
-                      path={image.path}
-                      alt={image.alt}
-                      width={800}
-                      height={800}
-                      className="object-cover w-full h-full transition-opacity group-hover:opacity-90"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+                  <div className="md:col-span-1">
+                    <div className="aspect-square relative overflow-hidden rounded-none border border-border/50 bg-muted">
+                      {item.imagePath ? (
+                        <FirebaseStorageImage
+                          path={item.imagePath}
+                          alt={item.title}
+                          width={400}
+                          height={400}
+                          className="object-cover w-full h-full transition-opacity group-hover:opacity-90"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-muted-foreground p-4 text-center text-[10px] uppercase tracking-widest">
+                          No Image
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="space-y-4 pt-2">
-                    <h2 className="text-[14pt] font-normal tracking-[0.1em] border-b border-border/20 pb-4">
-                      {image.alt}
-                    </h2>
-                    <p className="text-[12pt] text-foreground/80 leading-relaxed font-normal whitespace-pre-wrap">
-                      {image.description || "A balance of form and articulated movement, responding to the natural flow of the wind."}
+                  <div className="md:col-span-3 space-y-3 pt-2">
+                    <h2 className="text-[14pt] font-normal tracking-[0.1em]">{item.title}</h2>
+                    <p className="text-[12px] text-foreground/80 leading-relaxed font-normal whitespace-pre-wrap">
+                      {item.description || "A balance of form and articulated movement."}
                     </p>
-                    <p className="text-[10pt] uppercase tracking-widest text-accent font-medium pt-4">
+                    <p className="text-[10pt] uppercase tracking-widest text-accent font-medium pt-2 group-hover:underline underline-offset-4">
                       View Video &rarr;
                     </p>
                   </div>
                 </article>
               ))
             ) : (
-              <p className="text-[12pt] text-muted-foreground italic">No sculptures found in the Index. Use the Management Dashboard to add titles and descriptions.</p>
+              <p className="text-[12px] text-muted-foreground italic font-normal">No sculptures found in the Index. Use the Management Dashboard to add titles and descriptions.</p>
             )}
           </div>
         </div>
       </main>
 
-      {selectedImage && (
+      {selectedItem && (
         <VideoPlayerModal
-          image={selectedImage}
-          isOpen={!!selectedImage}
-          onClose={() => setSelectedImage(null)}
+          image={{
+            path: selectedItem.imagePath || `ks-images/${selectedItem.id}.jpg`,
+            alt: selectedItem.title,
+            description: selectedItem.description,
+            width: 800,
+            height: 800
+          } as any}
+          isOpen={!!selectedItem}
+          onClose={() => setSelectedItem(null)}
         />
       )}
     </div>

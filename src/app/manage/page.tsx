@@ -1,33 +1,28 @@
 
 'use client';
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getStorage, ref as storageRef, listAll, uploadBytes } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
-import { collection, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
-import { useFirebase, useCollection, useDoc, useMemoFirebase } from '@/firebase';
+import { collection, doc, query, orderBy } from 'firebase/firestore';
+import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Upload, Loader2, RefreshCw, Lock, 
-  CheckCircle2, AlertCircle, Edit3, Save, Plus, FileText, Settings,
-  Video, Image as ImageIcon, Info, Search
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Video, Image as ImageIcon, Search
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { EXCLUDED_IMAGES } from '@/lib/constants';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 export default function ManageGalleryPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
   const [images, setImages] = useState<any[]>([]);
-  const [videos, setVideos] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   // Sidebar Defaults
@@ -45,7 +40,7 @@ export default function ManageGalleryPage() {
   // Firestore Data
   const videosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'videos');
+    return query(collection(firestore, 'videos'), orderBy('order', 'asc'));
   }, [firestore]);
   const { data: firestoreVideos } = useCollection(videosQuery);
 
@@ -74,8 +69,8 @@ export default function ManageGalleryPage() {
   const [sculptureTitle, setSculptureTitle] = useState('');
   const [sculptureDesc, setSculptureDesc] = useState('');
   const [sculptureOrder, setSculptureOrder] = useState('0');
-  const [sculptureImage, setSculptureImage] = useState<File | null>(null);
-  const [sculptureVideo, setSculptureVideo] = useState<File | null>(null);
+  const [sculptureImagePath, setSculptureImagePath] = useState('');
+  const [sculptureVideoPath, setSculptureVideoPath] = useState('');
 
   // News Editing State
   const [editingNews, setEditingNews] = useState<any | null>(null);
@@ -111,27 +106,26 @@ export default function ManageGalleryPage() {
 
   useEffect(() => {
     if (!isAuthLoading && !user && auth) {
-      signInAnonymously(auth).catch((err) => console.error("Anonymous sign-in failed:", err));
+      signInAnonymously(auth).catch((err) => console.error("Auth failed:", err));
     }
   }, [auth, user, isAuthLoading]);
 
   const fetchData = useCallback(async () => {
     if (!firebaseApp) return;
-    setIsLoading(true);
+    setIsRefreshing(true);
     try {
       const storage = getStorage(firebaseApp);
-      
       const imgRes = await listAll(storageRef(storage, 'ks-images'));
-      setImages(imgRes.items.map(item => ({ id: item.fullPath, path: item.fullPath, name: item.name })));
-
-      const vidRes = await listAll(storageRef(storage, 'ks-videos'));
-      setVideos(vidRes.items.map(item => ({ id: item.fullPath, path: item.fullPath, name: item.name })));
-
+      setImages(imgRes.items.map(item => ({ 
+        id: item.name.split('.').slice(0, -1).join('.').toLowerCase(), 
+        path: item.fullPath, 
+        name: item.name 
+      })));
       toast({ title: "Gallery refreshed" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Refresh failed" });
     } finally {
-      setIsLoading(false);
+      setIsRefreshing(false);
     }
   }, [firebaseApp]);
 
@@ -139,70 +133,26 @@ export default function ManageGalleryPage() {
     if (firebaseApp) fetchData();
   }, [firebaseApp, fetchData]);
 
-  const combinedSculptures = useMemo(() => {
-    const allNames = new Set([
-      ...images.map(i => i.name.split('.').slice(0, -1).join('.').toLowerCase()),
-      ...videos.map(v => v.name.split('.').slice(0, -1).join('.').toLowerCase())
-    ]);
-
-    return Array.from(allNames).map(name => {
-      const normalizedKey = name.replace(/[^a-z0-9]/g, '');
-      const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
-      const img = images.find(i => i.name.split('.').slice(0, -1).join('.').toLowerCase() === name);
-      const vid = videos.find(v => v.name.split('.').slice(0, -1).join('.').toLowerCase() === name);
-      
-      return {
-        id: normalizedKey,
-        name: name,
-        title: fsData?.title || name.replace(/[-_]/g, ' '),
-        description: fsData?.description || '',
-        order: fsData?.order ?? 999,
-        imagePath: img?.path,
-        videoPath: vid?.path,
-        hasImage: !!img,
-        hasVideo: !!vid,
-        hasMetadata: !!fsData
-      };
-    }).sort((a, b) => a.order - b.order);
-  }, [images, videos, firestoreVideos]);
-
-  // Filters for Cloud Browser (items in storage but not yet indexed)
-  const unindexedItems = useMemo(() => {
-    return combinedSculptures.filter(s => !s.hasMetadata);
-  }, [combinedSculptures]);
-
   const saveSculpture = async () => {
-    if (!firestore || !firebaseApp || !sculptureTitle) return;
+    if (!firestore || !sculptureTitle) return;
     setIsSaving(true);
     try {
-      const storage = getStorage(firebaseApp);
-      // Slug-ify the title to create a consistent ID
-      const normalizedKey = sculptureTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const id = editingSculpture?.id || sculptureTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const docRef = doc(firestore, 'videos', id);
       
-      // Only upload if new files were picked from PC
-      if (sculptureImage) {
-        const iRef = storageRef(storage, `ks-images/${normalizedKey}.jpg`);
-        await uploadBytes(iRef, sculptureImage);
-      }
-      if (sculptureVideo) {
-        const vRef = storageRef(storage, `ks-videos/${normalizedKey}.mp4`);
-        await uploadBytes(vRef, sculptureVideo);
-      }
-
-      await setDoc(doc(firestore, 'videos', normalizedKey), {
-        id: normalizedKey,
+      setDocumentNonBlocking(docRef, {
+        id,
         title: sculptureTitle,
         description: sculptureDesc,
         order: Number(sculptureOrder) || 0,
+        imagePath: sculptureImagePath || `ks-images/${id}.jpg`,
+        videoPath: sculptureVideoPath || `ks-videos/${id}.mp4`,
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      toast({ title: "Sculpture saved successfully" });
+      toast({ title: "Sculpture saved" });
       setIsSculptureDialogOpen(false);
       setEditingSculpture(null);
-      setSculptureImage(null);
-      setSculptureVideo(null);
-      await fetchData();
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save failed" });
     } finally {
@@ -210,19 +160,12 @@ export default function ManageGalleryPage() {
     }
   };
 
-  const removeSculptureFromIndex = async (sculpture: any) => {
+  const removeSculpture = (id: string) => {
     if (!firestore) return;
-    if (!window.confirm(`Remove "${sculpture.title}" from the Index? This will delete the title and description text, but keep the files in your masonry gallery.`)) return;
+    if (!window.confirm("Remove this sculpture from the Index? This will NOT delete your files from Storage.")) return;
     
-    setIsSaving(true);
-    try {
-      await deleteDoc(doc(firestore, 'videos', sculpture.id));
-      toast({ title: "Removed from index" });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Failed to remove entry" });
-    } finally {
-      setIsSaving(false);
-    }
+    deleteDocumentNonBlocking(doc(firestore, 'videos', id));
+    toast({ title: "Removed from index" });
   };
 
   const saveNewsItem = async () => {
@@ -230,7 +173,8 @@ export default function ManageGalleryPage() {
     setIsSaving(true);
     try {
       const id = editingNews.isNew ? doc(collection(firestore, 'news')).id : editingNews.id;
-      await setDoc(doc(firestore, 'news', id), {
+      const docRef = doc(firestore, 'news', id);
+      setDocumentNonBlocking(docRef, {
         id,
         title: newsTitle,
         date: newsDate,
@@ -248,17 +192,10 @@ export default function ManageGalleryPage() {
     }
   };
 
-  const deleteNewsItem = async (id: string) => {
+  const deleteNewsItem = (id: string) => {
     if (!firestore || !window.confirm("Delete this news update?")) return;
-    setIsSaving(true);
-    try {
-      await deleteDoc(doc(firestore, 'news', id));
-      toast({ title: "News item deleted" });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Delete failed" });
-    } finally {
-      setIsSaving(false);
-    }
+    deleteDocumentNonBlocking(doc(firestore, 'news', id));
+    toast({ title: "News item deleted" });
   };
 
   const savePage = async () => {
@@ -266,14 +203,17 @@ export default function ManageGalleryPage() {
     setIsSaving(true);
     try {
       const cleanedSlug = pageSlug.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      await setDoc(doc(firestore, 'pages', cleanedSlug), {
+      const docRef = doc(firestore, 'pages', cleanedSlug);
+      setDocumentNonBlocking(docRef, {
         id: cleanedSlug,
         title: pageTitle,
         slug: cleanedSlug,
         content: pageContent,
         updatedAt: new Date().toISOString()
       }, { merge: true });
-      if (!editingPage.isNew && editingPage.id !== cleanedSlug) await deleteDoc(doc(firestore, 'pages', editingPage.id));
+      if (!editingPage.isNew && editingPage.id !== cleanedSlug) {
+        deleteDocumentNonBlocking(doc(firestore, 'pages', editingPage.id));
+      }
       toast({ title: "Page saved" });
       setEditingPage(null);
     } catch (error: any) {
@@ -283,24 +223,18 @@ export default function ManageGalleryPage() {
     }
   };
 
-  const deletePage = async (id: string) => {
+  const deletePage = (id: string) => {
     if (!firestore || !window.confirm("Delete this page?")) return;
-    setIsSaving(true);
-    try {
-      await deleteDoc(doc(firestore, 'pages', id));
-      toast({ title: "Page deleted" });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Delete failed" });
-    } finally {
-      setIsSaving(false);
-    }
+    deleteDocumentNonBlocking(doc(firestore, 'pages', id));
+    toast({ title: "Page deleted" });
   };
 
   const saveSidebar = async () => {
     if (!firestore) return;
     setIsSaving(true);
     try {
-      await setDoc(doc(firestore, 'pages', 'sidebar'), { ...sidebarState, updatedAt: new Date().toISOString() }, { merge: true });
+      const docRef = doc(firestore, 'pages', 'sidebar');
+      setDocumentNonBlocking(docRef, { ...sidebarState, updatedAt: new Date().toISOString() }, { merge: true });
       toast({ title: "Sidebar updated" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Update failed" });
@@ -314,8 +248,8 @@ export default function ManageGalleryPage() {
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
           <h1 className="text-[12pt] font-normal uppercase tracking-widest">Management Dashboard</h1>
-          <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isLoading} className="rounded-none font-normal">
-            <RefreshCw className={cn("size-4 mr-2", isLoading && "animate-spin")} /> Refresh Files
+          <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
+            <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Refresh Files
           </Button>
         </div>
 
@@ -329,72 +263,56 @@ export default function ManageGalleryPage() {
 
           <TabsContent value="sculptures" className="space-y-6">
             <div className="flex justify-between items-center">
-              <div className="space-y-1">
-                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculptures Index</h2>
-                <p className="text-[9pt] text-muted-foreground">"Delete" only removes the Index entry, keeping files in the gallery.</p>
-              </div>
-              <Button onClick={() => {
-                setEditingSculpture(null);
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Indexed Sculptures</h2>
+              <Button size="sm" onClick={() => {
+                setEditingSculpture({ isNew: true });
                 setSculptureTitle('');
                 setSculptureDesc('');
                 setSculptureOrder('0');
-                setSculptureImage(null);
-                setSculptureVideo(null);
+                setSculptureImagePath('');
+                setSculptureVideoPath('');
                 setIsSculptureDialogOpen(true);
-              }} className="rounded-none h-8 font-normal text-[10pt]">
+              }} className="rounded-none h-8 font-normal">
                 <Plus className="size-3 mr-2" /> Add Sculpture
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {combinedSculptures.map((sculpture) => (
-                <div key={sculpture.id} className="bg-muted/20 border border-border/50 overflow-hidden flex flex-col group relative">
-                  <div className="aspect-video relative bg-black">
-                    {sculpture.imagePath ? (
-                      <FirebaseStorageImage path={sculpture.imagePath} alt={sculpture.title} width={400} height={225} className="w-full h-full object-cover opacity-80" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-muted-foreground text-[10px] uppercase">No Image</div>
-                    )}
-                    <div className="absolute top-2 left-2 flex gap-1">
-                      <span className="bg-black/60 text-white text-[10px] px-2 py-1 rounded-sm font-mono">#{sculpture.order}</span>
-                      {sculpture.hasMetadata && (
-                        <span className="bg-green-600/80 text-white text-[9px] px-2 py-1 rounded-sm uppercase tracking-tighter">In Index</span>
-                      )}
+            <div className="space-y-4">
+              {firestoreVideos?.map((item) => (
+                <div key={item.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-center group">
+                  <div className="flex items-center gap-6">
+                    <div className="size-16 bg-black flex items-center justify-center shrink-0 border border-border/50">
+                      {item.imagePath ? (
+                        <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover opacity-80" />
+                      ) : <ImageIcon className="size-6 text-muted-foreground" />}
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-[12pt] font-normal">{item.title}</h3>
+                      <p className="text-[9pt] uppercase tracking-widest text-muted-foreground">Order: {item.order}</p>
                     </div>
                   </div>
-                  <div className="p-4 flex-1 space-y-2">
-                    <h3 className="text-[11pt] font-normal truncate">{sculpture.title}</h3>
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <ImageIcon className={cn("size-3", sculpture.hasImage ? "text-green-500" : "text-destructive")} />
-                        <span className="text-[9px] uppercase">JPG</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Video className={cn("size-3", sculpture.hasVideo ? "text-green-500" : "text-destructive")} />
-                        <span className="text-[9px] uppercase">MP4</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-2 border-t border-border/50 bg-muted/30 flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" className="rounded-none" onClick={() => {
-                      setEditingSculpture(sculpture);
-                      setSculptureTitle(sculpture.title);
-                      setSculptureDesc(sculpture.description);
-                      setSculptureOrder(sculpture.order.toString());
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="icon" onClick={() => {
+                      setEditingSculpture(item);
+                      setSculptureTitle(item.title);
+                      setSculptureDesc(item.description);
+                      setSculptureOrder(item.order.toString());
+                      setSculptureImagePath(item.imagePath || '');
+                      setSculptureVideoPath(item.videoPath || '');
                       setIsSculptureDialogOpen(true);
                     }}><Edit3 className="size-4" /></Button>
-                    {sculpture.hasMetadata && (
-                      <Button variant="ghost" size="icon" className="text-destructive rounded-none" onClick={() => removeSculptureFromIndex(sculpture)}>
-                        <Trash2 className="size-4" />
-                      </Button>
-                    )}
+                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeSculpture(item.id)}>
+                      <Trash2 className="size-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
+              {(!firestoreVideos || firestoreVideos.length === 0) && (
+                <p className="text-[10pt] text-muted-foreground italic text-center py-10">No indexed sculptures. Click 'Add Sculpture' to start.</p>
+              )}
             </div>
           </TabsContent>
 
-          {/* News Content */}
           <TabsContent value="news" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
@@ -416,7 +334,6 @@ export default function ManageGalleryPage() {
             </div>
           </TabsContent>
 
-          {/* Pages Content */}
           <TabsContent value="pages" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Custom Pages</h2>
@@ -438,7 +355,6 @@ export default function ManageGalleryPage() {
             </div>
           </TabsContent>
 
-          {/* Sidebar Content */}
           <TabsContent value="sidebar" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar Content</h2>
@@ -464,18 +380,17 @@ export default function ManageGalleryPage() {
         </Tabs>
       </div>
 
-      {/* Add/Edit Sculpture Dialog */}
       <Dialog open={isSculptureDialogOpen} onOpenChange={setIsSculptureDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader>
-            <DialogTitle>{editingSculpture ? 'Edit Sculpture' : 'Add New Sculpture'}</DialogTitle>
-            <DialogDescription>Add titles and descriptions to items in your collection.</DialogDescription>
+            <DialogTitle>{editingSculpture?.isNew ? 'Add Sculpture' : 'Edit Sculpture'}</DialogTitle>
+            <DialogDescription>Index a sculpture to show in the detailed list.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3">
                 <Label>Title</Label>
-                <Input value={sculptureTitle} onChange={e => setSculptureTitle(e.target.value)} placeholder="e.g. Arc Line Dot" className="rounded-none" />
+                <Input value={sculptureTitle} onChange={e => setSculptureTitle(e.target.value)} className="rounded-none" />
               </div>
               <div>
                 <Label>Order</Label>
@@ -486,109 +401,48 @@ export default function ManageGalleryPage() {
               <Label>Description</Label>
               <Textarea value={sculptureDesc} onChange={e => setSculptureDesc(e.target.value)} className="rounded-none min-h-[100px]" />
             </div>
-
-            <div className="space-y-4 border-t border-border pt-4">
+            <div className="space-y-4 border-t pt-4">
               <div className="flex items-center justify-between">
-                <Label className="text-muted-foreground uppercase text-[10px] tracking-widest">Storage Files</Label>
-                {!editingSculpture && (
-                  <Button variant="link" size="sm" className="h-auto p-0 text-[10px] uppercase tracking-wider" onClick={() => setIsCloudBrowserOpen(true)}>
-                    <Search className="size-3 mr-1" /> Import from Cloud Storage
-                  </Button>
-                )}
+                <Label className="uppercase text-[10px] tracking-widest">Linked Storage Files</Label>
+                <Button variant="link" size="sm" className="h-auto p-0 text-[10px] uppercase" onClick={() => setIsCloudBrowserOpen(true)}>
+                  <Search className="size-3 mr-1" /> Browse Cloud Storage
+                </Button>
               </div>
-              
-              <div className="grid grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2"><ImageIcon className="size-4" /> Sculpture Image (.jpg)</Label>
-                  <Input type="file" accept=".jpg,.jpeg" onChange={e => setSculptureImage(e.target.files?.[0] || null)} className="rounded-none" />
-                  {editingSculpture?.imagePath && <p className="text-[9px] text-muted-foreground truncate">{editingSculpture.imagePath}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2"><Video className="size-4" /> Sculpture Video (.mp4)</Label>
-                  <Input type="file" accept=".mp4" onChange={e => setSculptureVideo(e.target.files?.[0] || null)} className="rounded-none" />
-                  {editingSculpture?.videoPath && <p className="text-[9px] text-muted-foreground truncate">{editingSculpture.videoPath}</p>}
-                </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><Label>Image Path</Label><Input value={sculptureImagePath} onChange={e => setSculptureImagePath(e.target.value)} placeholder="ks-images/art.jpg" className="rounded-none" /></div>
+                <div className="space-y-2"><Label>Video Path</Label><Input value={sculptureVideoPath} onChange={e => setSculptureVideoPath(e.target.value)} placeholder="ks-videos/art.mp4" className="rounded-none" /></div>
               </div>
             </div>
           </div>
           <DialogFooter>
             <Button onClick={saveSculpture} disabled={isSaving || !sculptureTitle} className="rounded-none w-full sm:w-auto">
-              {isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />}
-              {editingSculpture ? 'Save Changes' : 'Add Sculpture'}
+              <Save className="size-4 mr-2" /> {editingSculpture?.isNew ? 'Add to Index' : 'Save Changes'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Cloud Browser Dialog */}
       <Dialog open={isCloudBrowserOpen} onOpenChange={setIsCloudBrowserOpen}>
         <DialogContent className="max-w-lg rounded-none">
-          <DialogHeader>
-            <DialogTitle>Cloud Storage Browser</DialogTitle>
-            <DialogDescription>Pick a sculpture already in your cloud storage to add to the index.</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Cloud Storage Browser</DialogTitle></DialogHeader>
           <div className="max-h-[400px] overflow-y-auto space-y-2 py-4">
-            {unindexedItems.length > 0 ? (
-              unindexedItems.map((item) => (
-                <div 
-                  key={item.id} 
-                  className="flex items-center gap-4 p-3 border border-border/50 bg-muted/20 hover:bg-muted/40 cursor-pointer"
-                  onClick={() => {
-                    setEditingSculpture(null);
-                    setSculptureTitle(item.title);
-                    setSculptureDesc('');
-                    setSculptureOrder('0');
-                    setIsCloudBrowserOpen(false);
-                  }}
-                >
-                  <div className="size-12 bg-black flex items-center justify-center shrink-0">
-                    {item.imagePath ? (
-                      <FirebaseStorageImage path={item.imagePath} alt={item.title} width={48} height={48} className="object-cover opacity-50" />
-                    ) : <ImageIcon className="size-4 text-white/20" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{item.title}</p>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-tighter">
-                      {item.hasImage && "JPG"} {item.hasVideo && "MP4"}
-                    </p>
-                  </div>
-                  <Button variant="ghost" size="sm" className="rounded-none">Select</Button>
+            {images.map((item) => (
+              <div key={item.path} className="flex items-center gap-4 p-3 border border-border/50 bg-muted/20 hover:bg-muted/40 cursor-pointer" onClick={() => {
+                setSculptureTitle(item.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+                setSculptureImagePath(item.path);
+                setSculptureVideoPath(`ks-videos/${item.name.replace(/\.[^/.]+$/, ".mp4")}`);
+                setIsCloudBrowserOpen(false);
+              }}>
+                <div className="size-12 bg-black flex items-center justify-center shrink-0 border border-border/50">
+                  <FirebaseStorageImage path={item.path} alt={item.name} width={48} height={48} className="object-cover opacity-50" />
                 </div>
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-8 italic">No unindexed items found in Storage.</p>
-            )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{item.name}</p>
+                </div>
+                <Button variant="ghost" size="sm" className="rounded-none">Select</Button>
+              </div>
+            ))}
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* News Dialog */}
-      <Dialog open={!!editingNews} onOpenChange={() => setEditingNews(null)}>
-        <DialogContent className="max-w-2xl rounded-none">
-          <DialogHeader><DialogTitle>{editingNews?.isNew ? 'New Update' : 'Edit Update'}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Title</Label><Input value={newsTitle} onChange={e => setNewsTitle(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label>Date</Label><Input value={newsDate} onChange={e => setNewsDate(e.target.value)} className="rounded-none" /></div>
-            </div>
-            <div className="space-y-2"><Label>Description Content</Label><Textarea value={newsContent} onChange={e => setNewsContent(e.target.value)} className="rounded-none min-h-[200px]" /></div>
-          </div>
-          <DialogFooter><Button onClick={saveNewsItem} disabled={isSaving} className="rounded-none">Save News</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Page Dialog */}
-      <Dialog open={!!editingPage} onOpenChange={() => setEditingPage(null)}>
-        <DialogContent className="max-w-2xl rounded-none">
-          <DialogHeader><DialogTitle>{editingPage?.isNew ? 'New Page' : 'Edit Page'}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label>Slug</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" /></div>
-            </div>
-            <div className="space-y-2"><Label>Content</Label><Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none min-h-[300px]" /></div>
-          </div>
-          <DialogFooter><Button onClick={savePage} disabled={isSaving} className="rounded-none">Save Page</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </main>
