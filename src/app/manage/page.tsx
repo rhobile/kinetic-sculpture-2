@@ -29,6 +29,18 @@ export default function ManageGalleryPage() {
   const [uploadFolder, setUploadFolder] = useState<'ks-images' | 'ks-videos'>('ks-images');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Default Sidebar Values (Match AppShell fallbacks)
+  const SIDEBAR_DEFAULTS = {
+    introTitle: "Kinetic sculptures by Andrew Jones.",
+    introSub: "Mainly linear elements balanced and articulated to move simply in the wind, light or strong.",
+    commissionNote: "I work to commission. Guide prices are given below the videos or a price for a limited edition.",
+    gardenNotice: "It is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in Ely during Cambridge Open Studios which is in July each year.",
+    email: "andrew@rhobile.com",
+    phone: "Telephone +44 (0)1353 610406",
+    mobile: "Mobile +44 (0)781 4179181",
+    social: "@Rhobile"
+  };
+
   // Firestore Data
   const videosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -63,28 +75,19 @@ export default function ManageGalleryPage() {
   const [newsOrder, setNewsOrder] = useState('0');
 
   // Sidebar State
-  const [sidebarState, setSidebarState] = useState({
-    introTitle: '',
-    introSub: '',
-    commissionNote: '',
-    gardenNotice: '',
-    email: '',
-    phone: '',
-    mobile: '',
-    social: ''
-  });
+  const [sidebarState, setSidebarState] = useState(SIDEBAR_DEFAULTS);
 
   useEffect(() => {
     if (sidebarData) {
       setSidebarState({
-        introTitle: sidebarData.introTitle || '',
-        introSub: sidebarData.introSub || '',
-        commissionNote: sidebarData.commissionNote || '',
-        gardenNotice: sidebarData.gardenNotice || '',
-        email: sidebarData.email || '',
-        phone: sidebarData.phone || '',
-        mobile: sidebarData.mobile || '',
-        social: sidebarData.social || ''
+        introTitle: sidebarData.introTitle || SIDEBAR_DEFAULTS.introTitle,
+        introSub: sidebarData.introSub || SIDEBAR_DEFAULTS.introSub,
+        commissionNote: sidebarData.commissionNote || SIDEBAR_DEFAULTS.commissionNote,
+        gardenNotice: sidebarData.gardenNotice || SIDEBAR_DEFAULTS.gardenNotice,
+        email: sidebarData.email || SIDEBAR_DEFAULTS.email,
+        phone: sidebarData.phone || SIDEBAR_DEFAULTS.phone,
+        mobile: sidebarData.mobile || SIDEBAR_DEFAULTS.mobile,
+        social: sidebarData.social || SIDEBAR_DEFAULTS.social
       });
     }
   }, [sidebarData]);
@@ -187,7 +190,7 @@ export default function ManageGalleryPage() {
     const normalizedKey = fileName.toLowerCase().replace(/[^a-z0-9]/g, '');
     const existing = firestoreVideos?.find(v => v.id === normalizedKey);
     setEditingSculpture({ ...image, normalizedKey });
-    setEditTitle(existing?.title || fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()));
+    setEditTitle(existing?.title || fileName.replace(/[-_]/g, ' '));
     setEditDesc(existing?.description || '');
     setEditOrder(existing?.order?.toString() || '0');
   };
