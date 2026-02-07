@@ -2,14 +2,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getStorage, ref as storageRef, listAll, uploadBytes } from 'firebase/storage';
+import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
 import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Video, Image as ImageIcon, Search
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Image as ImageIcon, Search
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -133,6 +133,21 @@ export default function ManageGalleryPage() {
     if (firebaseApp) fetchData();
   }, [firebaseApp, fetchData]);
 
+  const handleDelete = (e: React.MouseEvent, id: string, collectionName: 'videos' | 'news' | 'pages', confirmMsg: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!firestore || !user) {
+      toast({ variant: "destructive", title: "Wait a moment", description: "Connecting to database..." });
+      return;
+    }
+
+    if (!window.confirm(confirmMsg)) return;
+
+    deleteDocumentNonBlocking(doc(firestore, collectionName, id));
+    toast({ title: "Removal requested", description: "The item will be removed from the list." });
+  };
+
   const saveSculpture = async () => {
     if (!firestore || !sculptureTitle) return;
     setIsSaving(true);
@@ -160,14 +175,6 @@ export default function ManageGalleryPage() {
     }
   };
 
-  const removeSculpture = (id: string) => {
-    if (!firestore) return;
-    if (!window.confirm("Remove this sculpture from the Index? This will NOT delete your files from Storage.")) return;
-    
-    deleteDocumentNonBlocking(doc(firestore, 'videos', id));
-    toast({ title: "Removed from index" });
-  };
-
   const saveNewsItem = async () => {
     if (!firestore) return;
     setIsSaving(true);
@@ -190,12 +197,6 @@ export default function ManageGalleryPage() {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const deleteNewsItem = (id: string) => {
-    if (!firestore || !window.confirm("Delete this news update?")) return;
-    deleteDocumentNonBlocking(doc(firestore, 'news', id));
-    toast({ title: "News item deleted" });
   };
 
   const savePage = async () => {
@@ -221,12 +222,6 @@ export default function ManageGalleryPage() {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const deletePage = (id: string) => {
-    if (!firestore || !window.confirm("Delete this page?")) return;
-    deleteDocumentNonBlocking(doc(firestore, 'pages', id));
-    toast({ title: "Page deleted" });
   };
 
   const saveSidebar = async () => {
@@ -301,7 +296,12 @@ export default function ManageGalleryPage() {
                       setSculptureVideoPath(item.videoPath || '');
                       setIsSculptureDialogOpen(true);
                     }}><Edit3 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => removeSculpture(item.id)}>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive" 
+                      onClick={(e) => handleDelete(e, item.id, 'videos', "Remove this sculpture from the Index? This will NOT delete your files from Storage.")}
+                    >
                       <Trash2 className="size-4" />
                     </Button>
                   </div>
@@ -327,7 +327,14 @@ export default function ManageGalleryPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="icon" onClick={() => { setEditingNews(item); setNewsTitle(item.title); setNewsDate(item.date); setNewsContent(item.content); setNewsImagePath(item.imagePath || ''); setNewsOrder(item.order?.toString() || '0'); }}><Edit3 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteNewsItem(item.id)}><Trash2 className="size-4" /></Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive" 
+                      onClick={(e) => handleDelete(e, item.id, 'news', "Delete this news update?")}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -348,7 +355,14 @@ export default function ManageGalleryPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="icon" onClick={() => { setEditingPage(page); setPageTitle(page.title); setPageSlug(page.slug); setPageContent(page.content); }}><Edit3 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deletePage(page.id)}><Trash2 className="size-4" /></Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive" 
+                      onClick={(e) => handleDelete(e, page.id, 'pages', "Delete this page?")}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
                   </div>
                 </div>
               ))}
