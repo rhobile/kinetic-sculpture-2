@@ -106,13 +106,13 @@ export default function Home() {
 
     const mapped = storageItems.images.map((item, index) => {
       const fileName = item.name.split('.').slice(0, -1).join('.');
-      // Use the raw filename without extension as the key, consistent with management dashboard
+      // Normalize key consistently with management dashboard img.id
       const normalizedKey = fileName.toLowerCase();
       
-      // Match with Firestore data for titles, descriptions, custom ordering, and visibility
+      // Match with Firestore data
       const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
 
-      // If marked as hidden in Firestore, exclude it from the gallery
+      // Respect visibility toggle
       if (fsData?.hidden === true) return null;
 
       const displayTitle = fsData?.title || fileName
@@ -123,7 +123,7 @@ export default function Home() {
       const order = fsData?.order !== undefined ? Number(fsData.order) : 999;
 
       return {
-        id: item.fullPath,
+        id: normalizedKey,
         path: item.fullPath,
         alt: displayTitle,
         description: description,
@@ -133,7 +133,7 @@ export default function Home() {
       } as FirebaseImage & { order: number };
     }).filter((img): img is (FirebaseImage & { order: number }) => img !== null);
 
-    // Sort images based on the 'order' property set in Manage dashboard
+    // Sort images based on the 'order' property
     return [...mapped].sort((a, b) => a.order - b.order);
   }, [storageItems, firestoreVideos]);
 

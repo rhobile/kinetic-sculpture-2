@@ -2,29 +2,38 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Explicitly allow public read and list access for primary collections.
-    // This resolves 'method: list' permission errors for unauthenticated visitors.
+    // This handles both direct document access (get) and collection queries (list).
     
-    match /videos/{videoId} {
+    match /videos {
       allow read, list: if true;
-      allow write: if request.auth != null;
+      match /{allPaths=**} {
+        allow read, list: if true;
+        allow write: if request.auth != null;
+      }
     }
     
-    match /news/{newsId} {
+    match /news {
       allow read, list: if true;
-      allow write: if request.auth != null;
+      match /{allPaths=**} {
+        allow read, list: if true;
+        allow write: if request.auth != null;
+      }
     }
     
-    match /pages/{pageId} {
+    match /pages {
       allow read, list: if true;
-      allow write: if request.auth != null;
+      match /{allPaths=**} {
+        allow read, list: if true;
+        allow write: if request.auth != null;
+      }
     }
 
-    // Global fallback for safety - ensure everything is at least readable
+    // Global fallback for safety
     match /{document=**} {
       allow read, list: if true;
       allow write: if request.auth != null;
     }
     
-    // Deployment trigger version: 1.6.1 (Explicitly permit collection listing)
+    // Deployment trigger version: 1.6.4 (Enforcing recursive wildcard list permission)
   }
 }

@@ -184,7 +184,6 @@ export default function ManageDashboardPage() {
     if (!firestore || !itemTitle) return;
     setIsSaving(true);
     try {
-      // Use existing ID if available to ensure sync with storage filename
       const id = editingItem?.id || itemTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const docRef = doc(firestore, 'videos', id);
       
