@@ -1,39 +1,40 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Explicitly allow public read and list access for primary collections.
-    // This handles both direct document access (get) and collection queries (list).
     
+    // Allow public read and list access for the videos collection and its documents
     match /videos {
       allow read, list: if true;
-      match /{allPaths=**} {
-        allow read, list: if true;
-        allow write: if request.auth != null;
-      }
+    }
+    match /videos/{videoId} {
+      allow read, list: if true;
+      allow write: if request.auth != null;
     }
     
+    // Allow public read and list access for the news collection and its documents
     match /news {
       allow read, list: if true;
-      match /{allPaths=**} {
-        allow read, list: if true;
-        allow write: if request.auth != null;
-      }
+    }
+    match /news/{newsId} {
+      allow read, list: if true;
+      allow write: if request.auth != null;
     }
     
+    // Allow public read and list access for the pages collection and its documents
     match /pages {
       allow read, list: if true;
-      match /{allPaths=**} {
-        allow read, list: if true;
-        allow write: if request.auth != null;
-      }
+    }
+    match /pages/{pageId} {
+      allow read, list: if true;
+      allow write: if request.auth != null;
     }
 
-    // Global fallback for safety
+    // Global fallback for safety - allowing public read but restricted write
     match /{document=**} {
       allow read, list: if true;
       allow write: if request.auth != null;
     }
     
-    // Deployment trigger version: 1.6.4 (Enforcing recursive wildcard list permission)
+    // Deployment trigger version: 2.2.1 (Enforcing explicit collection list permissions)
   }
 }
