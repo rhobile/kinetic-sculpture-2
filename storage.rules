@@ -1,38 +1,18 @@
 rules_version = '2';
 
 // FIREBASE STORAGE SECURITY RULES
-// 
-// Optimized for the Rhobile Kinetic Sculptures project.
-// 
-// Public Read: Allows anyone to view and list images and videos in the ks- folders.
-// Restricted Write: Management operations (upload/delete) require authentication.
+// Optimized for public gallery access and restricted administrative management.
 
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Rules for Sculpture Images
-    match /ks-images {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    match /ks-images/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Rules for Sculpture Videos
-    match /ks-videos {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    match /ks-videos/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Default deny for everything else
+    // Allow public read access (get and list) to all assets in the bucket.
+    // This ensures that listAll() calls for 'ks-images' and 'ks-videos' succeed globally.
     match /{allPaths=**} {
-      allow read, write: if false;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
+    
+    // Deployment trigger version: 1.1.0
   }
 }

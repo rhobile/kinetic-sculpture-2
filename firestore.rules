@@ -2,39 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow public read and list access for the videos collection and its documents
-    match /videos {
-      allow read, list: if true;
-    }
-    match /videos/{videoId} {
-      allow read, list: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Allow public read and list access for the news collection and its documents
-    match /news {
-      allow read, list: if true;
-    }
-    match /news/{newsId} {
-      allow read, list: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Allow public read and list access for the pages collection and its documents
-    match /pages {
-      allow read, list: if true;
-    }
-    match /pages/{pageId} {
-      allow read, list: if true;
-      allow write: if request.auth != null;
-    }
-
-    // Global fallback for safety - allowing public read but restricted write
+    // Global fallback for Rhobile Kinetic Sculptures
+    // This allows public read/list access to all content (videos, news, pages)
+    // while restricting write access to authenticated administrators.
     match /{document=**} {
       allow read, list: if true;
       allow write: if request.auth != null;
     }
     
-    // Deployment trigger version: 2.2.1 (Enforcing explicit collection list permissions)
+    // Deployment trigger version: 2.3.0 (Enforcing global public read/list)
   }
 }

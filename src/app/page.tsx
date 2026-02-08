@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
 import { collection } from 'firebase/firestore';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
@@ -26,79 +26,77 @@ export default function Home() {
   const { data: firestoreVideos } = useCollection(videosQuery);
 
   // Fetch Storage items once or when firebaseApp changes
-  useEffect(() => {
-    async function fetchStorageData() {
-      if (!firebaseApp) {
-        setIsStorageLoading(false);
-        return;
+  const fetchStorageData = useCallback(async () => {
+    if (!firebaseApp) {
+      setIsStorageLoading(false);
+      return;
+    }
+    
+    setIsStorageLoading(true);
+    setError(null);
+    try {
+      const storage = getStorage(firebaseApp);
+      
+      // List videos to find matches
+      const videoListRef = storageRef(storage, 'ks-videos');
+      let availableVideoNames = new Set<string>();
+      try {
+        const videoRes = await listAll(videoListRef);
+        availableVideoNames = new Set(
+          videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
+        );
+      } catch (vidErr: any) {
+        console.error("Error listing ks-videos:", vidErr);
+        // Silently continue if possible, or show a meaningful error
+        if (vidErr.code === 'storage/unauthorized') {
+          console.warn("Permission denied for listing ks-videos. Check Storage rules.");
+        }
       }
       
-      setIsStorageLoading(true);
-      setError(null);
+      // List images
+      const imageListRef = storageRef(storage, 'ks-images');
+      let imageRes;
       try {
-        const storage = getStorage(firebaseApp);
-        
-        // List videos to find matches
-        const videoListRef = storageRef(storage, 'ks-videos');
-        let availableVideoNames = new Set<string>();
-        try {
-          const videoRes = await listAll(videoListRef);
-          availableVideoNames = new Set(
-            videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
-          );
-        } catch (vidErr: any) {
-          console.error("Error listing ks-videos:", vidErr);
-          if (vidErr.code === 'storage/unauthorized') {
-            throw new Error("Permission denied for 'ks-videos'. Check your Storage rules.");
-          }
-          throw vidErr;
-        }
-        
-        // List images
-        const imageListRef = storageRef(storage, 'ks-images');
-        let imageRes;
-        try {
-          imageRes = await listAll(imageListRef);
-        } catch (imgErr: any) {
-          console.error("Error listing ks-images:", imgErr);
-          throw imgErr;
-        }
-        
-        const filteredItems = imageRes.items.filter(item => {
-          const lowerName = item.name.toLowerCase();
-          const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
-          const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase();
-          
-          const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameLower === excluded.toLowerCase());
-          const videoExists = availableVideoNames.has(fileNameLower);
-          
-          return isJpg && !isExcluded && videoExists;
-        });
-
-        setStorageItems({
-          images: filteredItems,
-          videos: availableVideoNames
-        });
-
-        if (filteredItems.length === 0) {
-          if (imageRes.items.length === 0) {
-            setError("No images found in 'ks-images/'.");
-          } else if (availableVideoNames.size === 0) {
-            setError(`Found ${imageRes.items.length} images, but no videos found in 'ks-videos/'.`);
-          } else {
-            setError(`No matching filenames found between 'ks-images' and 'ks-videos'.`);
-          }
-        }
-      } catch (err: any) {
-        console.error("Error fetching storage data:", err);
-        setError(err.message || 'Failed to connect to storage.');
-      } finally {
-        setIsStorageLoading(false);
+        imageRes = await listAll(imageListRef);
+      } catch (imgErr: any) {
+        console.error("Error listing ks-images:", imgErr);
+        throw imgErr;
       }
-    }
+      
+      const filteredItems = imageRes.items.filter(item => {
+        const lowerName = item.name.toLowerCase();
+        const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+        const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase();
+        
+        const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameLower === excluded.toLowerCase());
+        const videoExists = availableVideoNames.has(fileNameLower);
+        
+        return isJpg && !isExcluded && videoExists;
+      });
 
+      setStorageItems({
+        images: filteredItems,
+        videos: availableVideoNames
+      });
+
+      if (filteredItems.length === 0 && !error) {
+        if (imageRes.items.length === 0) {
+          setError("No images found in 'ks-images/'.");
+        } else if (availableVideoNames.size === 0) {
+          setError(`Found images, but no videos found in 'ks-videos/'.`);
+        }
+      }
+    } catch (err: any) {
+      console.error("Error fetching storage data:", err);
+      setError(err.message || 'Failed to connect to storage.');
+    } finally {
+      setIsStorageLoading(false);
+    }
+  }, [firebaseApp, error]);
+
+  useEffect(() => {
     fetchStorageData();
-  }, [firebaseApp]);
+  }, [fetchStorageData]);
 
   // Combine Storage and Firestore data reactively
   const galleryImages = useMemo(() => {
@@ -106,7 +104,6 @@ export default function Home() {
 
     const mapped = storageItems.images.map((item, index) => {
       const fileName = item.name.split('.').slice(0, -1).join('.');
-      // Normalize key consistently with management dashboard img.id
       const normalizedKey = fileName.toLowerCase();
       
       // Match with Firestore data
@@ -133,7 +130,6 @@ export default function Home() {
       } as FirebaseImage & { order: number };
     }).filter((img): img is (FirebaseImage & { order: number }) => img !== null);
 
-    // Sort images based on the 'order' property
     return [...mapped].sort((a, b) => a.order - b.order);
   }, [storageItems, firestoreVideos]);
 
@@ -164,7 +160,7 @@ export default function Home() {
               <p className="text-[10pt] uppercase tracking-wider text-muted-foreground font-semibold">Troubleshooting:</p>
               <ul className="text-[10pt] text-muted-foreground space-y-2 list-disc pl-4 font-normal">
                 <li>Ensure matching filenames (e.g. 'art.jpg' and 'art.mp4').</li>
-                <li>Check the <a href="/manage" className="text-accent underline">Manage Gallery</a> dashboard to set ordering.</li>
+                <li>Check the <a href="/manage" className="text-accent underline">Manage Gallery</a> dashboard.</li>
               </ul>
             </div>
           </div>

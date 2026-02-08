@@ -184,6 +184,7 @@ export default function ManageDashboardPage() {
     if (!firestore || !itemTitle) return;
     setIsSaving(true);
     try {
+      // Use filename-based ID for storage items to ensure sync with masonry
       const id = editingItem?.id || itemTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const docRef = doc(firestore, 'videos', id);
       
