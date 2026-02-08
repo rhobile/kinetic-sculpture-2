@@ -4,11 +4,19 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, doc, query, orderBy } from 'firebase/firestore';
-import { useFirebase, useCollection, useDoc, useMemoFirebase, deleteDocumentNonBlocking, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { 
+  useFirebase, 
+  useCollection, 
+  useDoc, 
+  useMemoFirebase, 
+  deleteDocumentNonBlocking, 
+  setDocumentNonBlocking, 
+  updateDocumentNonBlocking 
+} from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Search, EyeOff, ListFilter, Settings
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Search, EyeOff, Settings
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,7 +36,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
 
 export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -73,7 +80,7 @@ export default function ManageDashboardPage() {
   }, [firestore]);
   const { data: sidebarData } = useDoc(sidebarQuery);
 
-  // UI State
+  // UI State - Sculpture Item
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [isCloudBrowserOpen, setIsCloudBrowserOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
@@ -85,6 +92,7 @@ export default function ManageDashboardPage() {
   const [itemHidden, setItemHidden] = useState(false);
   const [itemIsObservation, setItemIsObservation] = useState(false);
 
+  // UI State - News
   const [editingNews, setEditingNews] = useState<any | null>(null);
   const [newsTitle, setNewsTitle] = useState('');
   const [newsDate, setNewsDate] = useState('');
@@ -92,11 +100,13 @@ export default function ManageDashboardPage() {
   const [newsImagePath, setNewsImagePath] = useState('');
   const [newsOrder, setNewsOrder] = useState('0');
 
+  // UI State - Page
   const [editingPage, setEditingPage] = useState<any | null>(null);
   const [pageTitle, setPageTitle] = useState('');
   const [pageSlug, setPageSlug] = useState('');
   const [pageContent, setPageContent] = useState('');
 
+  // UI State - Sidebar
   const [sidebarState, setSidebarState] = useState(SIDEBAR_DEFAULTS);
 
   useEffect(() => {
@@ -116,7 +126,7 @@ export default function ManageDashboardPage() {
 
   useEffect(() => {
     if (!isAuthLoading && !user && auth) {
-      signInAnonymously(auth).catch((err) => console.error("Auth failed:", err));
+      signInAnonymously(auth).catch((err) => console.error("Anonymous auth failed:", err));
     }
   }, [auth, user, isAuthLoading]);
 
@@ -139,7 +149,7 @@ export default function ManageDashboardPage() {
 
       setStorageData({ images, videos });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Refresh failed" });
+      toast({ variant: "destructive", title: "Storage refresh failed" });
     } finally {
       setIsRefreshing(false);
     }
@@ -193,7 +203,7 @@ export default function ManageDashboardPage() {
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      toast({ title: "Record updated" });
+      toast({ title: "Sculpture data saved" });
       setIsItemDialogOpen(false);
       setEditingItem(null);
     } catch (error: any) {
@@ -218,7 +228,7 @@ export default function ManageDashboardPage() {
         order: Number(newsOrder) || 0,
         updatedAt: new Date().toISOString()
       }, { merge: true });
-      toast({ title: "News update saved" });
+      toast({ title: "News item updated" });
       setEditingNews(null);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save failed" });
@@ -270,7 +280,7 @@ export default function ManageDashboardPage() {
       toast({ title: "Removed from Flow Observations" });
     } else {
       deleteDocumentNonBlocking(doc(firestore, itemToDelete.collection, itemToDelete.id));
-      toast({ title: "Item removed" });
+      toast({ title: "Record deleted" });
     }
     setItemToDelete(null);
   };
@@ -308,9 +318,7 @@ export default function ManageDashboardPage() {
 
           <TabsContent value="observations" className="space-y-6">
             <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Curated Flow Observations</h2>
-              </div>
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Curated Flow Observations</h2>
               <Button size="sm" onClick={() => openItemEditor({ isNew: true, isObservation: true })} className="rounded-none h-8 font-normal">
                 <Plus className="size-3 mr-2" /> Add Observation
               </Button>
@@ -351,7 +359,7 @@ export default function ManageDashboardPage() {
                   </div>
                   <div className="flex gap-1">
                     <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openItemEditor(item)}>Edit Details</Button>
-                    <Button variant="ghost" size="icon" className="size-8 text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Delete this sculpture's record? Files in storage are safe." })}><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" size="icon" className="size-8 text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Delete this sculpture's index? This will hide it if not in Storage list." })}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -427,26 +435,23 @@ export default function ManageDashboardPage() {
         </Tabs>
       </div>
 
-      {/* Edit Sculpture Dialog */}
+      {/* Item Editor Dialog */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader>
             <DialogTitle>Sculpture Configuration</DialogTitle>
-            <DialogDescription>Update metadata and visibility for this work.</DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 border border-border/50">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
                   <Label className="text-xs uppercase tracking-widest">Hide from Gallery</Label>
-                  <p className="text-[10px] text-muted-foreground">Remove from home page.</p>
                 </div>
                 <Switch checked={itemHidden} onCheckedChange={setItemHidden} />
               </div>
               <div className="flex items-center justify-between border-l pl-4 border-border/50">
                 <div className="space-y-0.5">
-                  <Label className="text-xs uppercase tracking-widest">Mark as Observation</Label>
-                  <p className="text-[10px] text-muted-foreground">Add to curated list.</p>
+                  <Label className="text-xs uppercase tracking-widest">Observation Mode</Label>
                 </div>
                 <Switch checked={itemIsObservation} onCheckedChange={setItemIsObservation} />
               </div>
@@ -465,33 +470,31 @@ export default function ManageDashboardPage() {
               <Label className="text-[10px] uppercase tracking-widest">Description</Label>
               <Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none min-h-[100px]" />
             </div>
-            <div className="space-y-4 border-t border-border/50 pt-4">
+            <div className="space-y-4 pt-4 border-t">
               <div className="flex items-center justify-between">
-                <Label className="uppercase text-[10px] tracking-widest text-muted-foreground">Storage Asset Linking</Label>
-                <Button variant="link" size="sm" className="h-auto p-0 text-[10px] uppercase tracking-widest" onClick={() => setIsCloudBrowserOpen(true)}><Search className="size-3 mr-1" /> Browse Storage</Button>
+                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Asset Paths</Label>
+                <Button variant="link" size="sm" onClick={() => setIsCloudBrowserOpen(true)} className="h-auto p-0 text-[10px] uppercase tracking-widest">Browse Storage</Button>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label className="text-[9px] uppercase">Image Path</Label><Input value={itemImagePath} onChange={e => setItemImagePath(e.target.value)} className="rounded-none text-xs" /></div>
-                <div className="space-y-2"><Label className="text-[9px] uppercase">Video Path</Label><Input value={itemVideoPath} onChange={e => setItemVideoPath(e.target.value)} className="rounded-none text-xs" /></div>
+                <Input placeholder="Image Path" value={itemImagePath} onChange={e => setItemImagePath(e.target.value)} className="rounded-none text-xs" />
+                <Input placeholder="Video Path" value={itemVideoPath} onChange={e => setItemVideoPath(e.target.value)} className="rounded-none text-xs" />
               </div>
             </div>
           </div>
-          <DialogFooter><Button onClick={saveItem} disabled={isSaving || !itemTitle} className="rounded-none w-full sm:w-auto">{isSaving ? <Loader2 className="size-4 animate-spin mr-2" /> : <Save className="size-4 mr-2" />} Save Changes</Button></DialogFooter>
+          <DialogFooter><Button onClick={saveItem} disabled={isSaving || !itemTitle} className="rounded-none w-full">{isSaving ? <Loader2 className="animate-spin size-4 mr-2" /> : <Save className="size-4 mr-2" />} Save Changes</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Storage Browser */}
+      {/* Storage Browser Dialog */}
       <Dialog open={isCloudBrowserOpen} onOpenChange={setIsCloudBrowserOpen}>
         <DialogContent className="max-w-lg rounded-none">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest text-sm">Cloud Asset Browser</DialogTitle></DialogHeader>
-          <div className="max-h-[400px] overflow-y-auto space-y-2 py-4 px-2">
-            {storageData.images.map((item) => (
-              <div key={item.path} className="flex items-center gap-4 p-3 border border-border/50 bg-muted/20 hover:bg-muted/40 cursor-pointer" onClick={() => { setItemTitle(item.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())); setItemImagePath(item.path); setItemVideoPath(`ks-videos/${item.name.replace(/\.[^/.]+$/, ".mp4")}`); setIsCloudBrowserOpen(false); }}>
-                <div className="size-12 bg-black flex items-center justify-center shrink-0 border border-border/50 overflow-hidden">
-                  <FirebaseStorageImage path={item.path} alt={item.name} width={48} height={48} className="object-cover opacity-50" />
-                </div>
-                <div className="flex-1 min-w-0"><p className="text-sm font-medium truncate">{item.name}</p></div>
-                <Button variant="ghost" size="sm" className="rounded-none text-[10px] uppercase tracking-widest">Link Asset</Button>
+          <DialogHeader><DialogTitle className="uppercase tracking-widest text-sm">Asset Browser</DialogTitle></DialogHeader>
+          <div className="max-h-[400px] overflow-y-auto space-y-2 p-2">
+            {storageData.images.map((img) => (
+              <div key={img.path} className="flex items-center gap-4 p-2 border border-border/50 bg-muted/20 hover:bg-muted/40 cursor-pointer" onClick={() => { setItemTitle(img.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())); setItemImagePath(img.path); setItemVideoPath(`ks-videos/${img.name.replace(/\.[^/.]+$/, ".mp4")}`); setIsCloudBrowserOpen(false); }}>
+                <FirebaseStorageImage path={img.path} alt={img.name} width={40} height={40} className="object-cover size-10" />
+                <p className="text-xs font-mono truncate flex-1">{img.name}</p>
+                <Button variant="ghost" size="sm" className="text-[9px] uppercase tracking-widest">Link</Button>
               </div>
             ))}
           </div>
@@ -530,7 +533,7 @@ export default function ManageDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Alert */}
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent className="rounded-none">
           <AlertDialogHeader>

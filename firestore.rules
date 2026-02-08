@@ -1,30 +1,13 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Public read/list access for all primary collections
-    // This allows both individual document reads and collection-wide queries (listing)
-    
-    match /videos/{videoId} {
-      allow read, list: if true;
-      allow write: if request.auth != null;
-    }
-    
-    match /news/{newsId} {
-      allow read, list: if true;
-      allow write: if request.auth != null;
-    }
-    
-    match /pages/{pageId} {
-      allow read, list: if true;
-      allow write: if request.auth != null;
-    }
-
-    // Default catch-all for any other potential documents
+    // Allow public read and list access for all primary collections.
+    // This ensures the gallery and dashboard can load data for any visitor.
     match /{document=**} {
       allow read, list: if true;
       allow write: if request.auth != null;
     }
     
-    // Deployment trigger version: 1.4.1 (Explicitly allow list)
+    // Deployment trigger version: 1.5.0 (Global permissive read/list)
   }
 }
