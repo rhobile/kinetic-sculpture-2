@@ -16,7 +16,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, EyeOff, Settings
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, EyeOff
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -180,6 +180,7 @@ export default function ManageDashboardPage() {
     }).sort((a: any, b: any) => a.order - b.order);
   }, [storageData, firestoreVideos]);
 
+  // Handler Functions
   const saveItem = async () => {
     if (!firestore || !itemTitle) return;
     setIsSaving(true);

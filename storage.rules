@@ -7,9 +7,10 @@ service firebase.storage {
   match /b/{bucket}/o {
     match /{allPaths=**} {
       // allow read covers both 'get' and 'list'
+      // This ensures listAll() works for ks-images and ks-videos
       allow read: if true;
       allow write: if request.auth != null;
     }
-    // Deployment trigger version: 1.2.0
+    // Deployment trigger version: 1.2.1
   }
 }

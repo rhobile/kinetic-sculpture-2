@@ -10,6 +10,8 @@ import { VideoPlayerModal } from '@/components/video-player-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { FirebaseImage } from '@/lib/firebase-images';
 import { EXCLUDED_IMAGES, SCULPTURE_DESCRIPTIONS } from '@/lib/constants';
+import { EyeOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const { firebaseApp, firestore } = useFirebase();
@@ -47,7 +49,6 @@ export default function Home() {
         );
       } catch (vidErr: any) {
         console.warn("Storage warning: Could not list ks-videos.", vidErr.message);
-        // We don't throw here to avoid crashing the whole gallery if one folder is unreachable
       }
       
       // List images
@@ -93,11 +94,11 @@ export default function Home() {
       const fileName = item.name.split('.').slice(0, -1).join('.');
       const normalizedKey = fileName.toLowerCase();
       
-      // Match with Firestore data
+      // Match with Firestore data using the same normalization as the dashboard
       const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
 
       // Respect visibility toggle
-      if (fsData?.hidden === true) return null;
+      const isHidden = fsData?.hidden === true;
 
       const displayTitle = fsData?.title || fileName
         .replace(/[-_]/g, ' ')
@@ -112,15 +113,17 @@ export default function Home() {
         alt: displayTitle,
         description: description,
         order: order,
+        hidden: isHidden,
         width: 500,
         height: index % 2 === 0 ? 600 : 750,
-      } as FirebaseImage & { order: number };
-    }).filter((img): img is (FirebaseImage & { order: number }) => img !== null);
+      } as FirebaseImage & { order: number; hidden: boolean };
+    });
 
     return [...mapped].sort((a, b) => a.order - b.order);
   }, [storageItems, firestoreVideos]);
 
-  const handleImageClick = (image: FirebaseImage) => {
+  const handleImageClick = (image: any) => {
+    if (image.hidden) return; // Don't allow opening hidden items
     setSelectedImage(image);
   };
 
@@ -149,18 +152,28 @@ export default function Home() {
             {galleryImages.map((image) => (
               <div
                 key={image.id}
-                className="break-inside-avoid cursor-pointer group"
+                className={cn(
+                  "break-inside-avoid cursor-pointer group relative",
+                  image.hidden && "cursor-default"
+                )}
                 onClick={() => handleImageClick(image)}
               >
                 <Card className="overflow-hidden border-0 rounded-none shadow-none">
                   <CardContent className="p-0">
-                    <FirebaseStorageImage
-                      path={image.path}
-                      alt={image.alt}
-                      width={image.width}
-                      height={image.height}
-                      className="w-full h-auto block transition-opacity group-hover:opacity-90 rounded-none"
-                    />
+                    <div className={cn("relative", image.hidden && "opacity-40 grayscale")}>
+                      <FirebaseStorageImage
+                        path={image.path}
+                        alt={image.alt}
+                        width={image.width}
+                        height={image.height}
+                        className="w-full h-auto block transition-opacity group-hover:opacity-90 rounded-none"
+                      />
+                      {image.hidden && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <EyeOff className="size-8 text-white drop-shadow-lg" />
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
