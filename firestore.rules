@@ -1,30 +1,30 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Explicitly allow public read/list for all primary collections used by the app.
-    // This ensures that collection-level queries (method: list) work correctly.
+    // Public read/list access for all primary collections
+    // This allows both individual document reads and collection-wide queries (listing)
     
-    match /videos/{allPaths=**} {
+    match /videos/{videoId} {
       allow read, list: if true;
       allow write: if request.auth != null;
     }
     
-    match /news/{allPaths=**} {
+    match /news/{newsId} {
       allow read, list: if true;
       allow write: if request.auth != null;
     }
     
-    match /pages/{allPaths=**} {
+    match /pages/{pageId} {
       allow read, list: if true;
       allow write: if request.auth != null;
     }
 
-    // Default catch-all rule for any other potential documents.
+    // Default catch-all for any other potential documents
     match /{document=**} {
       allow read, list: if true;
       allow write: if request.auth != null;
     }
     
-    // Deployment trigger version: 1.3.1 (Force re-propagation)
+    // Deployment trigger version: 1.4.1 (Explicitly allow list)
   }
 }
