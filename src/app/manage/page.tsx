@@ -16,11 +16,11 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, Search, EyeOff, Settings
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, EyeOff, Settings
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -82,7 +82,6 @@ export default function ManageDashboardPage() {
 
   // UI State - Sculpture Item
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
-  const [isCloudBrowserOpen, setIsCloudBrowserOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [itemTitle, setItemTitle] = useState('');
   const [itemDesc, setItemDesc] = useState('');
@@ -167,8 +166,6 @@ export default function ManageDashboardPage() {
   const homeGalleryItems = useMemo(() => {
     return storageData.images.map(img => {
       const fsData = firestoreVideos?.find(v => v.id === img.id);
-      const videoExists = storageData.videos.has(img.id);
-      
       return {
         id: img.id,
         title: fsData?.title || img.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
@@ -178,8 +175,7 @@ export default function ManageDashboardPage() {
         imagePath: fsData?.imagePath || img.path,
         videoPath: fsData?.videoPath || `ks-videos/${img.id}.mp4`,
         isObservation: fsData?.isObservation || false,
-        isIndexed: !!fsData,
-        hasVideo: videoExists
+        isIndexed: !!fsData
       };
     }).sort((a: any, b: any) => a.order - b.order);
   }, [storageData, firestoreVideos]);
@@ -188,6 +184,7 @@ export default function ManageDashboardPage() {
     if (!firestore || !itemTitle) return;
     setIsSaving(true);
     try {
+      // Use existing ID if available to ensure sync with storage filename
       const id = editingItem?.id || itemTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const docRef = doc(firestore, 'videos', id);
       
@@ -307,14 +304,36 @@ export default function ManageDashboardPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue="observations" className="w-full">
+        <Tabs defaultValue="gallery" className="w-full">
           <TabsList className="grid w-full max-w-4xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
-            <TabsTrigger value="observations" className="rounded-none">Flow Observations</TabsTrigger>
             <TabsTrigger value="gallery" className="rounded-none">Home Gallery</TabsTrigger>
+            <TabsTrigger value="observations" className="rounded-none">Flow Observations</TabsTrigger>
             <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
             <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
             <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="gallery" className="space-y-6">
+            <h2 className="text-[10pt] uppercase tracking-widest font-normal">Home Page Gallery Index</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {homeGalleryItems.map((item: any) => (
+                <div key={item.id} className={cn("p-4 bg-muted/20 border border-border/50 flex items-center gap-4", item.hidden && "opacity-60")}>
+                  <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
+                    <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
+                    {item.hidden && <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><EyeOff className="size-4 text-white" /></div>}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
+                    <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">Order: {item.order}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openItemEditor(item)}>Edit Details</Button>
+                    <Button variant="ghost" size="icon" className="size-8 text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Delete this sculpture's index? This will hide its metadata." })}><Trash2 className="size-4" /></Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
 
           <TabsContent value="observations" className="space-y-6">
             <div className="flex justify-between items-center">
@@ -338,28 +357,6 @@ export default function ManageDashboardPage() {
                   <div className="flex gap-2">
                     <Button variant="outline" size="icon" className="rounded-none" onClick={() => openItemEditor(item)}><Edit3 className="size-4" /></Button>
                     <Button variant="ghost" size="icon" className="text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', actionType: 'remove-observation', msg: "Remove this from curated observations?" })}><Trash2 className="size-4" /></Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="gallery" className="space-y-6">
-            <h2 className="text-[10pt] uppercase tracking-widest font-normal">Home Page Gallery Index</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {homeGalleryItems.map((item: any) => (
-                <div key={item.id} className={cn("p-4 bg-muted/20 border border-border/50 flex items-center gap-4", item.hidden && "opacity-60")}>
-                  <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
-                    <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
-                    {item.hidden && <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><EyeOff className="size-4 text-white" /></div>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
-                    <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">Order: {item.order}</p>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openItemEditor(item)}>Edit Details</Button>
-                    <Button variant="ghost" size="icon" className="size-8 text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Delete this sculpture's index? This will hide it if not in Storage list." })}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -471,33 +468,20 @@ export default function ManageDashboardPage() {
               <Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none min-h-[100px]" />
             </div>
             <div className="space-y-4 pt-4 border-t">
-              <div className="flex items-center justify-between">
-                <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Asset Paths</Label>
-                <Button variant="link" size="sm" onClick={() => setIsCloudBrowserOpen(true)} className="h-auto p-0 text-[10px] uppercase tracking-widest">Browse Storage</Button>
-              </div>
+              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Asset Paths</Label>
               <div className="grid grid-cols-2 gap-4">
-                <Input placeholder="Image Path" value={itemImagePath} onChange={e => setItemImagePath(e.target.value)} className="rounded-none text-xs" />
-                <Input placeholder="Video Path" value={itemVideoPath} onChange={e => setItemVideoPath(e.target.value)} className="rounded-none text-xs" />
+                <div className="space-y-1">
+                  <Label className="text-[9px]">Image</Label>
+                  <Input readOnly placeholder="Image Path" value={itemImagePath} className="rounded-none text-xs bg-muted/50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[9px]">Video</Label>
+                  <Input readOnly placeholder="Video Path" value={itemVideoPath} className="rounded-none text-xs bg-muted/50" />
+                </div>
               </div>
             </div>
           </div>
           <DialogFooter><Button onClick={saveItem} disabled={isSaving || !itemTitle} className="rounded-none w-full">{isSaving ? <Loader2 className="animate-spin size-4 mr-2" /> : <Save className="size-4 mr-2" />} Save Changes</Button></DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Storage Browser Dialog */}
-      <Dialog open={isCloudBrowserOpen} onOpenChange={setIsCloudBrowserOpen}>
-        <DialogContent className="max-w-lg rounded-none">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest text-sm">Asset Browser</DialogTitle></DialogHeader>
-          <div className="max-h-[400px] overflow-y-auto space-y-2 p-2">
-            {storageData.images.map((img) => (
-              <div key={img.path} className="flex items-center gap-4 p-2 border border-border/50 bg-muted/20 hover:bg-muted/40 cursor-pointer" onClick={() => { setItemTitle(img.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())); setItemImagePath(img.path); setItemVideoPath(`ks-videos/${img.name.replace(/\.[^/.]+$/, ".mp4")}`); setIsCloudBrowserOpen(false); }}>
-                <FirebaseStorageImage path={img.path} alt={img.name} width={40} height={40} className="object-cover size-10" />
-                <p className="text-xs font-mono truncate flex-1">{img.name}</p>
-                <Button variant="ghost" size="sm" className="text-[9px] uppercase tracking-widest">Link</Button>
-              </div>
-            ))}
-          </div>
         </DialogContent>
       </Dialog>
 
