@@ -46,11 +46,8 @@ export default function Home() {
           videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
         );
       } catch (vidErr: any) {
-        console.error("Error listing ks-videos:", vidErr);
-        // Silently continue if possible, or show a meaningful error
-        if (vidErr.code === 'storage/unauthorized') {
-          console.warn("Permission denied for listing ks-videos. Check Storage rules.");
-        }
+        console.warn("Storage warning: Could not list ks-videos.", vidErr.message);
+        // We don't throw here to avoid crashing the whole gallery if one folder is unreachable
       }
       
       // List images
@@ -59,8 +56,8 @@ export default function Home() {
       try {
         imageRes = await listAll(imageListRef);
       } catch (imgErr: any) {
-        console.error("Error listing ks-images:", imgErr);
-        throw imgErr;
+        console.error("Storage Error: Failed to list ks-images.", imgErr.message);
+        throw new Error("Unable to load gallery assets. Please check permissions.");
       }
       
       const filteredItems = imageRes.items.filter(item => {
@@ -69,9 +66,7 @@ export default function Home() {
         const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase();
         
         const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameLower === excluded.toLowerCase());
-        const videoExists = availableVideoNames.has(fileNameLower);
-        
-        return isJpg && !isExcluded && videoExists;
+        return isJpg && !isExcluded;
       });
 
       setStorageItems({
@@ -79,20 +74,12 @@ export default function Home() {
         videos: availableVideoNames
       });
 
-      if (filteredItems.length === 0 && !error) {
-        if (imageRes.items.length === 0) {
-          setError("No images found in 'ks-images/'.");
-        } else if (availableVideoNames.size === 0) {
-          setError(`Found images, but no videos found in 'ks-videos/'.`);
-        }
-      }
     } catch (err: any) {
-      console.error("Error fetching storage data:", err);
-      setError(err.message || 'Failed to connect to storage.');
+      setError(err.message || 'Failed to connect to gallery storage.');
     } finally {
       setIsStorageLoading(false);
     }
-  }, [firebaseApp, error]);
+  }, [firebaseApp]);
 
   useEffect(() => {
     fetchStorageData();
@@ -152,17 +139,10 @@ export default function Home() {
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center max-w-md mx-auto">
-            <h2 className="text-[14pt] font-normal uppercase tracking-widest mb-4 text-destructive">Gallery Status</h2>
+            <h2 className="text-[14pt] font-normal uppercase tracking-widest mb-4 text-destructive">Gallery Error</h2>
             <p className="text-muted-foreground text-[11pt] font-normal leading-relaxed">
               {error}
             </p>
-            <div className="mt-8 pt-8 border-t border-border/50 w-full text-left space-y-3">
-              <p className="text-[10pt] uppercase tracking-wider text-muted-foreground font-semibold">Troubleshooting:</p>
-              <ul className="text-[10pt] text-muted-foreground space-y-2 list-disc pl-4 font-normal">
-                <li>Ensure matching filenames (e.g. 'art.jpg' and 'art.mp4').</li>
-                <li>Check the <a href="/manage" className="text-accent underline">Manage Gallery</a> dashboard.</li>
-              </ul>
-            </div>
           </div>
         ) : (
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">

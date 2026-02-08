@@ -148,7 +148,7 @@ export default function ManageDashboardPage() {
 
       setStorageData({ images, videos });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Storage refresh failed" });
+      toast({ variant: "destructive", title: "Storage refresh failed", description: error.message });
     } finally {
       setIsRefreshing(false);
     }
@@ -184,7 +184,6 @@ export default function ManageDashboardPage() {
     if (!firestore || !itemTitle) return;
     setIsSaving(true);
     try {
-      // Use filename-based ID for storage items to ensure sync with masonry
       const id = editingItem?.id || itemTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
       const docRef = doc(firestore, 'videos', id);
       
@@ -466,19 +465,6 @@ export default function ManageDashboardPage() {
             <div className="space-y-2">
               <Label className="text-[10px] uppercase tracking-widest">Description</Label>
               <Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none min-h-[100px]" />
-            </div>
-            <div className="space-y-4 pt-4 border-t">
-              <Label className="text-[10px] uppercase tracking-widest text-muted-foreground">Asset Paths</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-[9px]">Image</Label>
-                  <Input readOnly placeholder="Image Path" value={itemImagePath} className="rounded-none text-xs bg-muted/50" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[9px]">Video</Label>
-                  <Input readOnly placeholder="Video Path" value={itemVideoPath} className="rounded-none text-xs bg-muted/50" />
-                </div>
-              </div>
             </div>
           </div>
           <DialogFooter><Button onClick={saveItem} disabled={isSaving || !itemTitle} className="rounded-none w-full">{isSaving ? <Loader2 className="animate-spin size-4 mr-2" /> : <Save className="size-4 mr-2" />} Save Changes</Button></DialogFooter>

@@ -1,18 +1,15 @@
 rules_version = '2';
 
 // FIREBASE STORAGE SECURITY RULES
-// Optimized for public gallery access and restricted administrative management.
+// Explicitly allowing public list and get access for the gallery.
 
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Allow public read access (get and list) to all assets in the bucket.
-    // This ensures that listAll() calls for 'ks-images' and 'ks-videos' succeed globally.
     match /{allPaths=**} {
+      // allow read covers both 'get' and 'list'
       allow read: if true;
       allow write: if request.auth != null;
     }
-    
-    // Deployment trigger version: 1.1.0
+    // Deployment trigger version: 1.2.0
   }
 }
