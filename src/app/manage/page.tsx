@@ -84,8 +84,6 @@ export default function ManageDashboardPage() {
   const [itemTitle, setItemTitle] = useState('');
   const [itemDesc, setItemDesc] = useState('');
   const [itemOrder, setItemOrder] = useState('0');
-  const [itemImagePath, setItemImagePath] = useState('');
-  const [itemVideoPath, setItemVideoPath] = useState('');
 
   // UI State - News
   const [editingNews, setEditingNews] = useState<any | null>(null);
@@ -161,8 +159,7 @@ export default function ManageDashboardPage() {
         title: fsData?.title || img.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
         description: fsData?.description || "",
         order: fsData?.order ?? 999,
-        imagePath: fsData?.imagePath || img.path,
-        videoPath: fsData?.videoPath || `ks-videos/${img.id}.mp4`,
+        imagePath: img.path,
         isIndexed: !!fsData
       };
     }).sort((a: any, b: any) => a.order - b.order);
@@ -180,12 +177,10 @@ export default function ManageDashboardPage() {
         title: itemTitle,
         description: itemDesc,
         order: Number(itemOrder) || 0,
-        imagePath: itemImagePath,
-        videoPath: itemVideoPath,
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      toast({ title: "Masonry item metadata saved" });
+      toast({ title: "Masonry metadata saved" });
       setIsItemDialogOpen(false);
       setEditingItem(null);
     } catch (error: any) {
@@ -273,8 +268,6 @@ export default function ManageDashboardPage() {
     setItemTitle(item.title || '');
     setItemDesc(item.description || '');
     setItemOrder(item.order?.toString() || '0');
-    setItemImagePath(item.imagePath || '');
-    setItemVideoPath(item.videoPath || '');
     setIsItemDialogOpen(true);
   };
 
@@ -302,11 +295,11 @@ export default function ManageDashboardPage() {
           <TabsContent value="masonry" className="space-y-6">
             <div className="flex justify-between items-center border-b border-border/30 pb-4">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Masonry Index</h2>
-              <p className="text-[9pt] text-muted-foreground">Modify titles and text for your gallery grid.</p>
+              <p className="text-[9pt] text-muted-foreground">Manage titles and order for sculptures found in storage.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {masonryItems.map((item: any) => (
-                <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex items-center gap-4 group">
+                <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex items-center gap-4">
                   <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
                     <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
                   </div>
@@ -314,7 +307,7 @@ export default function ManageDashboardPage() {
                     <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
                     <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">Order: {item.order}</p>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 shrink-0">
                     <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openMasonryEditor(item)}>Edit Details</Button>
                     {item.isIndexed && (
                       <Button 
@@ -324,7 +317,7 @@ export default function ManageDashboardPage() {
                         onClick={() => setItemToDelete({ 
                           id: item.id, 
                           collection: 'videos', 
-                          msg: "Remove metadata for this sculpture? This will revert its title to the filename and reset its order on the home page." 
+                          msg: "Remove custom metadata? Title will revert to filename and order will reset." 
                         })}
                       >
                         <Trash2 className="size-4" />
@@ -343,7 +336,7 @@ export default function ManageDashboardPage() {
             </div>
             <div className="space-y-4">
               {firestoreNews?.map((item) => (
-                <div key={item.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-center group">
+                <div key={item.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-center">
                   <div className="space-y-1">
                     <p className="text-[9pt] uppercase tracking-widest text-muted-foreground">{item.date}</p>
                     <h3 className="text-[12pt] font-normal">{item.title}</h3>
@@ -364,7 +357,7 @@ export default function ManageDashboardPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {firestorePages?.filter(p => p.id !== 'sidebar').map((page) => (
-                <div key={page.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-center group">
+                <div key={page.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-center">
                   <div className="space-y-1">
                     <h3 className="text-[12pt] font-normal">{page.title}</h3>
                     <p className="text-[9pt] font-mono text-muted-foreground">/p/{page.slug}</p>
@@ -405,11 +398,11 @@ export default function ManageDashboardPage() {
         </Tabs>
       </div>
 
-      {/* Item Editor Dialog */}
+      {/* Masonry Editor Dialog */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader>
-            <DialogTitle>Masonry Details: {editingItem?.id}</DialogTitle>
+            <DialogTitle>Sculpture Metadata: {editingItem?.id}</DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-4 gap-4">
@@ -442,7 +435,7 @@ export default function ManageDashboardPage() {
               <div className="space-y-2"><Label>Order</Label><Input type="number" value={newsOrder} onChange={e => setNewsOrder(e.target.value)} className="rounded-none" /></div>
             </div>
             <div className="space-y-2"><Label>Content</Label><Textarea value={newsContent} onChange={e => setNewsContent(e.target.value)} className="rounded-none h-40" /></div>
-            <div className="space-y-2"><Label>Image Path (Optional, e.g. ks-images/file.jpg)</Label><Input value={newsImagePath} onChange={e => setNewsImagePath(e.target.value)} className="rounded-none" /></div>
+            <div className="space-y-2"><Label>Image Path (Optional)</Label><Input value={newsImagePath} onChange={e => setNewsImagePath(e.target.value)} className="rounded-none" /></div>
           </div>
           <DialogFooter><Button onClick={saveNewsItem} disabled={isSaving} className="rounded-none">Save Entry</Button></DialogFooter>
         </DialogContent>
@@ -455,7 +448,7 @@ export default function ManageDashboardPage() {
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Page Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label>URL Slug (no spaces)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label>URL Slug</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" /></div>
             </div>
             <div className="space-y-2"><Label>Page Content</Label><Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-80" /></div>
           </div>
