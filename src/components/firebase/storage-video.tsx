@@ -9,85 +9,75 @@ import { cn } from '@/lib/utils';
 
 interface FirebaseStorageVideoProps {
   path: string;
+  posterPath?: string;
   className?: string;
 }
 
-export function FirebaseStorageVideo({ path, className }: FirebaseStorageVideoProps) {
+export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseStorageVideoProps) {
   const app = useFirebaseApp();
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const getUrl = useCallback(async () => {
+  const getUrls = useCallback(async () => {
     if (!app || !path) {
       setError('Firebase app or video path is not available.');
-      setIsLoading(false);
-      return;
-    }
-    if (!app.options.storageBucket) {
-      setError('Firebase Storage is not configured.');
       setIsLoading(false);
       return;
     }
     
     setIsLoading(true);
     setError(null);
-    setVideoUrl(null);
 
     try {
       const storage = getStorage(app);
-      const storageRef = ref(storage, path);
-      const url = await getDownloadURL(storageRef);
+      
+      // Load poster URL first if provided for instant visual feedback
+      if (posterPath) {
+        const pRef = ref(storage, posterPath);
+        getDownloadURL(pRef).then(url => setPosterUrl(url)).catch(() => {});
+      }
+
+      const vRef = ref(storage, path);
+      const url = await getDownloadURL(vRef);
       setVideoUrl(url);
     } catch (e: any) {
       console.error(`Failed to get download URL for ${path}`, e);
-      if (e.code === 'storage/object-not-found') {
-        setError(`Video not found at path: "${path}".`);
-      } else if (e.code === 'storage/unauthorized') {
-        setError(`Permission denied. Check your Firebase Storage security rules.`);
-      } else if (e.code === 'storage/retry-limit-exceeded') {
-        setError(`Connection timed out. Please verify your internet connection and ensure Cloud Storage is provisioned in your Firebase Console.`);
-      } else {
-        setError(`An error occurred while loading the video (Code: ${e.code || 'unknown'}).`);
-      }
+      setError(e.code === 'storage/object-not-found' ? 'Video not found.' : 'Error loading video.');
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
-  }, [app, path]);
+  }, [app, path, posterPath]);
 
   useEffect(() => {
-    getUrl();
-  }, [getUrl]);
+    getUrls();
+  }, [getUrls]);
 
-  if (isLoading) {
-    return <Skeleton className={cn('w-full h-full', className)} />;
+  if (isLoading && !posterUrl) {
+    return <Skeleton className={cn('w-full h-full aspect-video', className)} />;
   }
 
   if (error) {
     return (
-        <div className="w-full h-full flex flex-col items-center justify-center bg-muted text-destructive p-4 text-center">
-            <p className="font-semibold mb-2">Error Loading Video</p>
-            <p className="mb-4 text-xs text-left whitespace-pre-wrap leading-relaxed">{error}</p>
-            <Button variant="outline" size="sm" onClick={getUrl} disabled={isLoading}>
-              {isLoading ? 'Retrying...' : 'Retry'}
-            </Button>
-        </div>
+      <div className="w-full h-full flex flex-col items-center justify-center bg-muted text-destructive p-4 text-center">
+        <p className="text-xs mb-2">{error}</p>
+        <Button variant="outline" size="sm" onClick={getUrls}>Retry</Button>
+      </div>
     );
   }
 
-  if (videoUrl) {
-    return (
-      <video
-        src={videoUrl}
-        controls
-        autoPlay
-        loop
-        muted
-        playsInline
-        className={cn("w-full h-full object-contain", className)}
-      />
-    );
-  }
-
-  return <Skeleton className={cn("w-full h-full", className)} />;
+  return (
+    <video
+      src={videoUrl || undefined}
+      poster={posterUrl || undefined}
+      controls
+      autoPlay
+      loop
+      muted
+      playsInline
+      preload="auto"
+      className={cn("w-full h-full object-contain", className)}
+    />
+  );
 }

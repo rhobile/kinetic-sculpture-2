@@ -32,6 +32,7 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
             {videoPath ? (
               <FirebaseStorageVideo
                 path={videoPath}
+                posterPath={image.path}
                 className="w-full h-full max-h-[65vh] object-contain"
               />
             ) : (
