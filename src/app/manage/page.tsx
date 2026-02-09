@@ -324,29 +324,29 @@ export default function ManageDashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
-                    <p className="text-[8pt] text-accent font-mono truncate">{item.id}</p>
+                    <p className="text-[8pt] text-accent font-mono break-all">{item.id}</p>
                     <p className="text-[7pt] text-muted-foreground uppercase tracking-widest mt-1">
                       {item.isIndexed ? `Order: ${item.order}` : 'Unindexed Asset'}
                     </p>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button variant="outline" size="sm" className="rounded-none h-7 px-3 text-[9px] uppercase tracking-widest" onClick={() => {
+                    <Button variant="outline" size="sm" className="rounded-none h-6 px-2 text-[8px] uppercase tracking-widest" onClick={() => {
                       setEditingItem(item);
                       setItemTitle(item.title || '');
                       setItemDesc(item.description || '');
                       setItemOrder(item.order?.toString() || '0');
                       setIsItemDialogOpen(true);
                     }}>
-                      {item.isIndexed ? 'Edit Details' : 'Add to Masonry'}
+                      {item.isIndexed ? 'Edit' : 'Add'}
                     </Button>
                     {item.isIndexed && (
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="size-7 text-destructive rounded-none hover:bg-destructive/10" 
+                        className="size-6 text-destructive rounded-none hover:bg-destructive/10" 
                         onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Remove this item from the public gallery?" })}
                       >
-                        <Trash2 className="size-4" />
+                        <Trash2 className="size-3" />
                       </Button>
                     )}
                   </div>
