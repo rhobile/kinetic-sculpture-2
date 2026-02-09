@@ -97,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </Link>
             ))}
             <Link href="/manage" className="text-muted-foreground/30 hover:text-accent transition-colors flex items-center gap-2 mt-4 pt-4 border-t border-border/20 text-[10pt]">
-              <Settings className="size-3" /> Manage Gallery
+              <Settings className="size-3" /> Manage Dashboard
             </Link>
           </nav>
         </SidebarContent>
