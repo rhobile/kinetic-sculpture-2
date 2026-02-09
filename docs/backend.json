@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Video": {
@@ -56,6 +57,7 @@
         "date": { "type": "string" },
         "content": { "type": "string" },
         "imagePath": { "type": "string", "description": "Path to the image in Storage, e.g., ks-images/news.jpg" },
+        "videoId": { "type": "string", "description": "ID of the associated video in ks-videos/" },
         "order": { "type": "number" }
       },
       "required": ["title", "date", "content"]
