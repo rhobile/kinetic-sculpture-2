@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -16,7 +15,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid, Video, Wind
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -315,7 +314,7 @@ export default function ManageDashboardPage() {
           <TabsContent value="masonry" className="space-y-6">
             <div className="flex justify-between items-center border-b border-border/30 pb-4">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Masonry Index</h2>
-              <p className="text-[9pt] text-muted-foreground hidden sm:block">Images in ks-images bucket available for the home gallery.</p>
+              <p className="text-[9pt] text-muted-foreground hidden sm:block">All images in ks-images bucket. Items added to masonry will appear on home page.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {masonryItems.map((item: any) => (
@@ -325,12 +324,13 @@ export default function ManageDashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
-                    <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">
+                    <p className="text-[8pt] text-accent font-mono truncate">{item.id}</p>
+                    <p className="text-[7pt] text-muted-foreground uppercase tracking-widest mt-1">
                       {item.isIndexed ? `Order: ${item.order}` : 'Unindexed Asset'}
                     </p>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => {
+                    <Button variant="outline" size="sm" className="rounded-none h-7 px-3 text-[9px] uppercase tracking-widest" onClick={() => {
                       setEditingItem(item);
                       setItemTitle(item.title || '');
                       setItemDesc(item.description || '');
@@ -343,7 +343,7 @@ export default function ManageDashboardPage() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="size-8 text-destructive rounded-none hover:bg-destructive/10" 
+                        className="size-7 text-destructive rounded-none hover:bg-destructive/10" 
                         onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Remove this item from the public gallery?" })}
                       >
                         <Trash2 className="size-4" />
