@@ -368,8 +368,8 @@ export default function ManageDashboardPage() {
                   <div className="space-y-2"><Label>Date Label (e.g. July 2023)</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Image Path (in ks-images/)</Label><Input value={entryImagePath} placeholder="example.jpg" onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Associated Video ID (from ks-videos/)</Label><Input value={entryVideoId} placeholder="example" onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Image Filename (in ks-images/)</Label><Input value={entryImagePath} placeholder="example.jpg" onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Video ID (in ks-videos/)</Label><Input value={entryVideoId} placeholder="example" onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
                 </div>
                 <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
                 <div className="flex gap-2">
@@ -408,8 +408,8 @@ export default function ManageDashboardPage() {
                   <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Image Path</Label><Input value={entryImagePath} placeholder="example.jpg" onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Linked Video ID</Label><Input value={entryVideoId} placeholder="arclinedot" onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Image Filename (in ks-images/)</Label><Input value={entryImagePath} placeholder="example.jpg" onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Video ID (in ks-videos/)</Label><Input value={entryVideoId} placeholder="arclinedot" onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
                 </div>
                 <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
                 <div className="flex gap-2">
