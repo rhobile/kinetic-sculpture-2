@@ -16,7 +16,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, EyeOff
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, EyeOff, LayoutGrid
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -80,7 +80,7 @@ export default function ManageDashboardPage() {
   }, [firestore]);
   const { data: sidebarData } = useDoc(sidebarQuery);
 
-  // UI State - Sculpture Item
+  // UI State - Masonry Item Editor
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [itemTitle, setItemTitle] = useState('');
@@ -163,7 +163,7 @@ export default function ManageDashboardPage() {
     return firestoreVideos.filter(v => v.isObservation === true).sort((a, b) => (a.order || 0) - (b.order || 0));
   }, [firestoreVideos]);
 
-  const homeGalleryItems = useMemo(() => {
+  const masonryItems = useMemo(() => {
     return storageData.images.map(img => {
       const fsData = firestoreVideos?.find(v => v.id === img.id);
       return {
@@ -200,7 +200,7 @@ export default function ManageDashboardPage() {
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      toast({ title: "Sculpture data saved" });
+      toast({ title: "Masonry item saved" });
       setIsItemDialogOpen(false);
       setEditingItem(null);
     } catch (error: any) {
@@ -282,7 +282,7 @@ export default function ManageDashboardPage() {
     setItemToDelete(null);
   };
 
-  const openItemEditor = (item: any) => {
+  const openMasonryEditor = (item: any) => {
     setEditingItem(item);
     setItemTitle(item.title || '');
     setItemDesc(item.description || '');
@@ -298,25 +298,31 @@ export default function ManageDashboardPage() {
     <main className="p-4 sm:p-6 lg:p-8 bg-background min-h-screen">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
-          <h1 className="text-[12pt] font-normal uppercase tracking-widest">Management Dashboard</h1>
+          <div className="flex items-center gap-3">
+            <LayoutGrid className="size-6 text-muted-foreground" />
+            <h1 className="text-[12pt] font-normal uppercase tracking-widest">Management Dashboard</h1>
+          </div>
           <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
             <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Refresh State
           </Button>
         </div>
 
-        <Tabs defaultValue="gallery" className="w-full">
+        <Tabs defaultValue="masonry" className="w-full">
           <TabsList className="grid w-full max-w-4xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
-            <TabsTrigger value="gallery" className="rounded-none">Home Gallery</TabsTrigger>
-            <TabsTrigger value="observations" className="rounded-none">Flow Observations</TabsTrigger>
+            <TabsTrigger value="masonry" className="rounded-none">Edit Masonry</TabsTrigger>
+            <TabsTrigger value="observations" className="rounded-none">Observations</TabsTrigger>
             <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
             <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
             <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="gallery" className="space-y-6">
-            <h2 className="text-[10pt] uppercase tracking-widest font-normal">Home Page Gallery Index</h2>
+          <TabsContent value="masonry" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Masonry Gallery Index</h2>
+              <p className="text-[9pt] text-muted-foreground">Manage your portfolio grid items and text.</p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {homeGalleryItems.map((item: any) => (
+              {masonryItems.map((item: any) => (
                 <div key={item.id} className={cn("p-4 bg-muted/20 border border-border/50 flex items-center gap-4", item.hidden && "opacity-60")}>
                   <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
                     <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
@@ -327,8 +333,8 @@ export default function ManageDashboardPage() {
                     <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">Order: {item.order}</p>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openItemEditor(item)}>Edit Details</Button>
-                    <Button variant="ghost" size="icon" className="size-8 text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Delete this sculpture's index? This will hide its metadata." })}><Trash2 className="size-4" /></Button>
+                    <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openMasonryEditor(item)}>Edit Details</Button>
+                    <Button variant="ghost" size="icon" className="size-8 text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Remove metadata for this sculpture? This will revert its title to the filename and reset its order." })}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -338,7 +344,7 @@ export default function ManageDashboardPage() {
           <TabsContent value="observations" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Curated Flow Observations</h2>
-              <Button size="sm" onClick={() => openItemEditor({ isNew: true, isObservation: true })} className="rounded-none h-8 font-normal">
+              <Button size="sm" onClick={() => openMasonryEditor({ isNew: true, isObservation: true })} className="rounded-none h-8 font-normal">
                 <Plus className="size-3 mr-2" /> Add Observation
               </Button>
             </div>
@@ -355,7 +361,7 @@ export default function ManageDashboardPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="icon" className="rounded-none" onClick={() => openItemEditor(item)}><Edit3 className="size-4" /></Button>
+                    <Button variant="outline" size="icon" className="rounded-none" onClick={() => openMasonryEditor(item)}><Edit3 className="size-4" /></Button>
                     <Button variant="ghost" size="icon" className="text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', actionType: 'remove-observation', msg: "Remove this from curated observations?" })}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
@@ -436,13 +442,13 @@ export default function ManageDashboardPage() {
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
           <DialogHeader>
-            <DialogTitle>Sculpture Configuration</DialogTitle>
+            <DialogTitle>Masonry Configuration</DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 border border-border/50">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="text-xs uppercase tracking-widest">Hide from Gallery</Label>
+                  <Label className="text-xs uppercase tracking-widest">Hide from Masonry</Label>
                 </div>
                 <Switch checked={itemHidden} onCheckedChange={setItemHidden} />
               </div>
@@ -455,11 +461,11 @@ export default function ManageDashboardPage() {
             </div>
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3">
-                <Label className="text-[10px] uppercase tracking-widest">Title</Label>
+                <Label className="text-[10px] uppercase tracking-widest">Display Title</Label>
                 <Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none" />
               </div>
               <div>
-                <Label className="text-[10px] uppercase tracking-widest">Order</Label>
+                <Label className="text-[10px] uppercase tracking-widest">Grid Order</Label>
                 <Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none" />
               </div>
             </div>
