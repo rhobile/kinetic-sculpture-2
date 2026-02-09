@@ -257,12 +257,14 @@ export default function ManageDashboardPage() {
     }
   };
 
-  const confirmDelete = () => {
+  const handleConfirmDelete = useCallback(() => {
     if (!itemToDelete || !firestore) return;
-    deleteDocumentNonBlocking(doc(firestore, itemToDelete.collection, itemToDelete.id));
+    const { id, collection: col } = itemToDelete;
+    const docRef = doc(firestore, col, id);
+    deleteDocumentNonBlocking(docRef);
     toast({ title: "Record deleted" });
     setItemToDelete(null);
-  };
+  }, [itemToDelete, firestore]);
 
   const openMasonryEditor = (item: any) => {
     setEditingItem(item);
@@ -297,7 +299,7 @@ export default function ManageDashboardPage() {
 
           <TabsContent value="masonry" className="space-y-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Masonry Gallery Index</h2>
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Masonry Index</h2>
               <p className="text-[9pt] text-muted-foreground">Manage your portfolio grid items and text.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -312,7 +314,20 @@ export default function ManageDashboardPage() {
                   </div>
                   <div className="flex gap-1">
                     <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openMasonryEditor(item)}>Edit Details</Button>
-                    <Button variant="ghost" size="icon" className="size-8 text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Remove metadata for this sculpture? This will revert its title to the filename and reset its order." })}><Trash2 className="size-4" /></Button>
+                    {item.isIndexed && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="size-8 text-destructive rounded-none" 
+                        onClick={() => setItemToDelete({ 
+                          id: item.id, 
+                          collection: 'videos', 
+                          msg: "Remove metadata for this sculpture? This will revert its title to the filename and reset its order." 
+                        })}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -455,7 +470,9 @@ export default function ManageDashboardPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="rounded-none bg-destructive text-destructive-foreground">Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmDelete} className="rounded-none bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Permanently
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
