@@ -8,7 +8,6 @@ export const EXCLUDED_IMAGES = [
   'limetree', 
   'chopsticksmurfitts2', 
   'chopstxsap12_on', 
-  'dashcube', 
   'bubbles_on', 
   'trioxi_on', 
   'redsquare_on',
