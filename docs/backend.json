@@ -62,6 +62,22 @@
       },
       "required": ["title", "date", "content"]
     },
+    "Observation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Observation",
+      "type": "object",
+      "description": "A flow observation about wind or water.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "content": { "type": "string" },
+        "imagePath": { "type": "string" },
+        "videoId": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["title", "date", "content"]
+    },
     "Page": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Page",
@@ -119,6 +135,16 @@
             "$ref": "#/backend/entities/NewsItem"
           },
           "description": "Stores news updates."
+        }
+      },
+      {
+        "path": "/observations/{obsId}",
+        "definition": {
+          "entityName": "Observation",
+          "schema": {
+            "$ref": "#/backend/entities/Observation"
+          },
+          "description": "Stores flow observations."
         }
       },
       {

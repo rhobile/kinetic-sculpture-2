@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { ReactNode } from 'react';
@@ -66,6 +67,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               <p>
                 <Link href="/news" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30">
                   News (if there is any)
+                </Link>
+              </p>
+              <p>
+                <Link href="/sculptures" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30">
+                  Flow observations of wind and water
                 </Link>
               </p>
             </div>

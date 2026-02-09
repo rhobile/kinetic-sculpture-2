@@ -16,7 +16,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid, AlertCircle, FileText, Settings, Video
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid, Video, Wind
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -43,7 +43,7 @@ export default function ManageDashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages', msg: string } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages' | 'observations', msg: string } | null>(null);
 
   const SIDEBAR_DEFAULTS = {
     introTitle: "Kinetic sculptures by Andrew Jones.",
@@ -69,6 +69,12 @@ export default function ManageDashboardPage() {
   }, [firestore]);
   const { data: firestoreNews } = useCollection(newsQuery);
 
+  const obsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'observations'), orderBy('order', 'asc'));
+  }, [firestore]);
+  const { data: firestoreObs } = useCollection(obsQuery);
+
   const pagesQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'pages');
@@ -88,14 +94,15 @@ export default function ManageDashboardPage() {
   const [itemDesc, setItemDesc] = useState('');
   const [itemOrder, setItemOrder] = useState('0');
 
-  // UI State - News
-  const [editingNews, setEditingNews] = useState<any | null>(null);
-  const [newsTitle, setNewsTitle] = useState('');
-  const [newsDate, setNewsDate] = useState('');
-  const [newsContent, setNewsContent] = useState('');
-  const [newsImagePath, setNewsImagePath] = useState('');
-  const [newsVideoId, setNewsVideoId] = useState('');
-  const [newsOrder, setNewsOrder] = useState('0');
+  // UI State - News & Observations Shared Form State
+  const [editingEntry, setEditingEntry] = useState<any | null>(null);
+  const [entryType, setEntryType] = useState<'news' | 'observations'>('news');
+  const [entryTitle, setEntryTitle] = useState('');
+  const [entryDate, setEntryDate] = useState('');
+  const [entryContent, setEntryContent] = useState('');
+  const [entryImagePath, setEntryImagePath] = useState('');
+  const [entryVideoId, setEntryVideoId] = useState('');
+  const [entryOrder, setEntryOrder] = useState('0');
 
   // UI State - Page
   const [editingPage, setEditingPage] = useState<any | null>(null);
@@ -186,7 +193,6 @@ export default function ManageDashboardPage() {
     try {
       const id = editingItem?.id;
       const docRef = doc(firestore, 'videos', id);
-      
       setDocumentNonBlocking(docRef, {
         id,
         title: itemTitle,
@@ -194,7 +200,6 @@ export default function ManageDashboardPage() {
         order: Number(itemOrder) || 0,
         updatedAt: new Date().toISOString()
       }, { merge: true });
-
       toast({ title: "Masonry record updated" });
       setIsItemDialogOpen(false);
       setEditingItem(null);
@@ -205,26 +210,26 @@ export default function ManageDashboardPage() {
     }
   };
 
-  const saveNewsItem = async () => {
-    if (!firestore || !newsTitle) return;
+  const saveEntry = async () => {
+    if (!firestore || !entryTitle) return;
     setIsSaving(true);
     try {
-      const id = editingNews?.isNew 
-        ? newsTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-        : editingNews.id;
-      const docRef = doc(firestore, 'news', id);
+      const id = editingEntry?.isNew 
+        ? entryTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+        : editingEntry.id;
+      const docRef = doc(firestore, entryType, id);
       setDocumentNonBlocking(docRef, {
         id,
-        title: newsTitle,
-        date: newsDate,
-        content: newsContent,
-        imagePath: newsImagePath,
-        videoId: newsVideoId,
-        order: Number(newsOrder) || 0,
+        title: entryTitle,
+        date: entryDate,
+        content: entryContent,
+        imagePath: entryImagePath,
+        videoId: entryVideoId,
+        order: Number(entryOrder) || 0,
         updatedAt: new Date().toISOString()
       }, { merge: true });
-      toast({ title: "News item updated" });
-      setEditingNews(null);
+      toast({ title: `${entryType === 'news' ? 'News' : 'Observation'} item updated` });
+      setEditingEntry(null);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save failed" });
     } finally {
@@ -299,9 +304,10 @@ export default function ManageDashboardPage() {
         </div>
 
         <Tabs defaultValue="masonry" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4 rounded-none bg-muted/50 p-1 mb-8">
+          <TabsList className="grid w-full max-w-2xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
             <TabsTrigger value="masonry" className="rounded-none">Edit Masonry</TabsTrigger>
             <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
+            <TabsTrigger value="obs" className="rounded-none">Observations</TabsTrigger>
             <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
             <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
           </TabsList>
@@ -309,12 +315,11 @@ export default function ManageDashboardPage() {
           <TabsContent value="masonry" className="space-y-6">
             <div className="flex justify-between items-center border-b border-border/30 pb-4">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Masonry Index</h2>
-              <p className="text-[9pt] text-muted-foreground hidden sm:block">All images in ks-images storage are listed here.</p>
+              <p className="text-[9pt] text-muted-foreground hidden sm:block">Images in ks-images bucket available for the home gallery.</p>
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {masonryItems.map((item: any) => (
-                <div key={item.id} className={cn("p-4 border flex items-center gap-4 transition-colors", item.isIndexed ? "bg-muted/30 border-border/50 shadow-sm" : "bg-background border-dashed border-border/40 opacity-70")}>
+                <div key={item.id} className={cn("p-4 border flex items-center gap-4", item.isIndexed ? "bg-muted/30 border-border/50 shadow-sm" : "bg-background border-dashed border-border/40 opacity-70")}>
                   <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
                     <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
                   </div>
@@ -353,23 +358,23 @@ export default function ManageDashboardPage() {
           <TabsContent value="news" className="space-y-6">
             <div className="flex justify-between items-center border-b border-border/30 pb-4">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Updates</h2>
-              <Button size="sm" onClick={() => { setEditingNews({ isNew: true }); setNewsTitle(''); setNewsDate(new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })); setNewsContent(''); setNewsImagePath(''); setNewsVideoId(''); setNewsOrder('0'); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add News Entry</Button>
+              <Button size="sm" onClick={() => { setEntryType('news'); setEditingEntry({ isNew: true }); setEntryTitle(''); setEntryDate(new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })); setEntryContent(''); setEntryImagePath(''); setEntryVideoId(''); setEntryOrder('0'); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add News Entry</Button>
             </div>
             
-            {editingNews ? (
+            {(editingEntry && entryType === 'news') ? (
               <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Title</Label><Input value={newsTitle} onChange={e => setNewsTitle(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Date Label (e.g. July 2023)</Label><Input value={newsDate} onChange={e => setNewsDate(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Date Label (e.g. July 2023)</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Image Path (in ks-images/)</Label><Input value={newsImagePath} placeholder="example.jpg" onChange={e => setNewsImagePath(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Associated Video ID (from ks-videos/)</Label><Input value={newsVideoId} placeholder="example" onChange={e => setNewsVideoId(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Image Path (in ks-images/)</Label><Input value={entryImagePath} placeholder="example.jpg" onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Associated Video ID (from ks-videos/)</Label><Input value={entryVideoId} placeholder="example" onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
                 </div>
-                <div className="space-y-2"><Label>Content</Label><Textarea value={newsContent} onChange={e => setNewsContent(e.target.value)} className="rounded-none h-32" /></div>
+                <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
                 <div className="flex gap-2">
-                  <Button onClick={saveNewsItem} disabled={isSaving} className="rounded-none h-8">{isSaving ? <Loader2 className="animate-spin size-4" /> : 'Save News Item'}</Button>
-                  <Button variant="outline" onClick={() => setEditingNews(null)} className="rounded-none h-8">Cancel</Button>
+                  <Button onClick={saveEntry} disabled={isSaving} className="rounded-none h-8">{isSaving ? <Loader2 className="animate-spin size-4" /> : 'Save News Item'}</Button>
+                  <Button variant="outline" onClick={() => setEditingEntry(null)} className="rounded-none h-8">Cancel</Button>
                 </div>
               </div>
             ) : (
@@ -379,11 +384,50 @@ export default function ManageDashboardPage() {
                     <div className="space-y-1">
                       <p className="text-[9pt] uppercase tracking-widest text-muted-foreground">{item.date}</p>
                       <h3 className="text-[12pt] font-normal">{item.title}</h3>
-                      {item.videoId && <p className="text-[8pt] text-accent flex items-center gap-1"><Video className="size-3" /> Linked to video: {item.videoId}</p>}
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="icon" className="rounded-none" onClick={() => { setEditingNews(item); setNewsTitle(item.title); setNewsDate(item.date); setNewsContent(item.content); setNewsImagePath(item.imagePath || ''); setNewsVideoId(item.videoId || ''); setNewsOrder(item.order?.toString() || '0'); }}><Edit3 className="size-4" /></Button>
+                      <Button variant="outline" size="icon" className="rounded-none" onClick={() => { setEntryType('news'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); setEntryOrder(item.order?.toString() || '0'); }}><Edit3 className="size-4" /></Button>
                       <Button variant="ghost" size="icon" className="text-destructive rounded-none hover:bg-destructive/10" onClick={() => setItemToDelete({ id: item.id, collection: 'news', msg: "Delete this news item permanently?" })}><Trash2 className="size-4" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="obs" className="space-y-6">
+            <div className="flex justify-between items-center border-b border-border/30 pb-4">
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Flow Observations</h2>
+              <Button size="sm" onClick={() => { setEntryType('observations'); setEditingEntry({ isNew: true }); setEntryTitle(''); setEntryDate(new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })); setEntryContent(''); setEntryImagePath(''); setEntryVideoId(''); setEntryOrder('0'); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add Observation</Button>
+            </div>
+            
+            {(editingEntry && entryType === 'observations') ? (
+              <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2"><Label>Image Path</Label><Input value={entryImagePath} placeholder="example.jpg" onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Linked Video ID</Label><Input value={entryVideoId} placeholder="arclinedot" onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
+                </div>
+                <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
+                <div className="flex gap-2">
+                  <Button onClick={saveEntry} disabled={isSaving} className="rounded-none h-8">{isSaving ? <Loader2 className="animate-spin size-4" /> : 'Save Observation'}</Button>
+                  <Button variant="outline" onClick={() => setEditingEntry(null)} className="rounded-none h-8">Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {firestoreObs?.map((item) => (
+                  <div key={item.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-center">
+                    <div className="space-y-1">
+                      <p className="text-[9pt] uppercase tracking-widest text-muted-foreground">{item.date}</p>
+                      <h3 className="text-[12pt] font-normal">{item.title}</h3>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="icon" className="rounded-none" onClick={() => { setEntryType('observations'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); setEntryOrder(item.order?.toString() || '0'); }}><Edit3 className="size-4" /></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive rounded-none hover:bg-destructive/10" onClick={() => setItemToDelete({ id: item.id, collection: 'observations', msg: "Delete this observation permanently?" })}><Trash2 className="size-4" /></Button>
                     </div>
                   </div>
                 ))}
