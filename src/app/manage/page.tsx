@@ -15,7 +15,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid, PlusCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -180,7 +180,7 @@ export default function ManageDashboardPage() {
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      toast({ title: "Masonry metadata saved" });
+      toast({ title: "Masonry record updated" });
       setIsItemDialogOpen(false);
       setEditingItem(null);
     } catch (error: any) {
@@ -259,7 +259,7 @@ export default function ManageDashboardPage() {
     const { id, collection: col } = itemToDelete;
     const docRef = doc(firestore, col, id);
     deleteDocumentNonBlocking(docRef);
-    toast({ title: "Record deleted" });
+    toast({ title: "Record removed" });
     setItemToDelete(null);
   }, [itemToDelete, firestore]);
 
@@ -295,32 +295,40 @@ export default function ManageDashboardPage() {
           <TabsContent value="masonry" className="space-y-6">
             <div className="flex justify-between items-center border-b border-border/30 pb-4">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Masonry Index</h2>
-              <p className="text-[9pt] text-muted-foreground">Manage titles and order for sculptures found in storage.</p>
+              <p className="text-[9pt] text-muted-foreground">Only indexed items appear on the public masonry gallery.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {masonryItems.map((item: any) => (
-                <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex items-center gap-4">
+                <div key={item.id} className={cn("p-4 border flex items-center gap-4 transition-colors", item.isIndexed ? "bg-muted/30 border-border/50" : "bg-background border-dashed border-border/40 opacity-70")}>
                   <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
                     <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
-                    <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">Order: {item.order}</p>
+                    <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">
+                      {item.isIndexed ? `Order: ${item.order}` : 'Not on Masonry'}
+                    </p>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openMasonryEditor(item)}>Edit Details</Button>
-                    {item.isIndexed && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="size-8 text-destructive rounded-none hover:bg-destructive/10" 
-                        onClick={() => setItemToDelete({ 
-                          id: item.id, 
-                          collection: 'videos', 
-                          msg: "Remove custom metadata? Title will revert to filename and order will reset." 
-                        })}
-                      >
-                        <Trash2 className="size-4" />
+                    {item.isIndexed ? (
+                      <>
+                        <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openMasonryEditor(item)}>Edit</Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="size-8 text-destructive rounded-none hover:bg-destructive/10" 
+                          onClick={() => setItemToDelete({ 
+                            id: item.id, 
+                            collection: 'videos', 
+                            msg: "Remove this item from the public masonry? Its metadata will be cleared." 
+                          })}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </>
+                    ) : (
+                      <Button variant="secondary" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openMasonryEditor(item)}>
+                        <PlusCircle className="size-3 mr-1" /> Add
                       </Button>
                     )}
                   </div>
@@ -460,7 +468,7 @@ export default function ManageDashboardPage() {
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent className="rounded-none border-destructive/20">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive font-normal uppercase tracking-widest text-[14px]">Confirm Deletion</AlertDialogTitle>
+            <AlertDialogTitle className="text-destructive font-normal uppercase tracking-widest text-[14px]">Confirm Removal</AlertDialogTitle>
             <AlertDialogDescription className="text-foreground/70 leading-relaxed">{itemToDelete?.msg}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="pt-4">

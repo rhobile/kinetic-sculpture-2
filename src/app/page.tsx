@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
-import { collection } from 'firebase/firestore';
+import { collection, query } from 'firebase/firestore';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Card, CardContent } from '@/components/ui/card';
 import { VideoPlayerModal } from '@/components/video-player-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { FirebaseImage } from '@/lib/firebase-images';
-import { EXCLUDED_IMAGES, SCULPTURE_DESCRIPTIONS } from '@/lib/constants';
+import { EXCLUDED_IMAGES } from '@/lib/constants';
 
 export default function Home() {
   const { firebaseApp, firestore } = useFirebase();
@@ -18,14 +18,13 @@ export default function Home() {
   const [isStorageLoading, setIsStorageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Firestore Descriptions and Ordering
+  // Firestore Data: The curation source
   const videosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'videos');
   }, [firestore]);
-  const { data: firestoreVideos } = useCollection(videosQuery);
+  const { data: firestoreVideos, isLoading: isFsLoading } = useCollection(videosQuery);
 
-  // Fetch Storage items once or when firebaseApp changes
   const fetchStorageData = useCallback(async () => {
     if (!firebaseApp) {
       setIsStorageLoading(false);
@@ -37,44 +36,30 @@ export default function Home() {
     try {
       const storage = getStorage(firebaseApp);
       
-      // List videos to find matches
-      const videoListRef = storageRef(storage, 'ks-videos');
-      let availableVideoNames = new Set<string>();
-      try {
-        const videoRes = await listAll(videoListRef);
-        availableVideoNames = new Set(
-          videoRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
-        );
-      } catch (vidErr: any) {
-        console.warn("Storage warning: Could not list ks-videos.", vidErr.message);
-      }
+      const [imgRes, vidRes] = await Promise.all([
+        listAll(storageRef(storage, 'ks-images')),
+        listAll(storageRef(storage, 'ks-videos'))
+      ]);
+
+      const availableVideoNames = new Set(
+        vidRes.items.map(item => item.name.split('.').slice(0, -1).join('.').toLowerCase())
+      );
       
-      // List images
-      const imageListRef = storageRef(storage, 'ks-images');
-      let imageRes;
-      try {
-        imageRes = await listAll(imageListRef);
-      } catch (imgErr: any) {
-        console.error("Storage Error: Failed to list ks-images.", imgErr.message);
-        throw new Error("Unable to load gallery assets. Please check permissions.");
-      }
-      
-      const filteredItems = imageRes.items.filter(item => {
+      const filteredImages = imgRes.items.filter(item => {
         const lowerName = item.name.toLowerCase();
         const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
         const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase();
-        
-        const isExcluded = EXCLUDED_IMAGES.some(excluded => fileNameLower === excluded.toLowerCase());
-        return isJpg && !isExcluded;
+        return isJpg && !EXCLUDED_IMAGES.includes(fileNameLower);
       });
 
       setStorageItems({
-        images: filteredItems,
+        images: filteredImages,
         videos: availableVideoNames
       });
 
     } catch (err: any) {
-      setError(err.message || 'Failed to connect to gallery storage.');
+      console.error("Gallery initialization error:", err);
+      setError('Failed to connect to gallery storage.');
     } finally {
       setIsStorageLoading(false);
     }
@@ -84,34 +69,30 @@ export default function Home() {
     fetchStorageData();
   }, [fetchStorageData]);
 
-  // Combine Storage and Firestore data reactively
+  // Only show images that exist in Firestore (Curated List)
   const galleryImages = useMemo(() => {
-    if (!storageItems) return [];
+    if (!storageItems || !firestoreVideos) return [];
 
-    const mapped = storageItems.images.map((item, index) => {
-      const fileName = item.name.split('.').slice(0, -1).join('.');
-      const normalizedKey = fileName.toLowerCase();
-      
-      // Match with Firestore data using the same normalization as the dashboard
-      const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
+    const mapped = storageItems.images
+      .map((item, index) => {
+        const fileName = item.name.split('.').slice(0, -1).join('.');
+        const normalizedKey = fileName.toLowerCase();
+        
+        // Find metadata
+        const fsData = firestoreVideos.find(v => v.id === normalizedKey);
+        if (!fsData) return null;
 
-      const displayTitle = fsData?.title || fileName
-        .replace(/[-_]/g, ' ')
-        .replace(/\b\w/g, (l) => l.toUpperCase());
-
-      const description = fsData?.description || SCULPTURE_DESCRIPTIONS[normalizedKey];
-      const order = fsData?.order !== undefined ? Number(fsData.order) : 999;
-
-      return {
-        id: normalizedKey,
-        path: item.fullPath,
-        alt: displayTitle,
-        description: description,
-        order: order,
-        width: 500,
-        height: index % 2 === 0 ? 600 : 750,
-      } as FirebaseImage & { order: number };
-    });
+        return {
+          id: normalizedKey,
+          path: item.fullPath,
+          alt: fsData.title || fileName.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          description: fsData.description || "A balance of form and articulated movement.",
+          order: fsData.order !== undefined ? Number(fsData.order) : 999,
+          width: 500,
+          height: index % 2 === 0 ? 600 : 750,
+        } as FirebaseImage & { order: number };
+      })
+      .filter((img): img is (FirebaseImage & { order: number }) => img !== null);
 
     return [...mapped].sort((a, b) => a.order - b.order);
   }, [storageItems, firestoreVideos]);
@@ -127,7 +108,7 @@ export default function Home() {
   return (
     <div className="bg-background min-h-screen">
       <main className="w-full">
-        {isStorageLoading ? (
+        {(isStorageLoading || isFsLoading) ? (
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">
             {[...Array(8)].map((_, i) => (
               <Skeleton key={i} className="w-full aspect-[2/3] rounded-none border-0" />
@@ -136,9 +117,11 @@ export default function Home() {
         ) : error ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center max-w-md mx-auto">
             <h2 className="text-[14pt] font-normal uppercase tracking-widest mb-4 text-destructive">Gallery Error</h2>
-            <p className="text-muted-foreground text-[11pt] font-normal leading-relaxed">
-              {error}
-            </p>
+            <p className="text-muted-foreground text-[11pt] font-normal">{error}</p>
+          </div>
+        ) : galleryImages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
+            <p className="text-muted-foreground text-[11pt] italic">The gallery is currently being curated. Please check back soon.</p>
           </div>
         ) : (
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">
