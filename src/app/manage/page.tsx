@@ -15,7 +15,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid, PlusCircle
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid, AlertCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -41,6 +41,7 @@ export default function ManageDashboardPage() {
   const [storageData, setStorageData] = useState<{ images: any[] }>({ images: [] });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages', msg: string } | null>(null);
 
   const SIDEBAR_DEFAULTS = {
@@ -134,17 +135,25 @@ export default function ManageDashboardPage() {
       const images = imgRes.items
         .filter(item => {
           const lowerName = item.name.toLowerCase();
-          const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase();
-          return (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) && !EXCLUDED_IMAGES.includes(fileNameLower);
+          const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase().trim();
+          const isImage = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+          const isExcluded = EXCLUDED_IMAGES.includes(fileNameLower);
+          return isImage && !isExcluded;
         })
         .map(item => ({ 
-          id: item.name.split('.').slice(0, -1).join('.').toLowerCase(), 
+          id: item.name.split('.').slice(0, -1).join('.').toLowerCase().trim(), 
           path: item.fullPath, 
           name: item.name 
         }));
 
       setStorageData({ images });
+      setLastRefreshed(new Date().toLocaleTimeString());
+      
+      if (images.length === 0) {
+        toast({ title: "No images found", description: "Storage returned 0 items in 'ks-images'." });
+      }
     } catch (error: any) {
+      console.error("Storage list error:", error);
       toast({ variant: "destructive", title: "Storage refresh failed", description: error.message });
     } finally {
       setIsRefreshing(false);
@@ -167,6 +176,7 @@ export default function ManageDashboardPage() {
         isIndexed: !!fsData
       };
     }).sort((a: any, b: any) => {
+      // Indexed items first, then by order
       if (a.isIndexed && !b.isIndexed) return -1;
       if (!a.isIndexed && b.isIndexed) return 1;
       return a.order - b.order;
@@ -287,9 +297,15 @@ export default function ManageDashboardPage() {
             <LayoutGrid className="size-6 text-muted-foreground" />
             <h1 className="text-[12pt] font-normal uppercase tracking-widest text-foreground/80">Management Dashboard</h1>
           </div>
-          <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
-            <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Refresh State
-          </Button>
+          <div className="flex flex-col items-end gap-1">
+            <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
+              <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> 
+              {isRefreshing ? 'Syncing Storage...' : 'Sync with Storage'}
+            </Button>
+            {lastRefreshed && (
+              <span className="text-[9px] text-muted-foreground uppercase tracking-widest">Last synced: {lastRefreshed}</span>
+            )}
+          </div>
         </div>
 
         <Tabs defaultValue="masonry" className="w-full">
@@ -303,42 +319,54 @@ export default function ManageDashboardPage() {
           <TabsContent value="masonry" className="space-y-6">
             <div className="flex justify-between items-center border-b border-border/30 pb-4">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Masonry Index</h2>
-              <p className="text-[9pt] text-muted-foreground">Add sculptures from your storage to the public gallery.</p>
+              <p className="text-[9pt] text-muted-foreground hidden sm:block">All images in ks-images storage are listed here.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {masonryItems.map((item: any) => (
-                <div key={item.id} className={cn("p-4 border flex items-center gap-4 transition-colors", item.isIndexed ? "bg-muted/30 border-border/50 shadow-sm" : "bg-background border-dashed border-border/40 opacity-70")}>
-                  <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
-                    <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
-                    <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">
-                      {item.isIndexed ? `Order: ${item.order}` : 'Unindexed Asset'}
-                    </p>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openMasonryEditor(item)}>
-                      {item.isIndexed ? 'Edit Details' : 'Add to Masonry'}
-                    </Button>
-                    {item.isIndexed && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="size-8 text-destructive rounded-none hover:bg-destructive/10" 
-                        onClick={() => setItemToDelete({ 
-                          id: item.id, 
-                          collection: 'videos', 
-                          msg: "Remove this item from the public gallery? Its metadata will be cleared." 
-                        })}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    )}
-                  </div>
+
+            {storageData.images.length === 0 && !isRefreshing ? (
+              <div className="flex flex-col items-center justify-center p-12 border border-dashed text-center space-y-4">
+                <AlertCircle className="size-8 text-muted-foreground/50" />
+                <div className="space-y-1">
+                  <p className="text-[10pt] uppercase tracking-widest">No assets detected</p>
+                  <p className="text-[9pt] text-muted-foreground">Ensure your sculptures are uploaded to the 'ks-images' folder in Firebase Storage.</p>
                 </div>
-              ))}
-            </div>
+                <Button variant="outline" size="sm" onClick={() => fetchData()} className="rounded-none">Retry Sync</Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {masonryItems.map((item: any) => (
+                  <div key={item.id} className={cn("p-4 border flex items-center gap-4 transition-colors", item.isIndexed ? "bg-muted/30 border-border/50 shadow-sm" : "bg-background border-dashed border-border/40 opacity-70")}>
+                    <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
+                      <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
+                      <p className="text-[8pt] text-muted-foreground uppercase tracking-widest">
+                        {item.isIndexed ? `Order: ${item.order}` : 'Unindexed Asset'}
+                      </p>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openMasonryEditor(item)}>
+                        {item.isIndexed ? 'Edit Details' : 'Add to Masonry'}
+                      </Button>
+                      {item.isIndexed && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="size-8 text-destructive rounded-none hover:bg-destructive/10" 
+                          onClick={() => setItemToDelete({ 
+                            id: item.id, 
+                            collection: 'videos', 
+                            msg: "Remove this item from the public gallery? Its metadata will be cleared." 
+                          })}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="news" className="space-y-6">
