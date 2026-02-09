@@ -10,8 +10,6 @@ import { VideoPlayerModal } from '@/components/video-player-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { FirebaseImage } from '@/lib/firebase-images';
 import { EXCLUDED_IMAGES, SCULPTURE_DESCRIPTIONS } from '@/lib/constants';
-import { EyeOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function Home() {
   const { firebaseApp, firestore } = useFirebase();
@@ -97,9 +95,6 @@ export default function Home() {
       // Match with Firestore data using the same normalization as the dashboard
       const fsData = firestoreVideos?.find(v => v.id === normalizedKey);
 
-      // Respect visibility toggle
-      const isHidden = fsData?.hidden === true;
-
       const displayTitle = fsData?.title || fileName
         .replace(/[-_]/g, ' ')
         .replace(/\b\w/g, (l) => l.toUpperCase());
@@ -113,17 +108,15 @@ export default function Home() {
         alt: displayTitle,
         description: description,
         order: order,
-        hidden: isHidden,
         width: 500,
         height: index % 2 === 0 ? 600 : 750,
-      } as FirebaseImage & { order: number; hidden: boolean };
+      } as FirebaseImage & { order: number };
     });
 
     return [...mapped].sort((a, b) => a.order - b.order);
   }, [storageItems, firestoreVideos]);
 
   const handleImageClick = (image: any) => {
-    if (image.hidden) return; // Don't allow opening hidden items
     setSelectedImage(image);
   };
 
@@ -152,15 +145,12 @@ export default function Home() {
             {galleryImages.map((image) => (
               <div
                 key={image.id}
-                className={cn(
-                  "break-inside-avoid cursor-pointer group relative",
-                  image.hidden && "cursor-default"
-                )}
+                className="break-inside-avoid cursor-pointer group relative"
                 onClick={() => handleImageClick(image)}
               >
                 <Card className="overflow-hidden border-0 rounded-none shadow-none">
                   <CardContent className="p-0">
-                    <div className={cn("relative", image.hidden && "opacity-40 grayscale")}>
+                    <div className="relative">
                       <FirebaseStorageImage
                         path={image.path}
                         alt={image.alt}
@@ -168,11 +158,6 @@ export default function Home() {
                         height={image.height}
                         className="w-full h-auto block transition-opacity group-hover:opacity-90 rounded-none"
                       />
-                      {image.hidden && (
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <EyeOff className="size-8 text-white drop-shadow-lg" />
-                        </div>
-                      )}
                     </div>
                   </CardContent>
                 </Card>

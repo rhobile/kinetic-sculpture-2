@@ -10,13 +10,12 @@ import {
   useDoc, 
   useMemoFirebase, 
   deleteDocumentNonBlocking, 
-  setDocumentNonBlocking, 
-  updateDocumentNonBlocking 
+  setDocumentNonBlocking 
 } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, EyeOff, LayoutGrid
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,7 +33,6 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 export default function ManageDashboardPage() {
@@ -42,7 +40,7 @@ export default function ManageDashboardPage() {
   const [storageData, setStorageData] = useState<{ images: any[], videos: Set<string> }>({ images: [], videos: new Set() });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages', msg: string, actionType?: 'delete' | 'remove-observation' } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages', msg: string } | null>(null);
 
   const SIDEBAR_DEFAULTS = {
     introTitle: "Kinetic sculptures by Andrew Jones.",
@@ -88,8 +86,6 @@ export default function ManageDashboardPage() {
   const [itemOrder, setItemOrder] = useState('0');
   const [itemImagePath, setItemImagePath] = useState('');
   const [itemVideoPath, setItemVideoPath] = useState('');
-  const [itemHidden, setItemHidden] = useState(false);
-  const [itemIsObservation, setItemIsObservation] = useState(false);
 
   // UI State - News
   const [editingNews, setEditingNews] = useState<any | null>(null);
@@ -158,11 +154,6 @@ export default function ManageDashboardPage() {
     if (firebaseApp) fetchData();
   }, [firebaseApp, fetchData]);
 
-  const observationItems = useMemo(() => {
-    if (!firestoreVideos) return [];
-    return firestoreVideos.filter(v => v.isObservation === true).sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [firestoreVideos]);
-
   const masonryItems = useMemo(() => {
     return storageData.images.map(img => {
       const fsData = firestoreVideos?.find(v => v.id === img.id);
@@ -170,11 +161,9 @@ export default function ManageDashboardPage() {
         id: img.id,
         title: fsData?.title || img.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
         description: fsData?.description || "",
-        hidden: fsData?.hidden || false,
         order: fsData?.order ?? 999,
         imagePath: fsData?.imagePath || img.path,
         videoPath: fsData?.videoPath || `ks-videos/${img.id}.mp4`,
-        isObservation: fsData?.isObservation || false,
         isIndexed: !!fsData
       };
     }).sort((a: any, b: any) => a.order - b.order);
@@ -193,14 +182,12 @@ export default function ManageDashboardPage() {
         title: itemTitle,
         description: itemDesc,
         order: Number(itemOrder) || 0,
-        hidden: itemHidden,
-        isObservation: itemIsObservation,
         imagePath: itemImagePath,
         videoPath: itemVideoPath,
         updatedAt: new Date().toISOString()
       }, { merge: true });
 
-      toast({ title: "Masonry item saved" });
+      toast({ title: "Masonry item updated" });
       setIsItemDialogOpen(false);
       setEditingItem(null);
     } catch (error: any) {
@@ -272,13 +259,8 @@ export default function ManageDashboardPage() {
 
   const confirmDelete = () => {
     if (!itemToDelete || !firestore) return;
-    if (itemToDelete.actionType === 'remove-observation') {
-      updateDocumentNonBlocking(doc(firestore, 'videos', itemToDelete.id), { isObservation: false });
-      toast({ title: "Removed from Flow Observations" });
-    } else {
-      deleteDocumentNonBlocking(doc(firestore, itemToDelete.collection, itemToDelete.id));
-      toast({ title: "Record deleted" });
-    }
+    deleteDocumentNonBlocking(doc(firestore, itemToDelete.collection, itemToDelete.id));
+    toast({ title: "Record deleted" });
     setItemToDelete(null);
   };
 
@@ -289,8 +271,6 @@ export default function ManageDashboardPage() {
     setItemOrder(item.order?.toString() || '0');
     setItemImagePath(item.imagePath || '');
     setItemVideoPath(item.videoPath || '');
-    setItemHidden(item.hidden || false);
-    setItemIsObservation(item.isObservation || false);
     setIsItemDialogOpen(true);
   };
 
@@ -308,9 +288,8 @@ export default function ManageDashboardPage() {
         </div>
 
         <Tabs defaultValue="masonry" className="w-full">
-          <TabsList className="grid w-full max-w-4xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4 rounded-none bg-muted/50 p-1 mb-8">
             <TabsTrigger value="masonry" className="rounded-none">Edit Masonry</TabsTrigger>
-            <TabsTrigger value="observations" className="rounded-none">Observations</TabsTrigger>
             <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
             <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
             <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
@@ -323,10 +302,9 @@ export default function ManageDashboardPage() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {masonryItems.map((item: any) => (
-                <div key={item.id} className={cn("p-4 bg-muted/20 border border-border/50 flex items-center gap-4", item.hidden && "opacity-60")}>
+                <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex items-center gap-4">
                   <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
                     <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
-                    {item.hidden && <div className="absolute inset-0 bg-black/60 flex items-center justify-center"><EyeOff className="size-4 text-white" /></div>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
@@ -335,34 +313,6 @@ export default function ManageDashboardPage() {
                   <div className="flex gap-1">
                     <Button variant="outline" size="sm" className="rounded-none h-8 text-[9px] uppercase tracking-widest" onClick={() => openMasonryEditor(item)}>Edit Details</Button>
                     <Button variant="ghost" size="icon" className="size-8 text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: "Remove metadata for this sculpture? This will revert its title to the filename and reset its order." })}><Trash2 className="size-4" /></Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="observations" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Curated Flow Observations</h2>
-              <Button size="sm" onClick={() => openMasonryEditor({ isNew: true, isObservation: true })} className="rounded-none h-8 font-normal">
-                <Plus className="size-3 mr-2" /> Add Observation
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {observationItems.map((item) => (
-                <div key={item.id} className="p-6 bg-muted/20 border border-border/50 flex justify-between items-center group">
-                  <div className="flex items-center gap-6">
-                    <div className="size-16 bg-black flex items-center justify-center shrink-0 border border-border/50 overflow-hidden">
-                      <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover opacity-80" />
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="text-[12pt] font-normal">{item.title}</h3>
-                      <p className="text-[9pt] uppercase tracking-widest text-muted-foreground">Order: {item.order}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="icon" className="rounded-none" onClick={() => openMasonryEditor(item)}><Edit3 className="size-4" /></Button>
-                    <Button variant="ghost" size="icon" className="text-destructive rounded-none" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', actionType: 'remove-observation', msg: "Remove this from curated observations?" })}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -445,20 +395,6 @@ export default function ManageDashboardPage() {
             <DialogTitle>Masonry Configuration</DialogTitle>
           </DialogHeader>
           <div className="space-y-6 py-4">
-            <div className="grid grid-cols-2 gap-4 p-4 bg-muted/30 border border-border/50">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="text-xs uppercase tracking-widest">Hide from Masonry</Label>
-                </div>
-                <Switch checked={itemHidden} onCheckedChange={setItemHidden} />
-              </div>
-              <div className="flex items-center justify-between border-l pl-4 border-border/50">
-                <div className="space-y-0.5">
-                  <Label className="text-xs uppercase tracking-widest">Observation Mode</Label>
-                </div>
-                <Switch checked={itemIsObservation} onCheckedChange={setItemIsObservation} />
-              </div>
-            </div>
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3">
                 <Label className="text-[10px] uppercase tracking-widest">Display Title</Label>
