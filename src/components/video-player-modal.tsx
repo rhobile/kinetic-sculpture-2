@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ interface VideoPlayerModalProps {
   onClose: () => void;
 }
 
-export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
+export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
     const filename = image.path.split('/').pop()?.split('.').slice(0, -1).join('.');
     if (!filename) return '';
@@ -55,4 +55,4 @@ export function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalPro
       </DialogContent>
     </Dialog>
   );
-}
+});

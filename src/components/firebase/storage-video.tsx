@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { useFirebaseApp } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,6 +15,7 @@ interface FirebaseStorageVideoProps {
 
 export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseStorageVideoProps) {
   const app = useFirebaseApp();
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +23,7 @@ export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseSt
 
   const getUrls = useCallback(async () => {
     if (!app || !path) {
-      setError('Firebase app or video path is not available.');
+      setError('Video path not provided.');
       setIsLoading(false);
       return;
     }
@@ -33,7 +34,7 @@ export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseSt
     try {
       const storage = getStorage(app);
       
-      // Load poster URL first if provided for instant visual feedback
+      // Load poster URL first for instant visual feedback
       if (posterPath) {
         const pRef = ref(storage, posterPath);
         getDownloadURL(pRef).then(url => setPosterUrl(url)).catch(() => {});
@@ -44,7 +45,7 @@ export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseSt
       setVideoUrl(url);
     } catch (e: any) {
       console.error(`Failed to get download URL for ${path}`, e);
-      setError(e.code === 'storage/object-not-found' ? 'Video not found.' : 'Error loading video.');
+      setError('Error loading video.');
     } finally {
       setIsLoading(false);
     }
@@ -54,11 +55,18 @@ export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseSt
     getUrls();
   }, [getUrls]);
 
-  if (isLoading && !posterUrl) {
+  // Ensure video engine respects the new source if it updates
+  useEffect(() => {
+    if (videoUrl && videoRef.current) {
+      videoRef.current.load();
+    }
+  }, [videoUrl]);
+
+  if (isLoading && !posterUrl && !videoUrl) {
     return <Skeleton className={cn('w-full h-full aspect-video', className)} />;
   }
 
-  if (error) {
+  if (error && !videoUrl) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center bg-muted text-destructive p-4 text-center">
         <p className="text-xs mb-2">{error}</p>
@@ -69,15 +77,19 @@ export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseSt
 
   return (
     <video
-      src={videoUrl || undefined}
+      ref={videoRef}
+      key={path} // Force clean initialization only when path changes
       poster={posterUrl || undefined}
       controls
       autoPlay
       loop
       muted
       playsInline
+      webkit-playsinline="true"
       preload="auto"
-      className={cn("w-full h-full object-contain", className)}
-    />
+      className={cn("w-full h-full object-contain bg-black", className)}
+    >
+      {videoUrl && <source src={videoUrl} type="video/mp4" />}
+    </video>
   );
 }
