@@ -46,7 +46,7 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               <DialogTitle className="font-normal text-[14pt] tracking-[0.15em] text-white m-0 p-0 leading-tight">
                 {image.alt}
               </DialogTitle>
-              <DialogDescription className="text-[11pt] sm:text-[12pt] text-white/70 font-normal leading-relaxed m-0 p-0 max-w-2xl">
+              <DialogDescription className="text-[11pt] sm:text-[12pt] text-white/70 font-normal leading-relaxed m-0 p-0 max-w-none">
                 {image.description || "A balance of form and articulated movement, responding to the natural flow of the wind."}
               </DialogDescription>
             </DialogHeader>

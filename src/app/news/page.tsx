@@ -25,17 +25,10 @@ export default function NewsPage() {
     return path.startsWith('ks-images/') ? path : `ks-images/${path}`;
   };
 
-  const resolveVideoPath = (videoId: string, imagePath?: string) => {
-    if (!videoId) return '';
-    // If videoId is a path, return it, otherwise build it
-    const cleanId = videoId.split('/').pop()?.split('.')[0] || videoId;
-    return `ks-videos/${cleanId}.mp4`;
-  };
-
   return (
     <div className="bg-background min-h-screen">
       <main className="p-4 sm:p-6 lg:p-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl font-normal mb-10 tracking-widest uppercase border-b border-border/50 pb-6">News</h1>
           
           <div className="space-y-20">
@@ -77,7 +70,7 @@ export default function NewsPage() {
                         <p className="text-[12px] uppercase tracking-widest text-muted-foreground">{item.date}</p>
                         <h2 className="text-[14pt] font-normal tracking-wide">{item.title}</h2>
                       </div>
-                      <p className="text-[12pt] text-foreground/80 leading-relaxed font-normal whitespace-pre-wrap">
+                      <p className="text-[12pt] text-foreground/80 leading-relaxed font-normal whitespace-pre-wrap max-w-none">
                         {item.content}
                       </p>
                       {item.videoId && (
