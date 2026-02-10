@@ -9,15 +9,13 @@ import { cn } from '@/lib/utils';
 
 interface FirebaseStorageVideoProps {
   path: string;
-  posterPath?: string;
   className?: string;
 }
 
-export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseStorageVideoProps) {
+export function FirebaseStorageVideo({ path, className }: FirebaseStorageVideoProps) {
   const app = useFirebaseApp();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,13 +31,6 @@ export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseSt
 
     try {
       const storage = getStorage(app);
-      
-      // Load poster URL first for instant visual feedback
-      if (posterPath) {
-        const pRef = ref(storage, posterPath);
-        getDownloadURL(pRef).then(url => setPosterUrl(url)).catch(() => {});
-      }
-
       const vRef = ref(storage, path);
       const url = await getDownloadURL(vRef);
       setVideoUrl(url);
@@ -49,7 +40,7 @@ export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseSt
     } finally {
       setIsLoading(false);
     }
-  }, [app, path, posterPath]);
+  }, [app, path]);
 
   useEffect(() => {
     getUrls();
@@ -62,7 +53,7 @@ export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseSt
     }
   }, [videoUrl]);
 
-  if (isLoading && !posterUrl && !videoUrl) {
+  if (isLoading && !videoUrl) {
     return <Skeleton className={cn('w-full h-full aspect-video', className)} />;
   }
 
@@ -79,7 +70,6 @@ export function FirebaseStorageVideo({ path, posterPath, className }: FirebaseSt
     <video
       ref={videoRef}
       key={path} // Force clean initialization only when path changes
-      poster={posterUrl || undefined}
       controls
       autoPlay
       loop

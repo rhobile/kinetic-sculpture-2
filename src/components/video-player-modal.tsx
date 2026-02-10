@@ -32,7 +32,6 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
             {videoPath ? (
               <FirebaseStorageVideo
                 path={videoPath}
-                posterPath={image.path}
                 className="w-full h-full max-h-[65vh] object-contain"
               />
             ) : (
