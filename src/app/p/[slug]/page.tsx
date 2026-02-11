@@ -1,9 +1,11 @@
 'use client';
 
-import { use } from 'react';
+import { use, ReactNode } from 'react';
 import { doc } from 'firebase/firestore';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FirebaseStorageImage } from '@/components/firebase/storage-image';
+import Link from 'next/link';
 
 export default function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -16,11 +18,72 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
 
   const { data: pageData, isLoading } = useDoc(pageQuery);
 
-  // Display skeleton during initial load or if parameters are still being resolved
+  const renderContent = (content: string) => {
+    if (!content) return null;
+
+    // Split content into blocks by lines
+    const lines = content.split('\n');
+    const elements: ReactNode[] = [];
+
+    lines.forEach((line, idx) => {
+      const trimmedLine = line.trim();
+      
+      // Check for image syntax: [image:filename.jpg]
+      const imgMatch = trimmedLine.match(/^\[image:(.*?)\]$/);
+      if (imgMatch) {
+        const filename = imgMatch[1].trim();
+        const path = filename.startsWith('ks-images/') ? filename : `ks-images/${filename}`;
+        
+        elements.push(
+          <div key={`img-${idx}`} className="my-10 first:mt-0 last:mb-0">
+            <div className="border border-border/50 bg-muted overflow-hidden">
+              <FirebaseStorageImage
+                path={path}
+                alt={`Image ${filename}`}
+                width={1200}
+                height={800}
+                className="w-full h-auto object-contain max-h-[70vh]"
+              />
+            </div>
+          </div>
+        );
+        return;
+      }
+
+      // Check for link syntax: [text](url)
+      const parts = line.split(/(\[.*?\]\(.*?\))/g);
+      const renderedLine = parts.map((part, pIdx) => {
+        const match = part.match(/\[(.*?)\]\((.*?)\)/);
+        if (match) {
+          const label = match[1];
+          const url = match[2];
+          return (
+            <Link 
+              key={`${idx}-${pIdx}`} 
+              href={url} 
+              className="text-accent hover:underline underline-offset-4 decoration-accent/30"
+            >
+              {label}
+            </Link>
+          );
+        }
+        return part;
+      });
+
+      elements.push(
+        <p key={`p-${idx}`} className="min-h-[1.2em] text-[12pt] text-foreground/80 leading-relaxed font-normal mb-4 last:mb-0">
+          {renderedLine}
+        </p>
+      );
+    });
+
+    return elements;
+  };
+
   if (isLoading || !firestore || !slug) {
     return (
       <main className="p-4 sm:p-6 lg:p-8">
-        <div className="max-w-3xl mx-auto space-y-6">
+        <div className="max-w-4xl mx-auto space-y-6">
           <Skeleton className="h-10 w-3/4 mb-10" />
           <div className="space-y-4">
             <Skeleton className="h-4 w-full" />
@@ -32,11 +95,10 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
     );
   }
 
-  // If loading is finished and no data was found, then show 404
   if (!pageData) {
     return (
       <main className="p-4 sm:p-6 lg:p-8">
-        <div className="max-w-3xl mx-auto text-center py-20">
+        <div className="max-w-4xl mx-auto text-center py-20">
           <h1 className="text-2xl font-normal tracking-widest mb-4">Page Not Found</h1>
           <p className="text-muted-foreground">The page you are looking for does not exist.</p>
         </div>
@@ -46,14 +108,12 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
 
   return (
     <main className="p-4 sm:p-6 lg:p-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         <h1 className="text-2xl font-normal mb-10 tracking-widest border-b border-border/50 pb-6">
           {pageData.title}
         </h1>
-        <div className="prose prose-neutral max-w-none">
-          <p className="text-[12pt] text-foreground/80 leading-relaxed font-normal whitespace-pre-wrap">
-            {pageData.content}
-          </p>
+        <div className="max-w-none">
+          {renderContent(pageData.content)}
         </div>
       </div>
     </main>

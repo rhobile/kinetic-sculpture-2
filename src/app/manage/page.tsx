@@ -15,7 +15,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info
+  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info, Image as ImageIcon
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -301,20 +301,22 @@ export default function ManageDashboardPage() {
                 <div className="bg-accent/5 border border-accent/20 p-6 space-y-4">
                   <div className="flex items-center gap-2 text-accent">
                     <Info className="size-4" />
-                    <h3 className="text-[10pt] font-normal uppercase tracking-widest">How to add links</h3>
+                    <h3 className="text-[10pt] font-normal uppercase tracking-widest">Formatting Guide</h3>
                   </div>
-                  <p className="text-[12px] text-foreground/70 leading-relaxed">
-                    To turn words into a blue link, use the following format:<br /><br />
-                    <code className="bg-muted px-1 py-0.5 rounded text-accent">[Link Label](/url)</code>
-                  </p>
-                  <div className="space-y-3 pt-2">
-                    <p className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">Useful URLs:</p>
-                    <ul className="space-y-2 text-[12px] font-mono">
-                      <li>News: <code className="text-accent">/news</code></li>
-                      <li>Observations: <code className="text-accent">/observations</code></li>
-                      <li>Home: <code className="text-accent">/</code></li>
-                      <li>Custom Page: <code className="text-accent">/p/your-slug</code></li>
-                    </ul>
+                  <div className="space-y-4 text-[12px] text-foreground/70 leading-relaxed">
+                    <section>
+                      <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Links:</p>
+                      <p>To add a blue link, use:<br /><code className="bg-muted px-1 py-0.5 rounded">[Link Label](/url)</code></p>
+                    </section>
+                    
+                    <div className="space-y-3 pt-2">
+                      <p className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">Useful URLs:</p>
+                      <ul className="space-y-2 font-mono">
+                        <li>News: <code className="text-accent">/news</code></li>
+                        <li>Observations: <code className="text-accent">/observations</code></li>
+                        <li>Home: <code className="text-accent">/</code></li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -395,24 +397,68 @@ export default function ManageDashboardPage() {
           </TabsContent>
 
           <TabsContent value="pages" className="space-y-6">
-            <Button size="sm" onClick={() => { setEditingPage({ isNew: true }); setPageTitle(''); setPageSlug(''); setPageContent(''); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Create Page</Button>
+            <div className="flex justify-between items-center border-b border-border/30 pb-4">
+              <Button size="sm" onClick={() => { setEditingPage({ isNew: true }); setPageTitle(''); setPageSlug(''); setPageContent(''); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Create Page</Button>
+              <div className="flex items-center gap-2 text-[10pt] text-muted-foreground bg-accent/5 px-3 py-1 border border-accent/20">
+                <ImageIcon className="size-3 text-accent" />
+                <span>Tip: Add <code className="text-accent">[image:filename.jpg]</code> to insert images.</span>
+              </div>
+            </div>
+
             {editingPage && (
               <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Slug</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" /></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="md:col-span-2 space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2"><Label>Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
+                      <div className="space-y-2"><Label>Slug (URL path)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" placeholder="e.g. visit-garden" /></div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Page Content</Label>
+                      <Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-96 font-mono text-sm leading-relaxed" placeholder="Write your page content here..." />
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button onClick={savePage} disabled={isSaving} className="rounded-none h-9 px-6 uppercase tracking-widest text-[10px]">Save Page</Button>
+                      <Button variant="outline" onClick={() => setEditingPage(null)} className="rounded-none h-9 px-6 uppercase tracking-widest text-[10px]">Cancel</Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    <div className="bg-accent/5 border border-accent/20 p-6 space-y-4">
+                      <div className="flex items-center gap-2 text-accent">
+                        <Info className="size-4" />
+                        <h3 className="text-[10pt] font-normal uppercase tracking-widest">Page Formatting</h3>
+                      </div>
+                      <div className="space-y-4 text-[11px] text-foreground/70 leading-relaxed">
+                        <section>
+                          <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Images:</p>
+                          <p>To place an image between paragraphs, type the following on its own line:</p>
+                          <code className="block bg-muted p-2 rounded mt-1 text-accent font-mono">[image:filename.jpg]</code>
+                          <p className="mt-2 opacity-80 italic">Use the filenames from the "Masonry" tab or Storage.</p>
+                        </section>
+                        
+                        <section className="pt-2 border-t border-border/30">
+                          <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Links:</p>
+                          <p>Use the same link format as the sidebar:</p>
+                          <code className="block bg-muted p-2 rounded mt-1 text-accent font-mono">[Link Label](/url)</code>
+                        </section>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2"><Label>Content</Label><Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-48" /></div>
-                <div className="flex gap-2"><Button onClick={savePage} disabled={isSaving} className="rounded-none h-8">Save</Button><Button variant="outline" onClick={() => setEditingPage(null)} className="rounded-none h-8">Cancel</Button></div>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {firestorePages?.filter(p => p.id !== 'sidebar').map((page) => (
-                <div key={page.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center">
-                  <h3 className="text-[10pt] font-normal">{page.title}</h3>
+                <div key={page.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center shadow-sm">
+                  <div className="space-y-1">
+                    <h3 className="text-[10pt] font-normal">{page.title}</h3>
+                    <p className="text-[8pt] text-accent font-mono">/p/{page.slug}</p>
+                  </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEditingPage(page); setPageTitle(page.title); setPageSlug(page.slug); setPageContent(page.content); }}>Edit</Button>
-                    <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: page.id, collection: 'pages', msg: `Delete page "${page.title}"?` })}><Trash2 className="size-4" /></Button>
+                    <Button variant="outline" size="sm" className="rounded-none h-7 px-3 text-[9px] uppercase tracking-widest" onClick={() => { setEditingPage(page); setPageTitle(page.title); setPageSlug(page.slug); setPageContent(page.content); }}>Edit</Button>
+                    <Button variant="ghost" size="sm" className="rounded-none text-destructive h-7 w-7 p-0" onClick={() => setItemToDelete({ id: page.id, collection: 'pages', msg: `Delete page "${page.title}"?` })}><Trash2 className="size-3" /></Button>
                   </div>
                 </div>
               ))}
