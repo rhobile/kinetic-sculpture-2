@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { ReactNode } from 'react';
@@ -80,7 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="space-y-4 text-muted-foreground text-[12pt]">
             <p>{content.gardenNotice}</p>
             <p>
-              If you would like to visit at another time, please <Link href="/contact" className="text-accent hover:underline underline-offset-4 decoration-accent/30">contact me</Link>.
+              If you would like to visit at another time, please contact me.
             </p>
           </div>
 
