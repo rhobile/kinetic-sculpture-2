@@ -199,13 +199,16 @@ export default function ManageDashboardPage() {
       const docRef = doc(firestore, entryType, id);
       const defaultOrder = entryType === 'news' ? (firestoreNews?.length || 0) : (firestoreObs?.length || 0);
       
+      // Auto-link Video ID if empty
+      const finalVideoId = entryVideoId.trim() || (entryImagePath ? entryImagePath.split('/').pop()?.split('.').slice(0, -1).join('.') : '');
+
       setDocumentNonBlocking(docRef, {
         id,
         title: entryTitle,
         date: entryDate,
         content: entryContent,
         imagePath: entryImagePath,
-        videoId: entryVideoId,
+        videoId: finalVideoId,
         order: Number(entryOrder) || defaultOrder,
         updatedAt: new Date().toISOString()
       }, { merge: true });
@@ -374,9 +377,10 @@ export default function ManageDashboardPage() {
                   <div className="md:col-span-2 space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
                   <div className="space-y-2"><Label>Order</Label><Input type="number" value={entryOrder} onChange={e => setEntryOrder(e.target.value)} className="rounded-none" /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" placeholder="e.g. July 2024" /></div>
                   <div className="space-y-2"><Label>Image Path</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" placeholder="filename.jpg" /></div>
+                  <div className="space-y-2"><Label>Video ID (optional)</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" placeholder="Leave empty to auto-link" /></div>
                 </div>
                 <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
                 <div className="flex gap-2"><Button onClick={saveEntry} disabled={isSaving} className="rounded-none h-8">Save</Button><Button variant="outline" onClick={() => setEditingEntry(null)} className="rounded-none h-8">Cancel</Button></div>
@@ -416,9 +420,10 @@ export default function ManageDashboardPage() {
                   <div className="md:col-span-2 space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
                   <div className="space-y-2"><Label>Order</Label><Input type="number" value={entryOrder} onChange={e => setEntryOrder(e.target.value)} className="rounded-none" /></div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" placeholder="e.g. Winter 2023" /></div>
                   <div className="space-y-2"><Label>Image Path</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" placeholder="filename.jpg" /></div>
+                  <div className="space-y-2"><Label>Video ID (optional)</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" placeholder="Leave empty to auto-link" /></div>
                 </div>
                 <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
                 <div className="flex gap-2"><Button onClick={saveEntry} disabled={isSaving} className="rounded-none h-8">Save</Button><Button variant="outline" onClick={() => setEditingEntry(null)} className="rounded-none h-8">Cancel</Button></div>

@@ -25,6 +25,16 @@ export default function NewsPage() {
     return path.startsWith('ks-images/') ? path : `ks-images/${path}`;
   };
 
+  const handleVideoSelect = (item: any) => {
+    const fullImagePath = resolveImagePath(item.imagePath);
+    setSelectedVideo({
+      id: item.videoId,
+      title: item.title,
+      path: fullImagePath || `ks-images/${item.videoId}.jpg`,
+      description: item.content
+    });
+  };
+
   return (
     <div className="bg-background min-h-screen">
       <main className="p-4 sm:p-6 lg:p-8">
@@ -49,7 +59,13 @@ export default function NewsPage() {
                 return (
                   <article key={item.id} className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
                     <div className="md:col-span-1">
-                      <div className="aspect-square relative overflow-hidden rounded-none border border-border/50 bg-muted">
+                      <div 
+                        className={cn(
+                          "aspect-square relative overflow-hidden rounded-none border border-border/50 bg-muted",
+                          item.videoId && "cursor-pointer hover:opacity-90 transition-opacity"
+                        )}
+                        onClick={() => item.videoId && handleVideoSelect(item)}
+                      >
                         {item.imagePath ? (
                           <FirebaseStorageImage
                             path={fullImagePath}
@@ -79,12 +95,7 @@ export default function NewsPage() {
                             variant="outline" 
                             size="sm" 
                             className="rounded-none border-accent text-accent hover:bg-accent hover:text-white transition-colors uppercase tracking-[0.2em] text-[10px] h-9 px-6"
-                            onClick={() => setSelectedVideo({
-                              id: item.videoId,
-                              title: item.title,
-                              path: fullImagePath || `ks-images/${item.videoId}.jpg`,
-                              description: item.content
-                            })}
+                            onClick={() => handleVideoSelect(item)}
                           >
                             <Play className="size-3 mr-2 fill-current" /> Watch Video
                           </Button>
@@ -117,4 +128,8 @@ export default function NewsPage() {
       )}
     </div>
   );
+}
+
+function cn(...inputs: any[]) {
+  return inputs.filter(Boolean).join(' ');
 }
