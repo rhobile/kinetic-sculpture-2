@@ -29,7 +29,7 @@ export default function NewsPage() {
     <div className="bg-background min-h-screen">
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl font-normal mb-10 tracking-widest uppercase border-b border-border/50 pb-6">News</h1>
+          <h1 className="text-2xl font-normal mb-10 tracking-widest border-b border-border/50 pb-6">News</h1>
           
           <div className="space-y-20">
             {isLoading ? (
@@ -67,7 +67,7 @@ export default function NewsPage() {
                     </div>
                     <div className="md:col-span-3 space-y-4">
                       <div className="space-y-1">
-                        <p className="text-[12px] uppercase tracking-widest text-muted-foreground">{item.date}</p>
+                        <p className="text-[12px] tracking-widest text-muted-foreground uppercase">{item.date}</p>
                         <h2 className="text-[14pt] font-normal tracking-wide">{item.title}</h2>
                       </div>
                       <p className="text-[12pt] text-foreground/80 leading-relaxed font-normal whitespace-pre-wrap max-w-none">

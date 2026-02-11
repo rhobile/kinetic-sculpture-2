@@ -37,7 +37,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
     return (
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-3xl mx-auto text-center py-20">
-          <h1 className="text-2xl font-normal tracking-widest uppercase mb-4">Page Not Found</h1>
+          <h1 className="text-2xl font-normal tracking-widest mb-4">Page Not Found</h1>
           <p className="text-muted-foreground">The page you are looking for does not exist.</p>
         </div>
       </main>
@@ -47,7 +47,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
   return (
     <main className="p-4 sm:p-6 lg:p-8">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-normal mb-10 tracking-widest uppercase border-b border-border/50 pb-6">
+        <h1 className="text-2xl font-normal mb-10 tracking-widest border-b border-border/50 pb-6">
           {pageData.title}
         </h1>
         <div className="prose prose-neutral max-w-none">
