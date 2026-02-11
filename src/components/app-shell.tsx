@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -12,12 +12,11 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Menu, Settings } from 'lucide-react';
-import { useFirebase, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection } from 'firebase/firestore';
+import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
   const { firestore } = useFirebase();
 
   // Sidebar dynamic content
@@ -27,125 +26,42 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [firestore]);
   const { data: sidebarData } = useDoc(sidebarQuery);
 
-  // Dynamic custom pages links
-  const pagesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'pages');
-  }, [firestore]);
-  const { data: pages } = useCollection(pagesQuery);
-
-  const customPages = pages?.filter(p => p.id !== 'sidebar') || [];
-
-  // Fallback / Initial values
   const defaults = {
-    introTitle: "Kinetic sculptures by Andrew Jones.",
-    introSub: "Mainly linear elements balanced and articulated to move simply in the wind, light or strong.",
-    commissionNote: "I work to commission. Guide prices are given below the videos or a price for a limited edition.",
-    gardenNotice: "It is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.",
-    email: "andrew@rhobile.com",
-    phone: "Telephone +44 (0)1353 610406",
-    mobile: "Mobile +44 (0)781 4179181",
-    social: "@Rhobile",
-    layout: ['intro', 'commission', 'links', 'garden', 'contact', 'pages'],
-    spacing: {
-      intro: "4",
-      commission: "4",
-      links: "4",
-      garden: "4",
-      contact: "4",
-      pages: "4"
-    }
+    content: `Kinetic sculptures by Andrew Jones.\n\nMainly linear elements balanced and articulated to move simply in the wind, light or strong.\n\nI work to commission. Guide prices are given below the videos or a price for a limited edition.\n\n[News (if there is any)](/news)\n\n[Flow observations of wind and water](/sculptures)\n\nIt is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.\n\nIf you would like to visit at another time, please contact me.\n\nandrew@rhobile.com\nTelephone +44 (0)1353 610406\nMobile +44 (0)781 4179181\n@Rhobile`
   };
 
-  // Safe merge logic to ensure Firestore data always wins over defaults
-  const config = {
-    ...defaults,
-    ...(sidebarData || {}),
-    layout: sidebarData?.layout || defaults.layout,
-    spacing: { 
-      ...defaults.spacing, 
-      ...(sidebarData?.spacing || {}) 
-    }
-  };
+  const sidebarText = sidebarData?.content || defaults.content;
 
-  const spacingMap: Record<string, string> = {
-    "0": "mb-0", "1": "mb-1", "2": "mb-2", "3": "mb-3", "4": "mb-4", "5": "mb-5",
-    "6": "mb-6", "8": "mb-8", "10": "mb-10", "12": "mb-12", "16": "mb-16"
-  };
-
-  const getSpacingClass = (blockId: string) => {
-    const val = config.spacing[blockId as keyof typeof config.spacing] || "4";
-    return spacingMap[val.toString()] || "mb-4";
-  };
-
-  const renderBlock = (blockId: string) => {
-    switch (blockId) {
-      case 'intro':
-        return (
-          <div key="intro" className={cn("space-y-4", getSpacingClass('intro'))}>
-            <p className="text-[12pt] text-foreground leading-snug">{config.introTitle}</p>
-            <p className="text-[12pt] text-muted-foreground leading-relaxed">{config.introSub}</p>
-          </div>
-        );
-      case 'commission':
-        return (
-          <div key="commission" className={getSpacingClass('commission')}>
-            <p className="text-[12pt] text-muted-foreground leading-relaxed">{config.commissionNote}</p>
-          </div>
-        );
-      case 'links':
-        return (
-          <div key="links" className={cn("space-y-2", getSpacingClass('links'))}>
-            <p>
-              <Link href="/news" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30">
-                News (if there is any)
-              </Link>
-            </p>
-            <p>
-              <Link href="/sculptures" className="text-[12pt] text-accent hover:underline underline-offset-4 decoration-accent/30">
-                Flow observations of wind and water
-              </Link>
-            </p>
-          </div>
-        );
-      case 'garden':
-        return (
-          <div key="garden" className={cn("space-y-4 text-muted-foreground text-[12pt] leading-relaxed", getSpacingClass('garden'))}>
-            <p>{config.gardenNotice}</p>
-            <p>
-              If you would like to visit at another time, please contact me.
-            </p>
-          </div>
-        );
-      case 'contact':
-        return (
-          <div key="contact" className={cn("space-y-1 text-muted-foreground pt-2 border-t border-border/50 text-[12pt]", getSpacingClass('contact'))}>
-            <p><a href={`mailto:${config.email}`} className="hover:text-accent transition-colors">{config.email}</a></p>
-            <p>{config.phone}</p>
-            <p>{config.mobile}</p>
-            <p><a href="#" className="hover:text-accent transition-colors">{config.social}</a></p>
-          </div>
-        );
-      case 'pages':
-        return (
-          <nav key="pages" className={cn("flex flex-col gap-4 pt-4 border-t border-border/50 text-[12pt]", getSpacingClass('pages'))}>
-            {customPages.map((page) => (
-              <Link 
-                key={page.id} 
-                href={`/p/${page.slug}`} 
-                className="text-foreground hover:text-accent transition-colors"
-              >
-                {page.title}
-              </Link>
-            ))}
-            <Link href="/manage" className="text-muted-foreground/30 hover:text-accent transition-colors flex items-center gap-2 mt-4 pt-4 border-t border-border/20 text-[10pt]">
-              <Settings className="size-3" /> Manage Dashboard
+  // Helper to parse [text](url) into Link components
+  const renderFormattedText = (text: string) => {
+    return text.split('\n').map((line, lineIdx) => {
+      // Split by markdown link pattern [label](url)
+      const parts = line.split(/(\[.*?\]\(.*?\))/g);
+      
+      const content = parts.map((part, partIdx) => {
+        const match = part.match(/\[(.*?)\]\((.*?)\)/);
+        if (match) {
+          const label = match[1];
+          const url = match[2];
+          return (
+            <Link 
+              key={`${lineIdx}-${partIdx}`} 
+              href={url} 
+              className="text-accent hover:underline underline-offset-4 decoration-accent/30"
+            >
+              {label}
             </Link>
-          </nav>
-        );
-      default:
-        return null;
-    }
+          );
+        }
+        return part;
+      });
+
+      return (
+        <p key={lineIdx} className="min-h-[1.2em] text-[12pt] text-foreground/80 leading-relaxed font-normal">
+          {content}
+        </p>
+      );
+    });
   };
 
   return (
@@ -158,8 +74,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             </h1>
           </Link>
         </SidebarHeader>
-        <SidebarContent className="px-6 py-4 space-y-0 text-sm leading-relaxed overflow-y-auto font-normal">
-          {config.layout.map(blockId => renderBlock(blockId))}
+        <SidebarContent className="px-6 py-4 space-y-0 overflow-y-auto">
+          <div className="space-y-1">
+            {renderFormattedText(sidebarText)}
+          </div>
+          <div className="pt-8 mt-4 border-t border-border/20">
+            <Link href="/manage" className="text-muted-foreground/30 hover:text-accent transition-colors flex items-center gap-2 text-[10pt]">
+              <Settings className="size-3" /> Manage Dashboard
+            </Link>
+          </div>
         </SidebarContent>
       </Sidebar>
       
