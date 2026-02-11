@@ -2,7 +2,6 @@
 
 import React, { type ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import {
   SidebarProvider,
   Sidebar,
@@ -14,7 +13,6 @@ import {
 import { Menu, Settings } from 'lucide-react';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { firestore } = useFirebase();
@@ -27,7 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { data: sidebarData } = useDoc(sidebarQuery);
 
   const defaults = {
-    content: `Kinetic sculptures by Andrew Jones.\n\nMainly linear elements balanced and articulated to move simply in the wind, light or strong.\n\nI work to commission. Guide prices are given below the videos or a price for a limited edition.\n\n[News (if there is any)](/news)\n\n[Flow observations of wind and water](/sculptures)\n\nIt is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.\n\nIf you would like to visit at another time, please contact me.\n\nandrew@rhobile.com\nTelephone +44 (0)1353 610406\nMobile +44 (0)781 4179181\n@Rhobile`
+    content: `Kinetic sculptures by Andrew Jones.\n\nMainly linear elements balanced and articulated to move simply in the wind, light or strong.\n\nI work to commission. Guide prices are given below the videos or a price for a limited edition.\n\n[News (if there is any)](/news)\n\n[Flow observations of wind and water](/observations)\n\nIt is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.\n\nIf you would like to visit at another time, please contact me.\n\nandrew@rhobile.com\nTelephone +44 (0)1353 610406\nMobile +44 (0)781 4179181\n@Rhobile`
   };
 
   const sidebarText = sidebarData?.content || defaults.content;

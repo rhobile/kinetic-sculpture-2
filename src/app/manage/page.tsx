@@ -15,7 +15,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid, Info
+  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -44,7 +44,7 @@ export default function ManageDashboardPage() {
   const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages' | 'observations', msg: string } | null>(null);
 
-  const SIDEBAR_DEFAULT = `Kinetic sculptures by Andrew Jones.\n\nMainly linear elements balanced and articulated to move simply in the wind, light or strong.\n\nI work to commission. Guide prices are given below the videos or a price for a limited edition.\n\n[News (if there is any)](/news)\n\n[Flow observations of wind and water](/sculptures)\n\nIt is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.\n\nIf you would like to visit at another time, please contact me.\n\nandrew@rhobile.com\nTelephone +44 (0)1353 610406\nMobile +44 (0)781 4179181\n@Rhobile`;
+  const SIDEBAR_DEFAULT = `Kinetic sculptures by Andrew Jones.\n\nMainly linear elements balanced and articulated to move simply in the wind, light or strong.\n\nI work to commission. Guide prices are given below the videos or a price for a limited edition.\n\n[News (if there is any)](/news)\n\n[Flow observations of wind and water](/observations)\n\nIt is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.\n\nIf you would like to visit at another time, please contact me.\n\nandrew@rhobile.com\nTelephone +44 (0)1353 610406\nMobile +44 (0)781 4179181\n@Rhobile`;
 
   // Firestore Data
   const allVideosQuery = useMemoFirebase(() => {
@@ -234,7 +234,6 @@ export default function ManageDashboardPage() {
     setIsSaving(true);
     try {
       const docRef = doc(firestore, 'pages', 'sidebar');
-      // Using setDoc directly here to ensure the latest state is captured
       await setDoc(docRef, {
         content: sidebarContent,
         updatedAt: new Date().toISOString()
@@ -312,7 +311,7 @@ export default function ManageDashboardPage() {
                     <p className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">Useful URLs:</p>
                     <ul className="space-y-2 text-[12px] font-mono">
                       <li>News: <code className="text-accent">/news</code></li>
-                      <li>Observations: <code className="text-accent">/sculptures</code></li>
+                      <li>Observations: <code className="text-accent">/observations</code></li>
                       <li>Home: <code className="text-accent">/</code></li>
                       <li>Custom Page: <code className="text-accent">/p/your-slug</code></li>
                     </ul>
