@@ -92,6 +92,7 @@ export default function ManageDashboardPage() {
   const [entryContent, setEntryContent] = useState('');
   const [entryImagePath, setEntryImagePath] = useState('');
   const [entryVideoId, setEntryVideoId] = useState('');
+  const [entryOrder, setEntryOrder] = useState('0');
 
   const [editingPage, setEditingPage] = useState<any | null>(null);
   const [pageTitle, setPageTitle] = useState('');
@@ -186,13 +187,18 @@ export default function ManageDashboardPage() {
   };
 
   const saveEntry = async () => {
-    if (!firestore || !entryTitle) return;
+    if (!firestore || !entryTitle) {
+      toast({ variant: "destructive", title: "Missing Information", description: "A title is required for all entries." });
+      return;
+    }
     setIsSaving(true);
     try {
-      const id = editingEntry?.isNew 
-        ? entryTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-        : editingEntry.id;
+      const slug = entryTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      const id = editingEntry?.isNew ? (slug || `entry-${Date.now()}`) : editingEntry.id;
+      
       const docRef = doc(firestore, entryType, id);
+      const defaultOrder = entryType === 'news' ? (firestoreNews?.length || 0) : (firestoreObs?.length || 0);
+      
       setDocumentNonBlocking(docRef, {
         id,
         title: entryTitle,
@@ -200,9 +206,11 @@ export default function ManageDashboardPage() {
         content: entryContent,
         imagePath: entryImagePath,
         videoId: entryVideoId,
+        order: Number(entryOrder) || defaultOrder,
         updatedAt: new Date().toISOString()
       }, { merge: true });
-      toast({ title: "Entry updated" });
+      
+      toast({ title: "Entry saved successfully" });
       setEditingEntry(null);
     } finally {
       setIsSaving(false);
@@ -347,12 +355,28 @@ export default function ManageDashboardPage() {
           </TabsContent>
           
           <TabsContent value="news" className="space-y-6">
-            <Button size="sm" onClick={() => { setEntryType('news'); setEditingEntry({ isNew: true }); setEntryTitle(''); setEntryDate(''); setEntryContent(''); setEntryImagePath(''); setEntryVideoId(''); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add News Entry</Button>
+            <div className="flex justify-between items-center">
+              <Button size="sm" onClick={() => { 
+                setEntryType('news'); 
+                setEditingEntry({ isNew: true }); 
+                setEntryTitle(''); 
+                setEntryDate(''); 
+                setEntryContent(''); 
+                setEntryImagePath(''); 
+                setEntryVideoId(''); 
+                setEntryOrder((firestoreNews?.length || 0).toString());
+              }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add News Entry</Button>
+            </div>
+
             {editingEntry && entryType === 'news' && (
               <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2 space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Order</Label><Input type="number" value={entryOrder} onChange={e => setEntryOrder(e.target.value)} className="rounded-none" /></div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" placeholder="e.g. July 2024" /></div>
+                  <div className="space-y-2"><Label>Image Path</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" placeholder="filename.jpg" /></div>
                 </div>
                 <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
                 <div className="flex gap-2"><Button onClick={saveEntry} disabled={isSaving} className="rounded-none h-8">Save</Button><Button variant="outline" onClick={() => setEditingEntry(null)} className="rounded-none h-8">Cancel</Button></div>
@@ -360,10 +384,13 @@ export default function ManageDashboardPage() {
             )}
             <div className="space-y-4">
               {firestoreNews?.map((item) => (
-                <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center">
-                  <h3 className="text-[10pt] font-normal">{item.title}</h3>
+                <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center shadow-sm">
+                  <div className="space-y-1">
+                    <h3 className="text-[10pt] font-normal">{item.title}</h3>
+                    <p className="text-[8pt] text-muted-foreground">{item.date} • Order: {item.order}</p>
+                  </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('news'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); }}>Edit</Button>
+                    <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('news'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); setEntryOrder(item.order?.toString() || '0'); }}>Edit</Button>
                     <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'news', msg: `Delete news item "${item.title}"?` })}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
@@ -372,12 +399,26 @@ export default function ManageDashboardPage() {
           </TabsContent>
 
           <TabsContent value="obs" className="space-y-6">
-             <Button size="sm" onClick={() => { setEntryType('observations'); setEditingEntry({ isNew: true }); setEntryTitle(''); setEntryDate(''); setEntryContent(''); setEntryImagePath(''); setEntryVideoId(''); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add Observation</Button>
+             <Button size="sm" onClick={() => { 
+               setEntryType('observations'); 
+               setEditingEntry({ isNew: true }); 
+               setEntryTitle(''); 
+               setEntryDate(''); 
+               setEntryContent(''); 
+               setEntryImagePath(''); 
+               setEntryVideoId(''); 
+               setEntryOrder((firestoreObs?.length || 0).toString());
+             }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add Observation</Button>
+             
              {editingEntry && entryType === 'observations' && (
               <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="md:col-span-2 space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Order</Label><Input type="number" value={entryOrder} onChange={e => setEntryOrder(e.target.value)} className="rounded-none" /></div>
+                </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" placeholder="e.g. Winter 2023" /></div>
+                  <div className="space-y-2"><Label>Image Path</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" placeholder="filename.jpg" /></div>
                 </div>
                 <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
                 <div className="flex gap-2"><Button onClick={saveEntry} disabled={isSaving} className="rounded-none h-8">Save</Button><Button variant="outline" onClick={() => setEditingEntry(null)} className="rounded-none h-8">Cancel</Button></div>
@@ -385,10 +426,13 @@ export default function ManageDashboardPage() {
             )}
             <div className="space-y-4">
               {firestoreObs?.map((item) => (
-                <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center">
-                  <h3 className="text-[10pt] font-normal">{item.title}</h3>
+                <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center shadow-sm">
+                  <div className="space-y-1">
+                    <h3 className="text-[10pt] font-normal">{item.title}</h3>
+                    <p className="text-[8pt] text-muted-foreground">{item.date} • Order: {item.order}</p>
+                  </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('observations'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); }}>Edit</Button>
+                    <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('observations'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); setEntryOrder(item.order?.toString() || '0'); }}>Edit</Button>
                     <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'observations', msg: `Delete observation "${item.title}"?` })}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
