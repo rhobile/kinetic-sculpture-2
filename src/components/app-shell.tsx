@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider suppressHydrationWarning>
       <Sidebar className="border-0 bg-sidebar" style={{ '--sidebar-width': '18rem', '--sidebar-width-icon': '3rem' } as React.CSSProperties}>
         <SidebarHeader className="p-6 pb-2 flex items-center justify-center">
           <Link href="/" className="block text-foreground hover:no-underline w-full">
@@ -91,7 +91,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
 
           <nav className="flex flex-col gap-4 pt-4 border-t border-border/50 text-[12pt]">
-            <Link href="/about" className="text-foreground hover:text-accent transition-colors">About Us</Link>
             {customPages.map((page) => (
               <Link 
                 key={page.id} 
