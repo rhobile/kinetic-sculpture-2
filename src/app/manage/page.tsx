@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
 import { signInAnonymously } from 'firebase/auth';
-import { collection, doc, query, orderBy } from 'firebase/firestore';
+import { collection, doc, query, orderBy, setDoc } from 'firebase/firestore';
 import { 
   useFirebase, 
   useCollection, 
@@ -209,16 +209,39 @@ export default function ManageDashboardPage() {
     }
   };
 
+  const savePage = async () => {
+    if (!firestore || !pageTitle || !pageSlug) return;
+    setIsSaving(true);
+    try {
+      const id = editingPage?.isNew ? pageSlug.toLowerCase().trim() : editingPage.id;
+      const docRef = doc(firestore, 'pages', id);
+      setDocumentNonBlocking(docRef, {
+        id,
+        title: pageTitle,
+        slug: pageSlug,
+        content: pageContent,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      toast({ title: "Page updated" });
+      setEditingPage(null);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const saveSidebar = async () => {
     if (!firestore) return;
     setIsSaving(true);
     try {
       const docRef = doc(firestore, 'pages', 'sidebar');
-      setDocumentNonBlocking(docRef, {
+      // Using setDoc directly here to ensure the latest state is captured
+      await setDoc(docRef, {
         content: sidebarContent,
         updatedAt: new Date().toISOString()
       }, { merge: true });
       toast({ title: "Sidebar updated" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Save failed", description: error.message });
     } finally {
       setIsSaving(false);
     }
@@ -291,6 +314,7 @@ export default function ManageDashboardPage() {
                       <li>News: <code className="text-accent">/news</code></li>
                       <li>Observations: <code className="text-accent">/sculptures</code></li>
                       <li>Home: <code className="text-accent">/</code></li>
+                      <li>Custom Page: <code className="text-accent">/p/your-slug</code></li>
                     </ul>
                   </div>
                 </div>
@@ -307,7 +331,7 @@ export default function ManageDashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
-                    <p className="text-[8pt] text-accent font-mono break-all">{item.id}</p>
+                    <p className="text-[8pt] text-accent font-mono break-all leading-tight mt-1">{item.id}</p>
                   </div>
                   <Button variant="outline" size="sm" className="rounded-none h-6 px-2 text-[9px] uppercase tracking-widest" onClick={() => {
                     setEditingItem(item);
@@ -337,7 +361,10 @@ export default function ManageDashboardPage() {
               {firestoreNews?.map((item) => (
                 <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center">
                   <h3 className="text-[10pt] font-normal">{item.title}</h3>
-                  <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('news'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); }}>Edit</Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('news'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); }}>Edit</Button>
+                    <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'news', msg: `Delete news item "${item.title}"?` })}><Trash2 className="size-4" /></Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -359,7 +386,10 @@ export default function ManageDashboardPage() {
               {firestoreObs?.map((item) => (
                 <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center">
                   <h3 className="text-[10pt] font-normal">{item.title}</h3>
-                  <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('observations'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); }}>Edit</Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('observations'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); }}>Edit</Button>
+                    <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'observations', msg: `Delete observation "${item.title}"?` })}><Trash2 className="size-4" /></Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -381,7 +411,10 @@ export default function ManageDashboardPage() {
               {firestorePages?.filter(p => p.id !== 'sidebar').map((page) => (
                 <div key={page.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center">
                   <h3 className="text-[10pt] font-normal">{page.title}</h3>
-                  <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEditingPage(page); setPageTitle(page.title); setPageSlug(page.slug); setPageContent(page.content); }}>Edit</Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEditingPage(page); setPageTitle(page.title); setPageSlug(page.slug); setPageContent(page.content); }}>Edit</Button>
+                    <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: page.id, collection: 'pages', msg: `Delete page "${page.title}"?` })}><Trash2 className="size-4" /></Button>
+                  </div>
                 </div>
               ))}
             </div>
