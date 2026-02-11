@@ -48,20 +48,24 @@ export function AppShell({ children }: { children: ReactNode }) {
     social: "@Rhobile",
     layout: ['intro', 'commission', 'links', 'garden', 'contact', 'pages'],
     spacing: {
-      intro: 4,
-      commission: 4,
-      links: 4,
-      garden: 4,
-      contact: 4,
-      pages: 4
+      intro: "4",
+      commission: "4",
+      links: "4",
+      garden: "4",
+      contact: "4",
+      pages: "4"
     }
   };
 
+  // Safe merge logic to ensure Firestore data always wins over defaults
   const config = {
     ...defaults,
-    ...sidebarData,
+    ...(sidebarData || {}),
     layout: sidebarData?.layout || defaults.layout,
-    spacing: { ...defaults.spacing, ...(sidebarData?.spacing || {}) }
+    spacing: { 
+      ...defaults.spacing, 
+      ...(sidebarData?.spacing || {}) 
+    }
   };
 
   const spacingMap: Record<string, string> = {

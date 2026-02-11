@@ -128,7 +128,10 @@ export default function ManageDashboardPage() {
         ...SIDEBAR_DEFAULTS,
         ...sidebarData,
         layout: sidebarData.layout || SIDEBAR_DEFAULTS.layout,
-        spacing: { ...SIDEBAR_DEFAULTS.spacing, ...(sidebarData.spacing || {}) }
+        spacing: { 
+          ...SIDEBAR_DEFAULTS.spacing, 
+          ...(sidebarData.spacing || {}) 
+        }
       });
     }
   }, [sidebarData]);
@@ -271,7 +274,21 @@ export default function ManageDashboardPage() {
     setIsSaving(true);
     try {
       const docRef = doc(firestore, 'pages', 'sidebar');
-      setDocumentNonBlocking(docRef, sidebarState, { merge: true });
+      // Ensure we are saving a clean object
+      const payload = {
+        introTitle: sidebarState.introTitle,
+        introSub: sidebarState.introSub,
+        commissionNote: sidebarState.commissionNote,
+        gardenNotice: sidebarState.gardenNotice,
+        email: sidebarState.email,
+        phone: sidebarState.phone,
+        mobile: sidebarState.mobile,
+        social: sidebarState.social,
+        layout: sidebarState.layout,
+        spacing: sidebarState.spacing,
+        updatedAt: new Date().toISOString()
+      };
+      setDocumentNonBlocking(docRef, payload, { merge: true });
       toast({ title: "Sidebar content updated" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save failed" });
