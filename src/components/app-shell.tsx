@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider>
-      <Sidebar className="border-0 bg-sidebar">
+      <Sidebar className="border-0 bg-sidebar" style={{ '--sidebar-width': '18rem', '--sidebar-width-icon': '3rem' } as React.CSSProperties}>
         <SidebarHeader className="p-6 pb-2 flex items-center justify-center">
           <Link href="/" className="block text-foreground hover:no-underline w-full">
             <h1 className="font-headline text-xl sm:text-2xl tracking-[0.15em] sm:tracking-[0.25em] mb-1 uppercase whitespace-nowrap text-center font-normal">
