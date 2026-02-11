@@ -15,7 +15,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid
+  Trash2, Loader2, RefreshCw, Edit3, Save, Plus, LayoutGrid, ArrowUp, ArrowDown, MoveVertical
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,6 +33,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 
@@ -52,7 +53,16 @@ export default function ManageDashboardPage() {
     email: "andrew@rhobile.com",
     phone: "Telephone +44 (0)1353 610406",
     mobile: "Mobile +44 (0)781 4179181",
-    social: "@Rhobile"
+    social: "@Rhobile",
+    layout: ['intro', 'commission', 'links', 'garden', 'contact', 'pages'],
+    spacing: {
+      intro: "4",
+      commission: "4",
+      links: "4",
+      garden: "4",
+      contact: "4",
+      pages: "4"
+    }
   };
 
   // Firestore Data
@@ -115,14 +125,10 @@ export default function ManageDashboardPage() {
   useEffect(() => {
     if (sidebarData) {
       setSidebarState({
-        introTitle: sidebarData.introTitle || SIDEBAR_DEFAULTS.introTitle,
-        introSub: sidebarData.introSub || SIDEBAR_DEFAULTS.introSub,
-        commissionNote: sidebarData.commissionNote || SIDEBAR_DEFAULTS.commissionNote,
-        gardenNotice: sidebarData.gardenNotice || SIDEBAR_DEFAULTS.gardenNotice,
-        email: sidebarData.email || SIDEBAR_DEFAULTS.email,
-        phone: sidebarData.phone || SIDEBAR_DEFAULTS.phone,
-        mobile: sidebarData.mobile || SIDEBAR_DEFAULTS.mobile,
-        social: sidebarData.social || SIDEBAR_DEFAULTS.social
+        ...SIDEBAR_DEFAULTS,
+        ...sidebarData,
+        layout: sidebarData.layout || SIDEBAR_DEFAULTS.layout,
+        spacing: { ...SIDEBAR_DEFAULTS.spacing, ...(sidebarData.spacing || {}) }
       });
     }
   }, [sidebarData]);
@@ -274,6 +280,15 @@ export default function ManageDashboardPage() {
     }
   };
 
+  const moveSidebarBlock = (index: number, direction: 'up' | 'down') => {
+    const newLayout = [...sidebarState.layout];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newLayout.length) return;
+    
+    [newLayout[index], newLayout[targetIndex]] = [newLayout[targetIndex], newLayout[index]];
+    setSidebarState({ ...sidebarState, layout: newLayout });
+  };
+
   const handleConfirmDelete = useCallback(() => {
     if (!itemToDelete || !firestore) return;
     const { id, collection: col } = itemToDelete;
@@ -282,6 +297,15 @@ export default function ManageDashboardPage() {
     toast({ title: "Record removed" });
     setItemToDelete(null);
   }, [itemToDelete, firestore]);
+
+  const blockLabels: Record<string, string> = {
+    intro: "Introduction (Title & Sub)",
+    commission: "Commission Note",
+    links: "Internal Links (News/Obs)",
+    garden: "Garden Notice",
+    contact: "Contact Details",
+    pages: "Custom Pages Links"
+  };
 
   return (
     <main className="p-4 sm:p-6 lg:p-8 bg-background min-h-screen">
@@ -314,7 +338,7 @@ export default function ManageDashboardPage() {
           <TabsContent value="masonry" className="space-y-6">
             <div className="flex justify-between items-center border-b border-border/30 pb-4">
               <h2 className="text-[10pt] uppercase tracking-widest font-normal">Masonry Index</h2>
-              <p className="text-[9pt] text-muted-foreground hidden sm:block">All images in ks-images bucket. Items added to masonry will appear on home page.</p>
+              <p className="text-[9pt] text-muted-foreground hidden sm:block">Items in ks-images bucket. Entries appear on home page.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {masonryItems.map((item: any) => (
@@ -324,13 +348,13 @@ export default function ManageDashboardPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
-                    <p className="text-[8pt] text-accent font-mono break-all">{item.id}</p>
+                    <p className="text-[8pt] text-accent font-mono break-all leading-tight">{item.id}</p>
                     <p className="text-[7pt] text-muted-foreground uppercase tracking-widest mt-1">
                       {item.isIndexed ? `Order: ${item.order}` : 'Unindexed Asset'}
                     </p>
                   </div>
                   <div className="flex gap-1 shrink-0">
-                    <Button variant="outline" size="sm" className="rounded-none h-6 px-2 text-[8px] uppercase tracking-widest" onClick={() => {
+                    <Button variant="outline" size="sm" className="rounded-none h-6 px-1.5 text-[8px] uppercase tracking-widest min-w-10" onClick={() => {
                       setEditingItem(item);
                       setItemTitle(item.title || '');
                       setItemDesc(item.description || '');
@@ -368,8 +392,8 @@ export default function ManageDashboardPage() {
                   <div className="space-y-2"><Label>Date Label (e.g. July 2023)</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Image Filename (in ks-images/)</Label><Input value={entryImagePath} placeholder="example.jpg" onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Video ID (in ks-videos/)</Label><Input value={entryVideoId} placeholder="example" onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Image Path (relative to ks-images/)</Label><Input value={entryImagePath} placeholder="example.jpg" onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Video ID (relative to ks-videos/)</Label><Input value={entryVideoId} placeholder="example" onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
                 </div>
                 <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
                 <div className="flex gap-2">
@@ -408,8 +432,8 @@ export default function ManageDashboardPage() {
                   <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Image Filename (in ks-images/)</Label><Input value={entryImagePath} placeholder="example.jpg" onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Video ID (in ks-videos/)</Label><Input value={entryVideoId} placeholder="arclinedot" onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Image Path (relative to ks-images/)</Label><Input value={entryImagePath} placeholder="example.jpg" onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
+                  <div className="space-y-2"><Label>Video ID (relative to ks-videos/)</Label><Input value={entryVideoId} placeholder="arclinedot" onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
                 </div>
                 <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
                 <div className="flex gap-2">
@@ -472,25 +496,83 @@ export default function ManageDashboardPage() {
 
           <TabsContent value="sidebar" className="space-y-6">
             <div className="flex justify-between items-center border-b border-border/30 pb-4">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Global Sidebar Branding</h2>
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar Layout & Content</h2>
               <Button size="sm" onClick={saveSidebar} disabled={isSaving} className="rounded-none h-8 font-normal">
-                {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Changes
+                {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save All Sidebar Changes
               </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-muted/20 border border-border/50 p-6">
-              <div className="space-y-4">
-                <div className="space-y-2"><Label>Title Line</Label><Input value={sidebarState.introTitle} onChange={e => setSidebarState({...sidebarState, introTitle: e.target.value})} className="rounded-none" /></div>
-                <div className="space-y-2"><Label>Sub-Intro</Label><Textarea value={sidebarState.introSub} onChange={e => setSidebarState({...sidebarState, introSub: e.target.value})} className="rounded-none h-24" /></div>
-                <div className="space-y-2"><Label>Commission Note</Label><Textarea value={sidebarState.commissionNote} onChange={e => setSidebarState({...sidebarState, commissionNote: e.target.value})} className="rounded-none h-24" /></div>
-              </div>
-              <div className="space-y-4">
-                <div className="space-y-2"><Label>Garden Notice</Label><Textarea value={sidebarState.gardenNotice} onChange={e => setSidebarState({...sidebarState, gardenNotice: e.target.value})} className="rounded-none h-24" /></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Email</Label><Input value={sidebarState.email} onChange={e => setSidebarState({...sidebarState, email: e.target.value})} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Phone</Label><Input value={sidebarState.phone} onChange={e => setSidebarState({...sidebarState, phone: e.target.value})} className="rounded-none" /></div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="bg-muted/10 border border-border/50 p-6 space-y-8">
+                  <div className="space-y-4">
+                    <h3 className="text-[9pt] font-semibold uppercase tracking-widest text-accent">Block 1: Introduction</h3>
+                    <div className="space-y-2"><Label>Title Line</Label><Input value={sidebarState.introTitle} onChange={e => setSidebarState({...sidebarState, introTitle: e.target.value})} className="rounded-none" /></div>
+                    <div className="space-y-2"><Label>Sub-Intro</Label><Textarea value={sidebarState.introSub} onChange={e => setSidebarState({...sidebarState, introSub: e.target.value})} className="rounded-none h-24" /></div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-[9pt] font-semibold uppercase tracking-widest text-accent">Block 2: Commission Note</h3>
+                    <div className="space-y-2"><Label>Note Text</Label><Textarea value={sidebarState.commissionNote} onChange={e => setSidebarState({...sidebarState, commissionNote: e.target.value})} className="rounded-none h-24" /></div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-[9pt] font-semibold uppercase tracking-widest text-accent">Block 3: Garden Notice</h3>
+                    <div className="space-y-2"><Label>Notice Text</Label><Textarea value={sidebarState.gardenNotice} onChange={e => setSidebarState({...sidebarState, gardenNotice: e.target.value})} className="rounded-none h-24" /></div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-[9pt] font-semibold uppercase tracking-widest text-accent">Block 4: Contact Details</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2"><Label>Email</Label><Input value={sidebarState.email} onChange={e => setSidebarState({...sidebarState, email: e.target.value})} className="rounded-none" /></div>
+                      <div className="space-y-2"><Label>Phone</Label><Input value={sidebarState.phone} onChange={e => setSidebarState({...sidebarState, phone: e.target.value})} className="rounded-none" /></div>
+                    </div>
+                    <div className="space-y-2"><Label>Mobile</Label><Input value={sidebarState.mobile} onChange={e => setSidebarState({...sidebarState, mobile: e.target.value})} className="rounded-none" /></div>
+                    <div className="space-y-2"><Label>Social Link</Label><Input value={sidebarState.social} onChange={e => setSidebarState({...sidebarState, social: e.target.value})} className="rounded-none" /></div>
+                  </div>
                 </div>
-                <div className="space-y-2"><Label>Mobile</Label><Input value={sidebarState.mobile} onChange={e => setSidebarState({...sidebarState, mobile: e.target.value})} className="rounded-none" /></div>
-                <div className="space-y-2"><Label>Social Link</Label><Input value={sidebarState.social} onChange={e => setSidebarState({...sidebarState, social: e.target.value})} className="rounded-none" /></div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-accent/5 border border-accent/20 p-6 space-y-6">
+                  <div className="space-y-2">
+                    <h3 className="text-[10pt] font-normal uppercase tracking-widest">Sidebar Layout & Spacing</h3>
+                    <p className="text-[8pt] text-muted-foreground">Drag or use arrows to reorder. Set the space after each block.</p>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {sidebarState.layout.map((blockId, index) => (
+                      <div key={blockId} className="flex flex-col bg-background border border-border/50 p-3 shadow-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{blockLabels[blockId] || blockId}</span>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" className="size-6" onClick={() => moveSidebarBlock(index, 'up')} disabled={index === 0}><ArrowUp className="size-3" /></Button>
+                            <Button variant="ghost" size="icon" className="size-6" onClick={() => moveSidebarBlock(index, 'down')} disabled={index === sidebarState.layout.length - 1}><ArrowDown className="size-3" /></Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Label className="text-[9px] uppercase tracking-widest whitespace-nowrap">Space After:</Label>
+                          <Select 
+                            value={sidebarState.spacing[blockId as keyof typeof sidebarState.spacing] || "4"} 
+                            onValueChange={(val) => setSidebarState({
+                              ...sidebarState, 
+                              spacing: { ...sidebarState.spacing, [blockId]: val }
+                            })}
+                          >
+                            <SelectTrigger className="h-7 rounded-none text-[10px]">
+                              <SelectValue placeholder="Units" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16].map(u => (
+                                <SelectItem key={u} value={u.toString()} className="text-[10px]">{u} Units</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </TabsContent>
