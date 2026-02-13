@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -10,12 +11,13 @@ import {
   useDoc, 
   useMemoFirebase, 
   deleteDocumentNonBlocking, 
-  setDocumentNonBlocking 
+  setDocumentNonBlocking,
+  updateDocumentNonBlocking
 } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info, Image as ImageIcon, Type
+  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info, Image as ImageIcon, Type, EyeOff, Eye
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,7 +44,7 @@ export default function ManageDashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: 'videos' | 'news' | 'pages' | 'observations', msg: string } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: string, action: 'delete' | 'hide', msg: string } | null>(null);
 
   const SIDEBAR_DEFAULT = `Kinetic sculptures by Andrew Jones.\n\nMainly linear elements balanced and articulated to move simply in the wind, light or strong.\n\nI work to commission. Guide prices are given below the videos or a price for a limited edition.\n\n[News (if there is any)](/news)\n\n[Flow observations of wind and water](/observations)\n\nIt is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.\n\nIf you would like to visit at another time, please contact me.\n\nandrew@rhobile.com\nTelephone +44 (0)1353 610406\nMobile +44 (0)781 4179181\n@Rhobile`;
 
@@ -160,7 +162,8 @@ export default function ManageDashboardPage() {
         description: fsData?.description || "",
         order: fsData?.order ?? 999,
         imagePath: img.path,
-        isIndexed: !!fsData
+        isIndexed: !!fsData,
+        isHidden: fsData?.hidden || false
       };
     }).sort((a: any, b: any) => {
       if (a.isIndexed && !b.isIndexed) return -1;
@@ -180,7 +183,8 @@ export default function ManageDashboardPage() {
         title: itemTitle,
         description: itemDesc,
         order: Number(itemOrder) || 0,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        hidden: editingItem?.isHidden || false
       }, { merge: true });
       toast({ title: "Masonry record updated" });
       setIsItemDialogOpen(false);
@@ -262,12 +266,26 @@ export default function ManageDashboardPage() {
 
   const handleConfirmDelete = useCallback(() => {
     if (!itemToDelete || !firestore) return;
-    const { id, collection: col } = itemToDelete;
+    const { id, collection: col, action } = itemToDelete;
     const docRef = doc(firestore, col, id);
-    deleteDocumentNonBlocking(docRef);
-    toast({ title: "Record removed" });
+
+    if (action === 'hide') {
+      updateDocumentNonBlocking(docRef, { hidden: true });
+      toast({ title: "Item hidden from gallery" });
+    } else {
+      deleteDocumentNonBlocking(docRef);
+      toast({ title: "Record removed" });
+    }
+    
     setItemToDelete(null);
   }, [itemToDelete, firestore]);
+
+  const handleUnhide = (item: any) => {
+    if (!firestore) return;
+    const docRef = doc(firestore, 'videos', item.id);
+    updateDocumentNonBlocking(docRef, { hidden: false });
+    toast({ title: "Item restored to gallery" });
+  };
 
   return (
     <main className="p-4 sm:p-6 lg:p-8 bg-background min-h-screen">
@@ -355,12 +373,20 @@ export default function ManageDashboardPage() {
           <TabsContent value="masonry" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {masonryItems.map((item: any) => (
-                <div key={item.id} className={cn("p-4 border flex items-center gap-4", item.isIndexed ? "bg-muted/30 border-border/50 shadow-sm" : "bg-background border-dashed border-border/40 opacity-70")}>
+                <div key={item.id} className={cn(
+                  "p-4 border flex items-center gap-4", 
+                  item.isIndexed 
+                    ? (item.isHidden ? "bg-orange-50/10 border-orange-200/50" : "bg-muted/30 border-border/50 shadow-sm") 
+                    : "bg-background border-dashed border-border/40 opacity-70"
+                )}>
                   <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
                     <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
+                    <h3 className="text-[10pt] font-normal truncate">
+                      {item.title}
+                      {item.isHidden && <span className="ml-2 text-[8px] font-bold uppercase text-orange-500 bg-orange-500/10 px-1 py-0.5 border border-orange-500/20">Hidden</span>}
+                    </h3>
                     <p className="text-[8pt] text-accent font-mono break-all leading-tight mt-1">{item.id}</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -371,9 +397,14 @@ export default function ManageDashboardPage() {
                       setItemOrder(item.order?.toString() || '0');
                       setIsItemDialogOpen(true);
                     }}>Edit</Button>
-                    {item.isIndexed && (
-                      <Button variant="ghost" size="sm" className="rounded-none text-destructive h-6 w-6 p-0" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: `Remove "${item.title}" from the curated gallery?` })}>
+                    {item.isIndexed && !item.isHidden && (
+                      <Button variant="ghost" size="sm" className="rounded-none text-destructive h-6 w-6 p-0" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', action: 'hide', msg: `Hide "${item.title}" from the curated gallery? This will preserve its metadata.` })}>
                         <Trash2 className="size-3" />
+                      </Button>
+                    )}
+                    {item.isIndexed && item.isHidden && (
+                      <Button variant="ghost" size="sm" className="rounded-none text-accent h-6 w-6 p-0" onClick={() => handleUnhide(item)}>
+                        <Plus className="size-3" />
                       </Button>
                     )}
                   </div>
@@ -420,7 +451,7 @@ export default function ManageDashboardPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('news'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); setEntryOrder(item.order?.toString() || '0'); }}>Edit</Button>
-                    <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'news', msg: `Delete news item "${item.title}"?` })}><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'news', action: 'delete', msg: `Delete news item "${item.title}"?` })}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -463,7 +494,7 @@ export default function ManageDashboardPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('observations'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); setEntryOrder(item.order?.toString() || '0'); }}>Edit</Button>
-                    <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'observations', msg: `Delete observation "${item.title}"?` })}><Trash2 className="size-4" /></Button>
+                    <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'observations', action: 'delete', msg: `Delete observation "${item.title}"?` })}><Trash2 className="size-4" /></Button>
                   </div>
                 </div>
               ))}
@@ -535,7 +566,7 @@ export default function ManageDashboardPage() {
                   </div>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="rounded-none h-7 px-3 text-[9px] uppercase tracking-widest" onClick={() => { setEditingPage(page); setPageTitle(page.title); setPageSlug(page.slug); setPageContent(page.content); }}>Edit</Button>
-                    <Button variant="ghost" size="sm" className="rounded-none text-destructive h-7 w-7 p-0" onClick={() => setItemToDelete({ id: page.id, collection: 'pages', msg: `Delete page "${page.title}"?` })}><Trash2 className="size-3" /></Button>
+                    <Button variant="ghost" size="sm" className="rounded-none text-destructive h-7 w-7 p-0" onClick={() => setItemToDelete({ id: page.id, collection: 'pages', action: 'delete', msg: `Delete page "${page.title}"?` })}><Trash2 className="size-3" /></Button>
                   </div>
                 </div>
               ))}
@@ -561,10 +592,10 @@ export default function ManageDashboardPage() {
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent className="rounded-none">
           <AlertDialogHeader>
-            <AlertDialogTitle className="uppercase tracking-widest text-sm">Confirm Delete</AlertDialogTitle>
+            <AlertDialogTitle className="uppercase tracking-widest text-sm">Confirm {itemToDelete?.action === 'hide' ? 'Hide' : 'Delete'}</AlertDialogTitle>
             <AlertDialogDescription>{itemToDelete?.msg}</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDelete} className="rounded-none bg-destructive">Delete</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDelete} className="rounded-none bg-destructive">Confirm</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </main>

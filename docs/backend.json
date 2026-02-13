@@ -37,6 +37,10 @@
           "type": "string",
           "description": "URL of the video's thumbnail image.",
           "format": "uri"
+        },
+        "hidden": {
+          "type": "boolean",
+          "description": "If true, the video is hidden from the main gallery but metadata is preserved."
         }
       },
       "required": [

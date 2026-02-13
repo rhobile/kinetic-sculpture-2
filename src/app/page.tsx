@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -57,27 +58,29 @@ export default function Home() {
     fetchStorageData();
   }, [fetchStorageData]);
 
-  // The Gallery only shows items that exist in both Storage AND Firestore
+  // The Gallery only shows items that exist in both Storage AND Firestore, AND are not hidden
   const galleryImages = useMemo(() => {
     if (!storageItems || !firestoreVideos) return [];
 
-    return firestoreVideos.map((fsData, index) => {
-      // Find the corresponding storage item
-      const storageMatch = storageItems.items.find(item => 
-        item.name.split('.').slice(0, -1).join('.').toLowerCase() === fsData.id
-      );
+    return firestoreVideos
+      .filter(fs => !fs.hidden)
+      .map((fsData, index) => {
+        // Find the corresponding storage item
+        const storageMatch = storageItems.items.find(item => 
+          item.name.split('.').slice(0, -1).join('.').toLowerCase() === fsData.id
+        );
 
-      if (!storageMatch) return null;
+        if (!storageMatch) return null;
 
-      return {
-        id: fsData.id,
-        path: storageMatch.fullPath,
-        alt: fsData.title || fsData.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        description: fsData.description || "A balance of form and articulated movement.",
-        width: 500,
-        height: index % 2 === 0 ? 600 : 750,
-      } as FirebaseImage;
-    }).filter((img): img is FirebaseImage => img !== null);
+        return {
+          id: fsData.id,
+          path: storageMatch.fullPath,
+          alt: fsData.title || fsData.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          description: fsData.description || "A balance of form and articulated movement.",
+          width: 500,
+          height: index % 2 === 0 ? 600 : 750,
+        } as FirebaseImage;
+      }).filter((img): img is FirebaseImage => img !== null);
   }, [storageItems, firestoreVideos]);
 
   const handleImageClick = (image: any) => {
