@@ -363,13 +363,20 @@ export default function ManageDashboardPage() {
                     <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
                     <p className="text-[8pt] text-accent font-mono break-all leading-tight mt-1">{item.id}</p>
                   </div>
-                  <Button variant="outline" size="sm" className="rounded-none h-6 px-2 text-[9px] uppercase tracking-widest" onClick={() => {
-                    setEditingItem(item);
-                    setItemTitle(item.title || '');
-                    setItemDesc(item.description || '');
-                    setItemOrder(item.order?.toString() || '0');
-                    setIsItemDialogOpen(true);
-                  }}>Edit</Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="rounded-none h-6 px-2 text-[9px] uppercase tracking-widest" onClick={() => {
+                      setEditingItem(item);
+                      setItemTitle(item.title || '');
+                      setItemDesc(item.description || '');
+                      setItemOrder(item.order?.toString() || '0');
+                      setIsItemDialogOpen(true);
+                    }}>Edit</Button>
+                    {item.isIndexed && (
+                      <Button variant="ghost" size="sm" className="rounded-none text-destructive h-6 w-6 p-0" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', msg: `Remove "${item.title}" from the curated gallery?` })}>
+                        <Trash2 className="size-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
