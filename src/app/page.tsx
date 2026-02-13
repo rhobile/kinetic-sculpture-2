@@ -94,7 +94,7 @@ export default function Home() {
         {(isStorageLoading || isFsLoading) ? (
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">
             {[...Array(8)].map((_, i) => (
-              <Skeleton key={i} className="w-full aspect-[2/3] rounded-none border-0" />
+              <Skeleton key={i} className="w-full aspect-[2/3] rounded-none border-[0.5px] border-white" />
             ))}
           </div>
         ) : error ? (
@@ -114,7 +114,7 @@ export default function Home() {
                 className="break-inside-avoid cursor-pointer group relative"
                 onClick={() => handleImageClick(image)}
               >
-                <Card className="overflow-hidden border-0 rounded-none shadow-none">
+                <Card className="overflow-hidden border-[0.5px] border-white rounded-none shadow-none">
                   <CardContent className="p-0">
                     <div className="relative">
                       <FirebaseStorageImage
