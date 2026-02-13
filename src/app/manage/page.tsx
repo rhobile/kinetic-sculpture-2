@@ -15,7 +15,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info, Image as ImageIcon
+  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info, Image as ImageIcon, Type
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -199,7 +199,6 @@ export default function ManageDashboardPage() {
       const docRef = doc(firestore, entryType, id);
       const defaultOrder = entryType === 'news' ? (firestoreNews?.length || 0) : (firestoreObs?.length || 0);
       
-      // Auto-link Video ID if empty
       const finalVideoId = entryVideoId.trim() || (entryImagePath ? entryImagePath.split('/').pop()?.split('.').slice(0, -1).join('.') : '');
 
       setDocumentNonBlocking(docRef, {
@@ -317,10 +316,15 @@ export default function ManageDashboardPage() {
                   <div className="space-y-4 text-[12px] text-foreground/70 leading-relaxed">
                     <section>
                       <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Links:</p>
-                      <p>To add a blue link, use:<br /><code className="bg-muted px-1 py-0.5 rounded">[Link Label](/url)</code></p>
+                      <p>To add a blue link, use:<br /><code className="bg-muted px-1 py-0.5 rounded text-accent">[Link Label](/url)</code></p>
                     </section>
                     
-                    <div className="space-y-3 pt-2">
+                    <section className="pt-2 border-t border-border/30">
+                      <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Italics:</p>
+                      <p>To italicize text, wrap it in asterisks:<br /><code className="bg-muted px-1 py-0.5 rounded text-accent">*italicized text*</code></p>
+                    </section>
+                    
+                    <div className="space-y-3 pt-4 border-t border-border/30">
                       <p className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">Useful URLs:</p>
                       <ul className="space-y-2 font-mono">
                         <li>News: <code className="text-accent">/news</code></li>
@@ -448,9 +452,9 @@ export default function ManageDashboardPage() {
           <TabsContent value="pages" className="space-y-6">
             <div className="flex justify-between items-center border-b border-border/30 pb-4">
               <Button size="sm" onClick={() => { setEditingPage({ isNew: true }); setPageTitle(''); setPageSlug(''); setPageContent(''); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Create Page</Button>
-              <div className="flex items-center gap-2 text-[10pt] text-muted-foreground bg-accent/5 px-3 py-1 border border-accent/20">
-                <ImageIcon className="size-3 text-accent" />
-                <span>Tip: Add <code className="text-accent">[image:filename.jpg]</code> to insert images.</span>
+              <div className="flex items-center gap-4 text-[10pt] text-muted-foreground bg-accent/5 px-3 py-1 border border-accent/20">
+                <div className="flex items-center gap-1"><ImageIcon className="size-3 text-accent" /> <code className="text-accent">[image:file.jpg]</code></div>
+                <div className="flex items-center gap-1"><Type className="size-3 text-accent" /> <code className="text-accent">*italics*</code></div>
               </div>
             </div>
 
@@ -483,13 +487,16 @@ export default function ManageDashboardPage() {
                           <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Images:</p>
                           <p>To place an image between paragraphs, type the following on its own line:</p>
                           <code className="block bg-muted p-2 rounded mt-1 text-accent font-mono">[image:filename.jpg]</code>
-                          <p className="mt-2 opacity-80 italic">Use the filenames from the "Masonry" tab or Storage.</p>
                         </section>
                         
                         <section className="pt-2 border-t border-border/30">
+                          <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Italics:</p>
+                          <p>Wrap words in asterisks:<br /><code className="text-accent font-mono">*example*</code></p>
+                        </section>
+
+                        <section className="pt-2 border-t border-border/30">
                           <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Links:</p>
-                          <p>Use the same link format as the sidebar:</p>
-                          <code className="block bg-muted p-2 rounded mt-1 text-accent font-mono">[Link Label](/url)</code>
+                          <p>Use the format:<br /><code className="text-accent font-mono">[Label](/url)</code></p>
                         </section>
                       </div>
                     </div>
@@ -521,7 +528,7 @@ export default function ManageDashboardPage() {
           <DialogHeader><DialogTitle>Sculpture Metadata</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-4 gap-4">
-              <div className="col-span-3"><Label className="text-[10px] uppercase">Title</Label><Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none" /></div>
+              <div className="col-span-3"><Label className="text-[10px] uppercase">Title</Label><Input value={itemTitle} onChange={itemOrder} className="rounded-none" /></div>
               <div><Label className="text-[10px] uppercase">Order</Label><Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none" /></div>
             </div>
             <div className="space-y-2"><Label className="text-[10px] uppercase">Description</Label><Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none h-24" /></div>

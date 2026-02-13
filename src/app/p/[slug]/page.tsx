@@ -1,6 +1,6 @@
 'use client';
 
-import { use, ReactNode } from 'react';
+import { use, ReactNode, Fragment } from 'react';
 import { doc } from 'firebase/firestore';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -18,17 +18,29 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
 
   const { data: pageData, isLoading } = useDoc(pageQuery);
 
+  const renderTextWithFormatting = (text: string) => {
+    if (!text) return null;
+
+    // Handle Italics: *text*
+    const italicParts = text.split(/(\*.*?\*)/g);
+    return italicParts.map((part, i) => {
+      const match = part.match(/\*(.*?)\*/);
+      if (match) {
+        return <em key={i} className="italic">{match[1]}</em>;
+      }
+      return part;
+    });
+  };
+
   const renderContent = (content: string) => {
     if (!content) return null;
 
-    // Split content into blocks by lines
     const lines = content.split('\n');
     const elements: ReactNode[] = [];
 
     lines.forEach((line, idx) => {
       const trimmedLine = line.trim();
       
-      // Check for image syntax: [image:filename.jpg]
       const imgMatch = trimmedLine.match(/^\[image:(.*?)\]$/);
       if (imgMatch) {
         const filename = imgMatch[1].trim();
@@ -50,7 +62,6 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         return;
       }
 
-      // Check for link syntax: [text](url)
       const parts = line.split(/(\[.*?\]\(.*?\))/g);
       const renderedLine = parts.map((part, pIdx) => {
         const match = part.match(/\[(.*?)\]\((.*?)\)/);
@@ -63,11 +74,11 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
               href={url} 
               className="text-accent hover:underline underline-offset-4 decoration-accent/30"
             >
-              {label}
+              {renderTextWithFormatting(label)}
             </Link>
           );
         }
-        return part;
+        return renderTextWithFormatting(part);
       });
 
       elements.push(

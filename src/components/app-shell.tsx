@@ -1,6 +1,6 @@
 'use client';
 
-import React, { type ReactNode } from 'react';
+import React, { type ReactNode, Fragment } from 'react';
 import Link from 'next/link';
 import {
   SidebarProvider,
@@ -30,7 +30,21 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const sidebarText = sidebarData?.content || defaults.content;
 
-  // Helper to parse [text](url) into Link components
+  const renderTextWithFormatting = (text: string) => {
+    if (!text) return null;
+
+    // Handle Italics: *text*
+    const italicParts = text.split(/(\*.*?\*)/g);
+    return italicParts.map((part, i) => {
+      const match = part.match(/\*(.*?)\*/);
+      if (match) {
+        return <em key={i} className="italic">{match[1]}</em>;
+      }
+      return part;
+    });
+  };
+
+  // Helper to parse formatting and [text](url) into Link components
   const renderFormattedText = (text: string) => {
     return text.split('\n').map((line, lineIdx) => {
       // Split by markdown link pattern [label](url)
@@ -47,11 +61,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               href={url} 
               className="text-accent hover:underline underline-offset-4 decoration-accent/30"
             >
-              {label}
+              {renderTextWithFormatting(label)}
             </Link>
           );
         }
-        return part;
+        return renderTextWithFormatting(part);
       });
 
       return (
