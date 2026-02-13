@@ -78,6 +78,7 @@ export default function ManageDashboardPage() {
   const { data: sidebarData } = useDoc(sidebarQuery);
 
   // UI State
+  const [siteTitle, setSiteTitle] = useState('Rhobile');
   const [sidebarContent, setSidebarContent] = useState('');
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
@@ -100,10 +101,12 @@ export default function ManageDashboardPage() {
   const [pageContent, setPageContent] = useState('');
 
   useEffect(() => {
-    if (sidebarData?.content) {
-      setSidebarContent(sidebarData.content);
+    if (sidebarData) {
+      if (sidebarData.content) setSidebarContent(sidebarData.content);
+      if (sidebarData.siteTitle) setSiteTitle(sidebarData.siteTitle);
     } else if (sidebarData === null) {
       setSidebarContent(SIDEBAR_DEFAULT);
+      setSiteTitle('Rhobile');
     }
   }, [sidebarData]);
 
@@ -245,6 +248,7 @@ export default function ManageDashboardPage() {
     try {
       const docRef = doc(firestore, 'pages', 'sidebar');
       await setDoc(docRef, {
+        siteTitle,
         content: sidebarContent,
         updatedAt: new Date().toISOString()
       }, { merge: true });
@@ -289,20 +293,30 @@ export default function ManageDashboardPage() {
 
           <TabsContent value="sidebar" className="space-y-6">
             <div className="flex justify-between items-center border-b border-border/30 pb-4">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Unified Sidebar Content</h2>
+              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar & Header Content</h2>
               <Button size="sm" onClick={saveSidebar} disabled={isSaving} className="rounded-none h-8 font-normal">
-                {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Sidebar
+                {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Changes
               </Button>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-4">
+              <div className="lg:col-span-2 space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-[10pt] font-normal uppercase tracking-widest">Full Sidebar Text</Label>
+                  <Label className="text-[10pt] font-normal uppercase tracking-widest">Site Title (Header)</Label>
+                  <Input 
+                    value={siteTitle} 
+                    onChange={e => setSiteTitle(e.target.value)} 
+                    className="rounded-none font-normal text-lg tracking-[0.15em]"
+                    placeholder="e.g. Rhobile"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-[10pt] font-normal uppercase tracking-widest">Sidebar Text (Bio)</Label>
                   <Textarea 
                     value={sidebarContent} 
                     onChange={e => setSidebarContent(e.target.value)} 
-                    className="rounded-none h-[600px] font-mono text-sm leading-relaxed p-6"
+                    className="rounded-none h-[500px] font-mono text-sm leading-relaxed p-6"
                     placeholder="Type your sidebar content here..."
                   />
                 </div>
@@ -528,7 +542,7 @@ export default function ManageDashboardPage() {
           <DialogHeader><DialogTitle>Sculpture Metadata</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-4 gap-4">
-              <div className="col-span-3"><Label className="text-[10px] uppercase">Title</Label><Input value={itemTitle} onChange={itemOrder} className="rounded-none" /></div>
+              <div className="col-span-3"><Label className="text-[10px] uppercase">Title</Label><Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none" /></div>
               <div><Label className="text-[10px] uppercase">Order</Label><Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none" /></div>
             </div>
             <div className="space-y-2"><Label className="text-[10px] uppercase">Description</Label><Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none h-24" /></div>

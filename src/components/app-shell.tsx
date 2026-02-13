@@ -29,6 +29,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   };
 
   const sidebarText = sidebarData?.content || defaults.content;
+  const siteTitle = sidebarData?.siteTitle || 'Rhobile';
 
   const renderTextWithFormatting = (text: string) => {
     if (!text) return null;
@@ -82,7 +83,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <SidebarHeader className="p-6 pb-2 flex items-center justify-center">
           <Link href="/" className="block text-foreground hover:no-underline w-full">
             <h1 className="font-headline text-xl sm:text-2xl tracking-[0.15em] sm:tracking-[0.25em] mb-1 whitespace-nowrap text-center font-normal">
-              Rhobile
+              {siteTitle}
             </h1>
           </Link>
         </SidebarHeader>
@@ -102,7 +103,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 sm:hidden">
           <SidebarTrigger><Menu className="size-6" /></SidebarTrigger>
           <div className="flex-1 overflow-hidden">
-            <h1 className="text-base font-headline tracking-[0.15em] whitespace-nowrap font-normal truncate">Rhobile</h1>
+            <h1 className="text-base font-headline tracking-[0.15em] whitespace-nowrap font-normal truncate">{siteTitle}</h1>
           </div>
         </header>
         <div className="flex-1">{children}</div>
