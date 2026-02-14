@@ -2,40 +2,40 @@
 
 This is a high-performance digital gallery for kinetic sculptures, built with Next.js 15, Firebase, and Tailwind CSS.
 
-## 🚀 Go-Live Checklist (Firebase Hosting)
+## 🏗️ Backend Architecture
 
-When you are ready to move from this development environment to a live public site, follow these steps:
+This application is designed to run on a fully integrated Firebase backend:
+
+- **Firebase App Hosting**: Hosts the Next.js application, supporting both static generation and Server-Side Rendering (SSR).
+- **Cloud Firestore**: A NoSQL database used to store all sculpture metadata, news entries, flow observations, and custom page content.
+- **Cloud Storage for Firebase**: Used for high-speed delivery of high-resolution images (`ks-images/`) and MP4 videos (`ks-videos/`).
+- **Firebase Authentication**: Provides secure, anonymous access to the Management Dashboard.
+
+## 🚀 Go-Live Checklist (Firebase)
 
 ### 1. Upgrade to Firebase Blaze Plan
-Firebase App Hosting requires the **Blaze (Pay-as-you-go)** plan. You only pay for what you use, and it includes a generous free tier.
+Firebase App Hosting requires the **Blaze (Pay-as-you-go)** plan. It includes a generous free tier, and you only pay for resources used.
 - Go to the [Firebase Console](https://console.firebase.google.com/).
 - Select your project: `kinetic-sculptures-2-936-80a86`.
 - Click **Upgrade** in the bottom left.
 
-### 2. Enable Authentication Providers
-The app uses Anonymous sign-in for the management dashboard and could use Email/Password.
-- In the Firebase Console, go to **Build > Authentication**.
-- Click **Get Started**.
-- Under the **Sign-in method** tab, enable **Anonymous** and **Email/Password**.
+### 2. Enable Services
+Ensure the following are active in your console:
+- **Authentication**: Enable Anonymous and Email/Password providers.
+- **Firestore**: Create a database in "Production Mode" (rules are managed in this repo).
+- **Storage**: Ensure a bucket exists for your media.
 
-### 3. Configure Genkit (AI) Secrets
-If you are using Genkit for AI features, you must provide your API key to the production environment.
-- Generate a Google AI API Key at [Google AI Studio](https://aistudio.google.com/).
-- In the Firebase Console, go to **App Hosting**.
-- Select your backend and add an environment variable/secret named `GOOGLE_GENAI_API_KEY`.
-
-### 4. Connect Your Custom Domain
+### 3. Connect Your Custom Domain
 To use `rhobile.com` instead of the Firebase-generated URL:
-- In the Firebase Console, go to **App Hosting** or **Hosting**.
-- Click **Add Custom Domain**.
-- Follow the instructions to update your DNS records (A and TXT records) at your domain registrar.
+- In the Firebase Console, go to **App Hosting**.
+- Select your backend and click **Add Custom Domain**.
+- Follow the DNS verification steps provided by Firebase.
 
-### 5. Final Security Review
-Your Security Rules are currently set to:
-- **Firestore:** Public Read, Auth Required for Write.
-- **Storage:** Public Read, Auth Required for Write.
-This is correct for your gallery, but always ensure your `manage` page is protected if you transition from Anonymous to a specific admin email in the future.
+### 4. Final Security Review
+Your Security Rules (`firestore.rules` and `storage.rules`) are currently configured for a public gallery:
+- **Public Read:** Anyone can view sculptures, news, and pages.
+- **Auth Required for Write:** Only users signed into your project (like you via the dashboard) can modify content.
 
-## Development
+## 🛠️ Development
 - `npm run dev`: Start the local development server.
-- `src/app/manage`: Access the Management Dashboard to sync storage and curate the gallery.
+- `src/app/manage`: Access the Management Dashboard to curate your gallery and sync content.
