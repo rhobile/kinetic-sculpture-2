@@ -5,9 +5,8 @@ import { collection, query, orderBy } from 'firebase/firestore';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Play } from 'lucide-react';
 import { VideoPlayerModal } from '@/components/video-player-modal';
+import { cn } from '@/lib/utils';
 
 export default function NewsPage() {
   const { firestore } = useFirebase();
@@ -89,18 +88,6 @@ export default function NewsPage() {
                       <p className="text-[12pt] text-foreground/80 leading-relaxed font-normal whitespace-pre-wrap max-w-none">
                         {item.content}
                       </p>
-                      {item.videoId && (
-                        <div className="pt-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="rounded-none border-accent text-accent hover:bg-accent hover:text-white transition-colors uppercase tracking-[0.2em] text-[10px] h-9 px-6"
-                            onClick={() => handleVideoSelect(item)}
-                          >
-                            <Play className="size-3 mr-2 fill-current" /> Watch Video
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   </article>
                 );
@@ -128,8 +115,4 @@ export default function NewsPage() {
       )}
     </div>
   );
-}
-
-function cn(...inputs: any[]) {
-  return inputs.filter(Boolean).join(' ');
 }
