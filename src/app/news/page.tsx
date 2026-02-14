@@ -61,7 +61,7 @@ export default function NewsPage() {
                     <div className="md:col-span-1">
                       <div 
                         className={cn(
-                          "aspect-square relative overflow-hidden rounded-none border border-border/50 bg-muted",
+                          "aspect-square relative overflow-hidden rounded-none border border-white bg-white",
                           item.videoId && "cursor-pointer hover:opacity-90 transition-opacity"
                         )}
                         onClick={() => item.videoId && handleVideoSelect(item)}

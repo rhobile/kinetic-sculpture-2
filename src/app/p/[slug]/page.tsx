@@ -48,7 +48,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         
         elements.push(
           <div key={`img-${idx}`} className="my-10 first:mt-0 last:mb-0">
-            <div className="border border-border/50 bg-muted overflow-hidden">
+            <div className="border border-white bg-white overflow-hidden">
               <FirebaseStorageImage
                 path={path}
                 alt={`Image ${filename}`}
