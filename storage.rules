@@ -1,16 +1,23 @@
 rules_version = '2';
 
 // FIREBASE STORAGE SECURITY RULES
-// Explicitly allowing public list and get access for the gallery.
-
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
-      // allow read covers both 'get' and 'list'
-      // This ensures listAll() works for ks-images and ks-videos
-      allow read: if true;
-      allow write: if request.auth != null;
+    
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.uid == 'ge6KSJEZKFXsNZerEbXseOR2vSS2' || 
+        request.auth.token.email == 'rhobile@gmail.com' ||
+        request.auth.uid == 'yuFerZOVxgXYUM4GRhlXBrxCSNt1'
+      );
     }
-    // Deployment trigger version: 1.2.1
+
+    match /{allPaths=**} {
+      // Publicly readable for the gallery
+      allow read: if true;
+      // Protected write access
+      allow write: if isAdmin();
+    }
+    // Deployment trigger version: 1.3.0
   }
 }

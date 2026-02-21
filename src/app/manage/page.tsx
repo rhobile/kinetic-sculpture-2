@@ -1,9 +1,8 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
-import { signInAnonymously } from 'firebase/auth';
+import { signInAnonymously, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { collection, doc, query, orderBy, setDoc } from 'firebase/firestore';
 import { 
   useFirebase, 
@@ -17,7 +16,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info, Image as ImageIcon, Type, EyeOff, Eye
+  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info, Image as ImageIcon, Type, EyeOff, Eye, LogIn, LogOut, ShieldCheck
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -35,6 +34,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 
@@ -45,6 +45,12 @@ export default function ManageDashboardPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: string, action: 'delete' | 'hide', msg: string } | null>(null);
+
+  // Login State
+  const [showLogin, setShowLogin] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const SIDEBAR_DEFAULT = `Kinetic sculptures by Andrew Jones.\n\nMainly linear elements balanced and articulated to move simply in the wind, light or strong.\n\nI work to commission. Guide prices are given below the videos or a price for a limited edition.\n\n[News (if there is any)](/news)\n\n[Flow observations of wind and water](/observations)\n\nIt is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.\n\nIf you would like to visit at another time, please contact me.\n\nandrew@rhobile.com\nTelephone +44 (0)1353 610406\nMobile +44 (0)781 4179181\n@Rhobile`;
 
@@ -117,6 +123,27 @@ export default function ManageDashboardPage() {
       signInAnonymously(auth).catch((err) => console.error("Anonymous auth failed:", err));
     }
   }, [auth, user, isAuthLoading]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth) return;
+    setIsLoggingIn(true);
+    try {
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      toast({ title: "Welcome back, Andrew", description: "You are now signed in as Admin." });
+      setShowLogin(false);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Login failed", description: "Please check your credentials." });
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!auth) return;
+    await signOut(auth);
+    toast({ title: "Signed out", description: "Switched back to visitor mode." });
+  };
 
   const fetchData = useCallback(async () => {
     if (!firebaseApp) return;
@@ -287,6 +314,8 @@ export default function ManageDashboardPage() {
     toast({ title: "Item restored to gallery" });
   };
 
+  const isAdmin = user && (user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2' || user.email === 'rhobile@gmail.com');
+
   return (
     <main className="p-4 sm:p-6 lg:p-8 bg-background min-h-screen">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -295,10 +324,53 @@ export default function ManageDashboardPage() {
             <LayoutGrid className="size-6 text-muted-foreground" />
             <h1 className="text-[12pt] font-normal uppercase tracking-widest text-foreground/80">Management Dashboard</h1>
           </div>
-          <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
-            <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Sync Storage
-          </Button>
+          <div className="flex items-center gap-2">
+            {!user?.isAnonymous && user && (
+              <div className="flex items-center gap-2 mr-4 text-accent">
+                <ShieldCheck className="size-4" />
+                <span className="text-[10px] uppercase font-bold tracking-widest">Admin Mode</span>
+              </div>
+            )}
+            <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
+              <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Sync Storage
+            </Button>
+            {user?.isAnonymous ? (
+              <Button variant="ghost" size="sm" onClick={() => setShowLogin(true)} className="rounded-none font-normal">
+                <LogIn className="size-4 mr-2" /> Admin Login
+              </Button>
+            ) : (
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-none font-normal text-destructive">
+                <LogOut className="size-4 mr-2" /> Logout
+              </Button>
+            )}
+          </div>
         </div>
+
+        {showLogin && (
+          <Card className="rounded-none border-accent/20 bg-accent/5 max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle className="text-sm uppercase tracking-widest font-normal">Administrator Sign-In</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleLogin} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="rounded-none" required />
+                </div>
+                <div className="space-y-2">
+                  <Label>Password</Label>
+                  <Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="rounded-none" required />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={isLoggingIn} className="rounded-none flex-1">
+                    {isLoggingIn ? "Signing in..." : "Login"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowLogin(false)} className="rounded-none">Cancel</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs defaultValue="sidebar" className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
