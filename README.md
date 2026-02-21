@@ -11,30 +11,46 @@ This application is designed to run on a fully integrated Firebase backend:
 - **Cloud Storage for Firebase**: Used for high-speed delivery of high-resolution images (`ks-images/`) and MP4 videos (`ks-videos/`).
 - **Firebase Authentication**: Provides secure, anonymous access to the Management Dashboard.
 
-## 🚀 Go-Live Checklist (Firebase)
+## 🚀 Deployment to GitHub
 
-### 1. Upgrade to Firebase Blaze Plan
-Firebase App Hosting requires the **Blaze (Pay-as-you-go)** plan. It includes a generous free tier, and you only pay for resources used.
+Before you can use Firebase App Hosting, you must push this code to a GitHub repository:
+
+1. **Create a new repository** on [GitHub](https://github.com/new). Do not initialize it with a README or License.
+2. **Open the terminal** in this environment.
+3. **Run the following commands** (replacing `<your-repo-url>` with the URL of the repository you just created):
+
+```bash
+git init
+git add .
+git commit -m "Initial gallery setup"
+git branch -M main
+git remote add origin <your-repo-url>
+git push -u origin main
+```
+
+## 🌐 Go-Live Checklist (Firebase)
+
+### 1. Connect to Firebase App Hosting
 - Go to the [Firebase Console](https://console.firebase.google.com/).
 - Select your project: `kinetic-sculptures-2-936-80a86`.
-- Click **Upgrade** in the bottom left.
+- Go to **App Hosting** in the build menu.
+- Click **Get Started** and connect the GitHub repository you just created.
 
-### 2. Enable Services
+### 2. Upgrade to Firebase Blaze Plan
+Firebase App Hosting requires the **Blaze (Pay-as-you-go)** plan. It includes a generous free tier, and you only pay for resources used.
+- In the Firebase Console, click **Upgrade** in the bottom left.
+
+### 3. Enable Services
 Ensure the following are active in your console:
 - **Authentication**: Enable Anonymous and Email/Password providers.
-- **Firestore**: Create a database in "Production Mode" (rules are managed in this repo).
-- **Storage**: Ensure a bucket exists for your media.
+- **Firestore**: Create a database in "Production Mode".
+- **Storage**: Ensure your bucket exists and has the `ks-images/` and `ks-videos/` folders.
 
-### 3. Connect Your Custom Domain
+### 4. Connect Your Custom Domain
 To use `rhobile.com` instead of the Firebase-generated URL:
 - In the Firebase Console, go to **App Hosting**.
 - Select your backend and click **Add Custom Domain**.
 - Follow the DNS verification steps provided by Firebase.
-
-### 4. Final Security Review
-Your Security Rules (`firestore.rules` and `storage.rules`) are currently configured for a public gallery:
-- **Public Read:** Anyone can view sculptures, news, and pages.
-- **Auth Required for Write:** Only users signed into your project (like you via the dashboard) can modify content.
 
 ## 🛠️ Development
 - `npm run dev`: Start the local development server.
