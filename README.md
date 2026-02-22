@@ -11,7 +11,20 @@ This application is designed to run on a fully integrated Firebase backend:
 - **Cloud Storage for Firebase**: Used for high-speed delivery of high-resolution images (`ks-images/`) and MP4 videos (`ks-videos/`).
 - **Firebase Authentication**: Provides secure, anonymous access to the Management Dashboard.
 
-## 🚀 Deployment to GitHub
+## 📦 How to Download to Your PC
+
+If you want to save a copy of this entire project to your local computer:
+
+1. **Open the Terminal** in this environment.
+2. **Run this command** to create a zip archive:
+   ```bash
+   zip -r rhobile-project.zip . -x "node_modules/*" ".next/*"
+   ```
+3. **Download the file**:
+   - In the file explorer on the left, look for `rhobile-project.zip`.
+   - Right-click the file and select **Download**.
+
+## 🚀 Deployment to GitHub (Recommended)
 
 Before you can use Firebase App Hosting, you must push this code to a GitHub repository:
 
