@@ -16,7 +16,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info, Image as ImageIcon, Type, EyeOff, Eye, LogIn, LogOut, ShieldCheck
+  Trash2, Loader2, RefreshCw, Save, Plus, LayoutGrid, Info, Image as ImageIcon, Type, EyeOff, Eye, LogIn, LogOut, ShieldCheck, AlertCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -34,7 +34,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cn } from '@/lib/utils';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 
@@ -47,10 +48,11 @@ export default function ManageDashboardPage() {
   const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: string, action: 'delete' | 'hide', msg: string } | null>(null);
 
   // Login State
-  const [showLogin, setShowLogin] = useState(false);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  const isAdmin = user && (user.email === 'rhobile@gmail.com' || user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2');
 
   const SIDEBAR_DEFAULT = `Kinetic sculptures by Andrew Jones.\n\nMainly linear elements balanced and articulated to move simply in the wind, light or strong.\n\nI work to commission. Guide prices are given below the videos or a price for a limited edition.\n\n[News (if there is any)](/news)\n\n[Flow observations of wind and water](/observations)\n\nIt is difficult to appreciate the movement out of the context of a breeze in a garden, so please visit our garden in July each year.\n\nIf you would like to visit at another time, please contact me.\n\nandrew@rhobile.com\nTelephone +44 (0)1353 610406\nMobile +44 (0)781 4179181\n@Rhobile`;
 
@@ -73,17 +75,17 @@ export default function ManageDashboardPage() {
   }, [firestore]);
   const { data: firestoreObs } = useCollection(obsQuery);
 
-  const pagesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return collection(firestore, 'pages');
-  }, [firestore]);
-  const { data: firestorePages } = useCollection(pagesQuery);
-
   const sidebarQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'pages', 'sidebar');
   }, [firestore]);
   const { data: sidebarData } = useDoc(sidebarQuery);
+
+  const pagesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'pages');
+  }, [firestore]);
+  const { data: firestorePages } = useCollection(pagesQuery);
 
   // UI State
   const [siteTitle, setSiteTitle] = useState('Rhobile');
@@ -130,10 +132,10 @@ export default function ManageDashboardPage() {
     setIsLoggingIn(true);
     try {
       await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      toast({ title: "Welcome back, Andrew", description: "You are now signed in as Admin." });
-      setShowLogin(false);
+      toast({ title: "Welcome back", description: "You are now signed in as rhobile@gmail.com." });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Login failed", description: "Please check your credentials." });
+      console.error("Login error:", error);
+      toast({ variant: "destructive", title: "Login failed", description: "Please check your email and password. Ensure 'Email/Password' is enabled in the Firebase Console." });
     } finally {
       setIsLoggingIn(false);
     }
@@ -314,7 +316,13 @@ export default function ManageDashboardPage() {
     toast({ title: "Item restored to gallery" });
   };
 
-  const isAdmin = user && (user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2' || user.email === 'rhobile@gmail.com');
+  if (isAuthLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="size-8 animate-spin text-accent" />
+      </div>
+    );
+  }
 
   return (
     <main className="p-4 sm:p-6 lg:p-8 bg-background min-h-screen">
@@ -325,326 +333,347 @@ export default function ManageDashboardPage() {
             <h1 className="text-[12pt] font-normal uppercase tracking-widest text-foreground/80">Management Dashboard</h1>
           </div>
           <div className="flex items-center gap-2">
-            {!user?.isAnonymous && user && (
+            {isAdmin && (
               <div className="flex items-center gap-2 mr-4 text-accent">
                 <ShieldCheck className="size-4" />
-                <span className="text-[10px] uppercase font-bold tracking-widest">Admin Mode</span>
+                <span className="text-[10px] uppercase font-bold tracking-widest">Admin Authenticated</span>
               </div>
             )}
             <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
               <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Sync Storage
             </Button>
-            {user?.isAnonymous ? (
-              <Button variant="ghost" size="sm" onClick={() => setShowLogin(true)} className="rounded-none font-normal">
-                <LogIn className="size-4 mr-2" /> Admin Login
-              </Button>
-            ) : (
+            {isAdmin ? (
               <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-none font-normal text-destructive">
                 <LogOut className="size-4 mr-2" /> Logout
               </Button>
-            )}
+            ) : null}
           </div>
         </div>
 
-        {showLogin && (
-          <Card className="rounded-none border-accent/20 bg-accent/5 max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle className="text-sm uppercase tracking-widest font-normal">Administrator Sign-In</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="rounded-none" required />
-                </div>
-                <div className="space-y-2">
-                  <Label>Password</Label>
-                  <Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="rounded-none" required />
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={isLoggingIn} className="rounded-none flex-1">
-                    {isLoggingIn ? "Signing in..." : "Login"}
+        {!isAdmin && (
+          <div className="max-w-md mx-auto space-y-6">
+            <Alert variant="destructive" className="rounded-none border-destructive/20 bg-destructive/5">
+              <AlertCircle className="size-4" />
+              <AlertTitle className="uppercase tracking-widest text-[10px] font-bold">Access Restricted</AlertTitle>
+              <AlertDescription className="text-sm">
+                You are currently viewing the dashboard in visitor mode. To make changes, please sign in as <strong className="text-foreground">rhobile@gmail.com</strong>.
+              </AlertDescription>
+            </Alert>
+
+            <Card className="rounded-none border-accent/20">
+              <CardHeader>
+                <CardTitle className="text-sm uppercase tracking-widest font-normal">Administrator Sign-In</CardTitle>
+                <CardDescription className="text-xs">
+                  Enter your credentials to enable management features.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase">Email</Label>
+                    <Input 
+                      type="email" 
+                      value={loginEmail} 
+                      onChange={e => setLoginEmail(e.target.value)} 
+                      placeholder="rhobile@gmail.com"
+                      className="rounded-none" 
+                      required 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase">Password</Label>
+                    <Input 
+                      type="password" 
+                      value={loginPassword} 
+                      onChange={e => setLoginPassword(e.target.value)} 
+                      className="rounded-none" 
+                      required 
+                    />
+                  </div>
+                  <Button type="submit" disabled={isLoggingIn} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold">
+                    {isLoggingIn ? <Loader2 className="size-3 animate-spin mr-2" /> : <LogIn className="size-3 mr-2" />} Sign In
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setShowLogin(false)} className="rounded-none">Cancel</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
-        <Tabs defaultValue="sidebar" className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
-            <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
-            <TabsTrigger value="masonry" className="rounded-none">Masonry</TabsTrigger>
-            <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
-            <TabsTrigger value="obs" className="rounded-none">Observations</TabsTrigger>
-            <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
-          </TabsList>
+        {isAdmin && (
+          <Tabs defaultValue="sidebar" className="w-full">
+            <TabsList className="grid w-full max-w-2xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
+              <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
+              <TabsTrigger value="masonry" className="rounded-none">Masonry</TabsTrigger>
+              <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
+              <TabsTrigger value="obs" className="rounded-none">Observations</TabsTrigger>
+              <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="sidebar" className="space-y-6">
-            <div className="flex justify-between items-center border-b border-border/30 pb-4">
-              <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar & Header Content</h2>
-              <Button size="sm" onClick={saveSidebar} disabled={isSaving} className="rounded-none h-8 font-normal">
-                {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Changes
-              </Button>
-            </div>
+            <TabsContent value="sidebar" className="space-y-6">
+              <div className="flex justify-between items-center border-b border-border/30 pb-4">
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sidebar & Header Content</h2>
+                <Button size="sm" onClick={saveSidebar} disabled={isSaving} className="rounded-none h-8 font-normal">
+                  {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Changes
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10pt] font-normal uppercase tracking-widest">Site Title (Header)</Label>
+                    <Input 
+                      value={siteTitle} 
+                      onChange={e => setSiteTitle(e.target.value)} 
+                      className="rounded-none font-normal text-lg tracking-[0.15em]"
+                      placeholder="e.g. Rhobile"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10pt] font-normal uppercase tracking-widest">Sidebar Text (Bio)</Label>
+                    <Textarea 
+                      value={sidebarContent} 
+                      onChange={e => setSidebarContent(e.target.value)} 
+                      className="rounded-none h-[500px] font-mono text-sm leading-relaxed p-6"
+                      placeholder="Type your sidebar content here..."
+                    />
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="bg-accent/5 border border-accent/20 p-6 space-y-4">
+                    <div className="flex items-center gap-2 text-accent">
+                      <Info className="size-4" />
+                      <h3 className="text-[10pt] font-normal uppercase tracking-widest">Formatting Guide</h3>
+                    </div>
+                    <div className="space-y-4 text-[12px] text-foreground/70 leading-relaxed">
+                      <section>
+                        <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Links:</p>
+                        <p>To add a blue link, use:<br /><code className="bg-muted px-1 py-0.5 rounded text-accent">[Link Label](/url)</code></p>
+                      </section>
+                      
+                      <section className="pt-2 border-t border-border/30">
+                        <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Italics:</p>
+                        <p>To italicize text, wrap it in asterisks:<br /><code className="bg-muted px-1 py-0.5 rounded text-accent">*italicized text*</code></p>
+                      </section>
+                      
+                      <div className="space-y-3 pt-4 border-t border-border/30">
+                        <p className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">Useful URLs:</p>
+                        <ul className="space-y-2 font-mono">
+                          <li>News: <code className="text-accent">/news</code></li>
+                          <li>Observations: <code className="text-accent">/observations</code></li>
+                          <li>Home: <code className="text-accent">/</code></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="masonry" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {masonryItems.map((item: any) => (
+                  <div key={item.id} className={cn(
+                    "p-4 border flex items-center gap-4", 
+                    item.isIndexed 
+                      ? (item.isHidden ? "bg-orange-50/10 border-orange-200/50" : "bg-muted/30 border-border/50 shadow-sm") 
+                      : "bg-background border-dashed border-border/40 opacity-70"
+                  )}>
+                    <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
+                      <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-[10pt] font-normal truncate">
+                        {item.title}
+                        {item.isHidden && <span className="ml-2 text-[8px] font-bold uppercase text-orange-500 bg-orange-500/10 px-1 py-0.5 border border-orange-500/20">Hidden</span>}
+                      </h3>
+                      <p className="text-[8pt] text-accent font-mono break-all leading-tight mt-1">{item.id}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="rounded-none h-6 px-2 text-[9px] uppercase tracking-widest" onClick={() => {
+                        setEditingItem(item);
+                        setItemTitle(item.title || '');
+                        setItemDesc(item.description || '');
+                        setItemOrder(item.order?.toString() || '0');
+                        setIsItemDialogOpen(true);
+                      }}>Edit</Button>
+                      {item.isIndexed && !item.isHidden && (
+                        <Button variant="ghost" size="sm" className="rounded-none text-destructive h-6 w-6 p-0" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', action: 'hide', msg: `Hide "${item.title}" from the curated gallery? This will preserve its metadata.` })}>
+                          <Trash2 className="size-3" />
+                        </Button>
+                      )}
+                      {item.isIndexed && item.isHidden && (
+                        <Button variant="ghost" size="sm" className="rounded-none text-accent h-6 w-6 p-0" onClick={() => handleUnhide(item)}>
+                          <Plus className="size-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-[10pt] font-normal uppercase tracking-widest">Site Title (Header)</Label>
-                  <Input 
-                    value={siteTitle} 
-                    onChange={e => setSiteTitle(e.target.value)} 
-                    className="rounded-none font-normal text-lg tracking-[0.15em]"
-                    placeholder="e.g. Rhobile"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-[10pt] font-normal uppercase tracking-widest">Sidebar Text (Bio)</Label>
-                  <Textarea 
-                    value={sidebarContent} 
-                    onChange={e => setSidebarContent(e.target.value)} 
-                    className="rounded-none h-[500px] font-mono text-sm leading-relaxed p-6"
-                    placeholder="Type your sidebar content here..."
-                  />
-                </div>
+            <TabsContent value="news" className="space-y-6">
+              <div className="flex justify-between items-center">
+                <Button size="sm" onClick={() => { 
+                  setEntryType('news'); 
+                  setEditingEntry({ isNew: true }); 
+                  setEntryTitle(''); 
+                  setEntryDate(''); 
+                  setEntryContent(''); 
+                  setEntryImagePath(''); 
+                  setEntryVideoId(''); 
+                  setEntryOrder((firestoreNews?.length || 0).toString());
+                }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add News Entry</Button>
               </div>
-              <div className="space-y-6">
-                <div className="bg-accent/5 border border-accent/20 p-6 space-y-4">
-                  <div className="flex items-center gap-2 text-accent">
-                    <Info className="size-4" />
-                    <h3 className="text-[10pt] font-normal uppercase tracking-widest">Formatting Guide</h3>
+
+              {editingEntry && entryType === 'news' && (
+                <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2 space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
+                    <div className="space-y-2"><Label>Order</Label><Input type="number" value={entryOrder} onChange={e => setEntryOrder(e.target.value)} className="rounded-none" /></div>
                   </div>
-                  <div className="space-y-4 text-[12px] text-foreground/70 leading-relaxed">
-                    <section>
-                      <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Links:</p>
-                      <p>To add a blue link, use:<br /><code className="bg-muted px-1 py-0.5 rounded text-accent">[Link Label](/url)</code></p>
-                    </section>
-                    
-                    <section className="pt-2 border-t border-border/30">
-                      <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Italics:</p>
-                      <p>To italicize text, wrap it in asterisks:<br /><code className="bg-muted px-1 py-0.5 rounded text-accent">*italicized text*</code></p>
-                    </section>
-                    
-                    <div className="space-y-3 pt-4 border-t border-border/30">
-                      <p className="text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">Useful URLs:</p>
-                      <ul className="space-y-2 font-mono">
-                        <li>News: <code className="text-accent">/news</code></li>
-                        <li>Observations: <code className="text-accent">/observations</code></li>
-                        <li>Home: <code className="text-accent">/</code></li>
-                      </ul>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" placeholder="e.g. July 2024" /></div>
+                    <div className="space-y-2"><Label>Image Path</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" placeholder="filename.jpg" /></div>
+                    <div className="space-y-2"><Label>Video ID (optional)</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" placeholder="Leave empty to auto-link" /></div>
+                  </div>
+                  <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
+                  <div className="flex gap-2"><Button onClick={saveEntry} disabled={isSaving} className="rounded-none h-8">Save</Button><Button variant="outline" onClick={() => setEditingEntry(null)} className="rounded-none h-8">Cancel</Button></div>
+                </div>
+              )}
+              <div className="space-y-4">
+                {firestoreNews?.map((item) => (
+                  <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center shadow-sm">
+                    <div className="space-y-1">
+                      <h3 className="text-[10pt] font-normal">{item.title}</h3>
+                      <p className="text-[8pt] text-muted-foreground">{item.date} • Order: {item.order}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('news'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); setEntryOrder(item.order?.toString() || '0'); }}>Edit</Button>
+                      <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'news', action: 'delete', msg: `Delete news item "${item.title}"?` })}><Trash2 className="size-4" /></Button>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="masonry" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {masonryItems.map((item: any) => (
-                <div key={item.id} className={cn(
-                  "p-4 border flex items-center gap-4", 
-                  item.isIndexed 
-                    ? (item.isHidden ? "bg-orange-50/10 border-orange-200/50" : "bg-muted/30 border-border/50 shadow-sm") 
-                    : "bg-background border-dashed border-border/40 opacity-70"
-                )}>
-                  <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
-                    <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
+            <TabsContent value="obs" className="space-y-6">
+               <Button size="sm" onClick={() => { 
+                 setEntryType('observations'); 
+                 setEditingEntry({ isNew: true }); 
+                 setEntryTitle(''); 
+                 setEntryDate(''); 
+                 setEntryContent(''); 
+                 setEntryImagePath(''); 
+                 setEntryVideoId(''); 
+                 setEntryOrder((firestoreObs?.length || 0).toString());
+               }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add Observation</Button>
+               
+               {editingEntry && entryType === 'observations' && (
+                <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2 space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
+                    <div className="space-y-2"><Label>Order</Label><Input type="number" value={entryOrder} onChange={e => setEntryOrder(e.target.value)} className="rounded-none" /></div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[10pt] font-normal truncate">
-                      {item.title}
-                      {item.isHidden && <span className="ml-2 text-[8px] font-bold uppercase text-orange-500 bg-orange-500/10 px-1 py-0.5 border border-orange-500/20">Hidden</span>}
-                    </h3>
-                    <p className="text-[8pt] text-accent font-mono break-all leading-tight mt-1">{item.id}</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" placeholder="e.g. Winter 2023" /></div>
+                    <div className="space-y-2"><Label>Image Path</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" placeholder="filename.jpg" /></div>
+                    <div className="space-y-2"><Label>Video ID (optional)</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" placeholder="Leave empty to auto-link" /></div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="rounded-none h-6 px-2 text-[9px] uppercase tracking-widest" onClick={() => {
-                      setEditingItem(item);
-                      setItemTitle(item.title || '');
-                      setItemDesc(item.description || '');
-                      setItemOrder(item.order?.toString() || '0');
-                      setIsItemDialogOpen(true);
-                    }}>Edit</Button>
-                    {item.isIndexed && !item.isHidden && (
-                      <Button variant="ghost" size="sm" className="rounded-none text-destructive h-6 w-6 p-0" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', action: 'hide', msg: `Hide "${item.title}" from the curated gallery? This will preserve its metadata.` })}>
-                        <Trash2 className="size-3" />
-                      </Button>
-                    )}
-                    {item.isIndexed && item.isHidden && (
-                      <Button variant="ghost" size="sm" className="rounded-none text-accent h-6 w-6 p-0" onClick={() => handleUnhide(item)}>
-                        <Plus className="size-3" />
-                      </Button>
-                    )}
-                  </div>
+                  <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
+                  <div className="flex gap-2"><Button onClick={saveEntry} disabled={isSaving} className="rounded-none h-8">Save</Button><Button variant="outline" onClick={() => setEditingEntry(null)} className="rounded-none h-8">Cancel</Button></div>
                 </div>
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="news" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <Button size="sm" onClick={() => { 
-                setEntryType('news'); 
-                setEditingEntry({ isNew: true }); 
-                setEntryTitle(''); 
-                setEntryDate(''); 
-                setEntryContent(''); 
-                setEntryImagePath(''); 
-                setEntryVideoId(''); 
-                setEntryOrder((firestoreNews?.length || 0).toString());
-              }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add News Entry</Button>
-            </div>
-
-            {editingEntry && entryType === 'news' && (
-              <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2 space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Order</Label><Input type="number" value={entryOrder} onChange={e => setEntryOrder(e.target.value)} className="rounded-none" /></div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" placeholder="e.g. July 2024" /></div>
-                  <div className="space-y-2"><Label>Image Path</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" placeholder="filename.jpg" /></div>
-                  <div className="space-y-2"><Label>Video ID (optional)</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" placeholder="Leave empty to auto-link" /></div>
-                </div>
-                <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
-                <div className="flex gap-2"><Button onClick={saveEntry} disabled={isSaving} className="rounded-none h-8">Save</Button><Button variant="outline" onClick={() => setEditingEntry(null)} className="rounded-none h-8">Cancel</Button></div>
-              </div>
-            )}
-            <div className="space-y-4">
-              {firestoreNews?.map((item) => (
-                <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center shadow-sm">
-                  <div className="space-y-1">
-                    <h3 className="text-[10pt] font-normal">{item.title}</h3>
-                    <p className="text-[8pt] text-muted-foreground">{item.date} • Order: {item.order}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('news'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); setEntryOrder(item.order?.toString() || '0'); }}>Edit</Button>
-                    <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'news', action: 'delete', msg: `Delete news item "${item.title}"?` })}><Trash2 className="size-4" /></Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="obs" className="space-y-6">
-             <Button size="sm" onClick={() => { 
-               setEntryType('observations'); 
-               setEditingEntry({ isNew: true }); 
-               setEntryTitle(''); 
-               setEntryDate(''); 
-               setEntryContent(''); 
-               setEntryImagePath(''); 
-               setEntryVideoId(''); 
-               setEntryOrder((firestoreObs?.length || 0).toString());
-             }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add Observation</Button>
-             
-             {editingEntry && entryType === 'observations' && (
-              <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="md:col-span-2 space-y-2"><Label>Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
-                  <div className="space-y-2"><Label>Order</Label><Input type="number" value={entryOrder} onChange={e => setEntryOrder(e.target.value)} className="rounded-none" /></div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2"><Label>Date Label</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" placeholder="e.g. Winter 2023" /></div>
-                  <div className="space-y-2"><Label>Image Path</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" placeholder="filename.jpg" /></div>
-                  <div className="space-y-2"><Label>Video ID (optional)</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" placeholder="Leave empty to auto-link" /></div>
-                </div>
-                <div className="space-y-2"><Label>Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-32" /></div>
-                <div className="flex gap-2"><Button onClick={saveEntry} disabled={isSaving} className="rounded-none h-8">Save</Button><Button variant="outline" onClick={() => setEditingEntry(null)} className="rounded-none h-8">Cancel</Button></div>
-              </div>
-            )}
-            <div className="space-y-4">
-              {firestoreObs?.map((item) => (
-                <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center shadow-sm">
-                  <div className="space-y-1">
-                    <h3 className="text-[10pt] font-normal">{item.title}</h3>
-                    <p className="text-[8pt] text-muted-foreground">{item.date} • Order: {item.order}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('observations'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); setEntryOrder(item.order?.toString() || '0'); }}>Edit</Button>
-                    <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'observations', action: 'delete', msg: `Delete observation "${item.title}"?` })}><Trash2 className="size-4" /></Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="pages" className="space-y-6">
-            <div className="flex justify-between items-center border-b border-border/30 pb-4">
-              <Button size="sm" onClick={() => { setEditingPage({ isNew: true }); setPageTitle(''); setPageSlug(''); setPageContent(''); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Create Page</Button>
-              <div className="flex items-center gap-4 text-[10pt] text-muted-foreground bg-accent/5 px-3 py-1 border border-accent/20">
-                <div className="flex items-center gap-1"><ImageIcon className="size-3 text-accent" /> <code className="text-accent">[image:file.jpg]</code></div>
-                <div className="flex items-center gap-1"><Type className="size-3 text-accent" /> <code className="text-accent">*italics*</code></div>
-              </div>
-            </div>
-
-            {editingPage && (
-              <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="md:col-span-2 space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2"><Label>Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
-                      <div className="space-y-2"><Label>Slug (URL path)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" placeholder="e.g. visit-garden" /></div>
+              )}
+              <div className="space-y-4">
+                {firestoreObs?.map((item) => (
+                  <div key={item.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center shadow-sm">
+                    <div className="space-y-1">
+                      <h3 className="text-[10pt] font-normal">{item.title}</h3>
+                      <p className="text-[8pt] text-muted-foreground">{item.date} • Order: {item.order}</p>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Page Content</Label>
-                      <Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-96 font-mono text-sm leading-relaxed" placeholder="Write your page content here..." />
-                    </div>
-                    <div className="flex gap-2 pt-2">
-                      <Button onClick={savePage} disabled={isSaving} className="rounded-none h-9 px-6 uppercase tracking-widest text-[10px]">Save Page</Button>
-                      <Button variant="outline" onClick={() => setEditingPage(null)} className="rounded-none h-9 px-6 uppercase tracking-widest text-[10px]">Cancel</Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="rounded-none" onClick={() => { setEntryType('observations'); setEditingEntry(item); setEntryTitle(item.title); setEntryDate(item.date); setEntryContent(item.content); setEntryImagePath(item.imagePath || ''); setEntryVideoId(item.videoId || ''); setEntryOrder(item.order?.toString() || '0'); }}>Edit</Button>
+                      <Button variant="ghost" size="sm" className="rounded-none text-destructive" onClick={() => setItemToDelete({ id: item.id, collection: 'observations', action: 'delete', msg: `Delete observation "${item.title}"?` })}><Trash2 className="size-4" /></Button>
                     </div>
                   </div>
-                  
-                  <div className="space-y-6">
-                    <div className="bg-accent/5 border border-accent/20 p-6 space-y-4">
-                      <div className="flex items-center gap-2 text-accent">
-                        <Info className="size-4" />
-                        <h3 className="text-[10pt] font-normal uppercase tracking-widest">Page Formatting</h3>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="pages" className="space-y-6">
+              <div className="flex justify-between items-center border-b border-border/30 pb-4">
+                <Button size="sm" onClick={() => { setEditingPage({ isNew: true }); setPageTitle(''); setPageSlug(''); setPageContent(''); }} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Create Page</Button>
+                <div className="flex items-center gap-4 text-[10pt] text-muted-foreground bg-accent/5 px-3 py-1 border border-accent/20">
+                  <div className="flex items-center gap-1"><ImageIcon className="size-3 text-accent" /> <code className="text-accent">[image:file.jpg]</code></div>
+                  <div className="flex items-center gap-1"><Type className="size-3 text-accent" /> <code className="text-accent">*italics*</code></div>
+                </div>
+              </div>
+
+              {editingPage && (
+                <div className="bg-muted/20 border border-border/50 p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2"><Label>Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
+                        <div className="space-y-2"><Label>Slug (URL path)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" placeholder="e.g. visit-garden" /></div>
                       </div>
-                      <div className="space-y-4 text-[11px] text-foreground/70 leading-relaxed">
-                        <section>
-                          <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Images:</p>
-                          <p>To place an image between paragraphs, type the following on its own line:</p>
-                          <code className="block bg-muted p-2 rounded mt-1 text-accent font-mono">[image:filename.jpg]</code>
-                        </section>
-                        
-                        <section className="pt-2 border-t border-border/30">
-                          <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Italics:</p>
-                          <p>Wrap words in asterisks:<br /><code className="text-accent font-mono">*example*</code></p>
-                        </section>
+                      <div className="space-y-2">
+                        <Label>Page Content</Label>
+                        <Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-96 font-mono text-sm leading-relaxed" placeholder="Write your page content here..." />
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button onClick={savePage} disabled={isSaving} className="rounded-none h-9 px-6 uppercase tracking-widest text-[10px]">Save Page</Button>
+                        <Button variant="outline" onClick={() => setEditingPage(null)} className="rounded-none h-9 px-6 uppercase tracking-widest text-[10px]">Cancel</Button>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-6">
+                      <div className="bg-accent/5 border border-accent/20 p-6 space-y-4">
+                        <div className="flex items-center gap-2 text-accent">
+                          <Info className="size-4" />
+                          <h3 className="text-[10pt] font-normal uppercase tracking-widest">Page Formatting</h3>
+                        </div>
+                        <div className="space-y-4 text-[11px] text-foreground/70 leading-relaxed">
+                          <section>
+                            <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Images:</p>
+                            <p>To place an image between paragraphs, type the following on its own line:</p>
+                            <code className="block bg-muted p-2 rounded mt-1 text-accent font-mono">[image:filename.jpg]</code>
+                          </section>
+                          
+                          <section className="pt-2 border-t border-border/30">
+                            <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Italics:</p>
+                            <p>Wrap words in asterisks:<br /><code className="text-accent font-mono">*example*</code></p>
+                          </section>
 
-                        <section className="pt-2 border-t border-border/30">
-                          <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Links:</p>
-                          <p>Use the format:<br /><code className="text-accent font-mono">[Label](/url)</code></p>
-                        </section>
+                          <section className="pt-2 border-t border-border/30">
+                            <p className="font-semibold text-accent mb-1 uppercase tracking-wider">Links:</p>
+                            <p>Use the format:<br /><code className="text-accent font-mono">[Label](/url)</code></p>
+                          </section>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {firestorePages?.filter(p => p.id !== 'sidebar').map((page) => (
-                <div key={page.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center shadow-sm">
-                  <div className="space-y-1">
-                    <h3 className="text-[10pt] font-normal">{page.title}</h3>
-                    <p className="text-[8pt] text-accent font-mono">/p/{page.slug}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {firestorePages?.filter(p => p.id !== 'sidebar').map((page) => (
+                  <div key={page.id} className="p-4 bg-muted/20 border border-border/50 flex justify-between items-center shadow-sm">
+                    <div className="space-y-1">
+                      <h3 className="text-[10pt] font-normal">{page.title}</h3>
+                      <p className="text-[8pt] text-accent font-mono">/p/{page.slug}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" className="rounded-none h-7 px-3 text-[9px] uppercase tracking-widest" onClick={() => { setEditingPage(page); setPageTitle(page.title); setPageSlug(page.slug); setPageContent(page.content); }}>Edit</Button>
+                      <Button variant="ghost" size="sm" className="rounded-none text-destructive h-7 w-7 p-0" onClick={() => setItemToDelete({ id: page.id, collection: 'pages', action: 'delete', msg: `Delete page "${page.title}"?` })}><Trash2 className="size-3" /></Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="rounded-none h-7 px-3 text-[9px] uppercase tracking-widest" onClick={() => { setEditingPage(page); setPageTitle(page.title); setPageSlug(page.slug); setPageContent(page.content); }}>Edit</Button>
-                    <Button variant="ghost" size="sm" className="rounded-none text-destructive h-7 w-7 p-0" onClick={() => setItemToDelete({ id: page.id, collection: 'pages', action: 'delete', msg: `Delete page "${page.title}"?` })}><Trash2 className="size-3" /></Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
+        )}
       </div>
 
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>

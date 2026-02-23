@@ -6,9 +6,8 @@ service firebase.storage {
     
     function isAdmin() {
       return request.auth != null && (
-        request.auth.uid == 'ge6KSJEZKFXsNZerEbXseOR2vSS2' || 
         request.auth.token.email == 'rhobile@gmail.com' ||
-        request.auth.uid == 'yuFerZOVxgXYUM4GRhlXBrxCSNt1'
+        request.auth.uid == 'ge6KSJEZKFXsNZerEbXseOR2vSS2'
       );
     }
 
@@ -18,6 +17,6 @@ service firebase.storage {
       // Protected write access
       allow write: if isAdmin();
     }
-    // Deployment trigger version: 1.3.0
+    // Deployment trigger version: 1.4.0
   }
 }
