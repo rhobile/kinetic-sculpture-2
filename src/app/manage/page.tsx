@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -20,7 +21,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/dialog';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -121,30 +122,50 @@ export default function ManageDashboardPage() {
   }, [sidebarData]);
 
   useEffect(() => {
-    if (!isAuthLoading && !user && auth) {
-      signInAnonymously(auth).catch((err) => console.error("Anonymous auth failed:", err));
+    // Ensure the session is never empty - if not logged in, sign in anonymously.
+    // This provides a request.auth object to Security Rules for auditing.
+    if (!isAuthLoading && !user && auth && !isLoggingIn) {
+      signInAnonymously(auth).catch((err) => {
+        // Fail silently or log to console - anonymous auth failure is usually non-critical for visitors
+        console.warn("Anonymous sign-in deferred:", err.message);
+      });
     }
-  }, [auth, user, isAuthLoading]);
+  }, [auth, user, isAuthLoading, isLoggingIn]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) return;
     setIsLoggingIn(true);
-    try {
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
-      toast({ title: "Welcome back", description: "You are now signed in as rhobile@gmail.com." });
-    } catch (error: any) {
-      console.error("Login error:", error);
-      toast({ variant: "destructive", title: "Login failed", description: "Please check your email and password. Ensure 'Email/Password' is enabled in the Firebase Console." });
-    } finally {
-      setIsLoggingIn(false);
-    }
+
+    // Using non-blocking pattern: initiate the call and handle the result via promises.
+    // UI reflects the state change when onAuthStateChanged triggers in the provider.
+    signInWithEmailAndPassword(auth, loginEmail, loginPassword)
+      .then(() => {
+        toast({ 
+          title: "Authenticated", 
+          description: "Welcome back, rhobile@gmail.com." 
+        });
+        setLoginEmail('');
+        setLoginPassword('');
+      })
+      .catch((error: any) => {
+        console.error("Login error:", error);
+        toast({ 
+          variant: "destructive", 
+          title: "Sign-In Failed", 
+          description: "Please verify your email and password. Ensure the 'Email/Password' provider is enabled in the Firebase Console." 
+        });
+      })
+      .finally(() => {
+        setIsLoggingIn(false);
+      });
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     if (!auth) return;
-    await signOut(auth);
-    toast({ title: "Signed out", description: "Switched back to visitor mode." });
+    signOut(auth).then(() => {
+      toast({ title: "Signed out", description: "Switched back to visitor mode." });
+    });
   };
 
   const fetchData = useCallback(async () => {
@@ -201,78 +222,72 @@ export default function ManageDashboardPage() {
     });
   }, [storageData, firestoreVideos]);
 
-  const saveItem = async () => {
+  const saveItem = () => {
     if (!firestore || !itemTitle) return;
     setIsSaving(true);
-    try {
-      const id = editingItem?.id;
-      const docRef = doc(firestore, 'videos', id);
-      setDocumentNonBlocking(docRef, {
-        id,
-        title: itemTitle,
-        description: itemDesc,
-        order: Number(itemOrder) || 0,
-        updatedAt: new Date().toISOString(),
-        hidden: editingItem?.isHidden || false
-      }, { merge: true });
-      toast({ title: "Masonry record updated" });
-      setIsItemDialogOpen(false);
-    } finally {
-      setIsSaving(false);
-    }
+    const id = editingItem?.id;
+    const docRef = doc(firestore, 'videos', id);
+    
+    setDocumentNonBlocking(docRef, {
+      id,
+      title: itemTitle,
+      description: itemDesc,
+      order: Number(itemOrder) || 0,
+      updatedAt: new Date().toISOString(),
+      hidden: editingItem?.isHidden || false
+    }, { merge: true });
+    
+    toast({ title: "Record updated" });
+    setIsItemDialogOpen(false);
+    setIsSaving(false);
   };
 
-  const saveEntry = async () => {
+  const saveEntry = () => {
     if (!firestore || !entryTitle) {
-      toast({ variant: "destructive", title: "Missing Information", description: "A title is required for all entries." });
+      toast({ variant: "destructive", title: "Missing Title", description: "Entries require a title." });
       return;
     }
     setIsSaving(true);
-    try {
-      const slug = entryTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      const id = editingEntry?.isNew ? (slug || `entry-${Date.now()}`) : editingEntry.id;
-      
-      const docRef = doc(firestore, entryType, id);
-      const defaultOrder = entryType === 'news' ? (firestoreNews?.length || 0) : (firestoreObs?.length || 0);
-      
-      const finalVideoId = entryVideoId.trim() || (entryImagePath ? entryImagePath.split('/').pop()?.split('.').slice(0, -1).join('.') : '');
+    const slug = entryTitle.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const id = editingEntry?.isNew ? (slug || `entry-${Date.now()}`) : editingEntry.id;
+    
+    const docRef = doc(firestore, entryType, id);
+    const defaultOrder = entryType === 'news' ? (firestoreNews?.length || 0) : (firestoreObs?.length || 0);
+    const finalVideoId = entryVideoId.trim() || (entryImagePath ? entryImagePath.split('/').pop()?.split('.').slice(0, -1).join('.') : '');
 
-      setDocumentNonBlocking(docRef, {
-        id,
-        title: entryTitle,
-        date: entryDate,
-        content: entryContent,
-        imagePath: entryImagePath,
-        videoId: finalVideoId,
-        order: Number(entryOrder) || defaultOrder,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-      
-      toast({ title: "Entry saved successfully" });
-      setEditingEntry(null);
-    } finally {
-      setIsSaving(false);
-    }
+    setDocumentNonBlocking(docRef, {
+      id,
+      title: entryTitle,
+      date: entryDate,
+      content: entryContent,
+      imagePath: entryImagePath,
+      videoId: finalVideoId,
+      order: Number(entryOrder) || defaultOrder,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    
+    toast({ title: "Entry saved" });
+    setEditingEntry(null);
+    setIsSaving(false);
   };
 
-  const savePage = async () => {
+  const savePage = () => {
     if (!firestore || !pageTitle || !pageSlug) return;
     setIsSaving(true);
-    try {
-      const id = editingPage?.isNew ? pageSlug.toLowerCase().trim() : editingPage.id;
-      const docRef = doc(firestore, 'pages', id);
-      setDocumentNonBlocking(docRef, {
-        id,
-        title: pageTitle,
-        slug: pageSlug,
-        content: pageContent,
-        updatedAt: new Date().toISOString()
-      }, { merge: true });
-      toast({ title: "Page updated" });
-      setEditingPage(null);
-    } finally {
-      setIsSaving(false);
-    }
+    const id = editingPage?.isNew ? pageSlug.toLowerCase().trim() : editingPage.id;
+    const docRef = doc(firestore, 'pages', id);
+    
+    setDocumentNonBlocking(docRef, {
+      id,
+      title: pageTitle,
+      slug: pageSlug,
+      content: pageContent,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    
+    toast({ title: "Page saved" });
+    setEditingPage(null);
+    setIsSaving(false);
   };
 
   const saveSidebar = async () => {
@@ -280,6 +295,7 @@ export default function ManageDashboardPage() {
     setIsSaving(true);
     try {
       const docRef = doc(firestore, 'pages', 'sidebar');
+      // Sidebar is critical, so we await it for immediate feedback in the management session
       await setDoc(docRef, {
         siteTitle,
         content: sidebarContent,
@@ -300,10 +316,10 @@ export default function ManageDashboardPage() {
 
     if (action === 'hide') {
       updateDocumentNonBlocking(docRef, { hidden: true });
-      toast({ title: "Item hidden from gallery" });
+      toast({ title: "Item hidden" });
     } else {
       deleteDocumentNonBlocking(docRef);
-      toast({ title: "Record removed" });
+      toast({ title: "Record deleted" });
     }
     
     setItemToDelete(null);
@@ -313,7 +329,7 @@ export default function ManageDashboardPage() {
     if (!firestore) return;
     const docRef = doc(firestore, 'videos', item.id);
     updateDocumentNonBlocking(docRef, { hidden: false });
-    toast({ title: "Item restored to gallery" });
+    toast({ title: "Item restored" });
   };
 
   if (isAuthLoading) {
@@ -336,17 +352,17 @@ export default function ManageDashboardPage() {
             {isAdmin && (
               <div className="flex items-center gap-2 mr-4 text-accent">
                 <ShieldCheck className="size-4" />
-                <span className="text-[10px] uppercase font-bold tracking-widest">Admin Authenticated</span>
+                <span className="text-[10px] uppercase font-bold tracking-widest">Administrator</span>
               </div>
             )}
             <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
               <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Sync Storage
             </Button>
-            {isAdmin ? (
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-none font-normal text-destructive">
+            {isAdmin && (
+              <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-none font-normal text-destructive hover:text-destructive">
                 <LogOut className="size-4 mr-2" /> Logout
               </Button>
-            ) : null}
+            )}
           </div>
         </div>
 
@@ -356,7 +372,7 @@ export default function ManageDashboardPage() {
               <AlertCircle className="size-4" />
               <AlertTitle className="uppercase tracking-widest text-[10px] font-bold">Access Restricted</AlertTitle>
               <AlertDescription className="text-sm">
-                You are currently viewing the dashboard in visitor mode. To make changes, please sign in as <strong className="text-foreground">rhobile@gmail.com</strong>.
+                You are currently in visitor mode. Sign in as <strong className="text-foreground">rhobile@gmail.com</strong> to enable management features.
               </AlertDescription>
             </Alert>
 
@@ -364,7 +380,7 @@ export default function ManageDashboardPage() {
               <CardHeader>
                 <CardTitle className="text-sm uppercase tracking-widest font-normal">Administrator Sign-In</CardTitle>
                 <CardDescription className="text-xs">
-                  Enter your credentials to enable management features.
+                  Access is restricted to authorized gallery administrators.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -391,7 +407,7 @@ export default function ManageDashboardPage() {
                     />
                   </div>
                   <Button type="submit" disabled={isLoggingIn} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold">
-                    {isLoggingIn ? <Loader2 className="size-3 animate-spin mr-2" /> : <LogIn className="size-3 mr-2" />} Sign In
+                    {isLoggingIn ? <Loader2 className="size-3 animate-spin mr-2" /> : <LogIn className="size-3 mr-2" />} Authenticate
                   </Button>
                 </form>
               </CardContent>
@@ -498,7 +514,7 @@ export default function ManageDashboardPage() {
                         setIsItemDialogOpen(true);
                       }}>Edit</Button>
                       {item.isIndexed && !item.isHidden && (
-                        <Button variant="ghost" size="sm" className="rounded-none text-destructive h-6 w-6 p-0" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', action: 'hide', msg: `Hide "${item.title}" from the curated gallery? This will preserve its metadata.` })}>
+                        <Button variant="ghost" size="sm" className="rounded-none text-destructive h-6 w-6 p-0" onClick={() => setItemToDelete({ id: item.id, collection: 'videos', action: 'hide', msg: `Hide "${item.title}" from the public gallery?` })}>
                           <Trash2 className="size-3" />
                         </Button>
                       )}
