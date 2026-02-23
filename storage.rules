@@ -4,6 +4,7 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     
+    // Helper function to check for administrative access via email or known UID
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.email == 'rhobile@gmail.com' ||
@@ -14,9 +15,9 @@ service firebase.storage {
     match /{allPaths=**} {
       // Publicly readable for the gallery
       allow read: if true;
-      // Protected write access
+      // Protected write access for rhobile@gmail.com
       allow write: if isAdmin();
     }
-    // Deployment trigger version: 1.4.0
+    // Deployment trigger version: 1.5.0
   }
 }
