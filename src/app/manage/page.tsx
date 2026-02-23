@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -21,7 +20,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { 
   AlertDialog, 
   AlertDialogAction, 
@@ -122,11 +121,8 @@ export default function ManageDashboardPage() {
   }, [sidebarData]);
 
   useEffect(() => {
-    // Ensure the session is never empty - if not logged in, sign in anonymously.
-    // This provides a request.auth object to Security Rules for auditing.
     if (!isAuthLoading && !user && auth && !isLoggingIn) {
       signInAnonymously(auth).catch((err) => {
-        // Fail silently or log to console - anonymous auth failure is usually non-critical for visitors
         console.warn("Anonymous sign-in deferred:", err.message);
       });
     }
@@ -137,8 +133,6 @@ export default function ManageDashboardPage() {
     if (!auth) return;
     setIsLoggingIn(true);
 
-    // Using non-blocking pattern: initiate the call and handle the result via promises.
-    // UI reflects the state change when onAuthStateChanged triggers in the provider.
     signInWithEmailAndPassword(auth, loginEmail, loginPassword)
       .then(() => {
         toast({ 
@@ -295,7 +289,6 @@ export default function ManageDashboardPage() {
     setIsSaving(true);
     try {
       const docRef = doc(firestore, 'pages', 'sidebar');
-      // Sidebar is critical, so we await it for immediate feedback in the management session
       await setDoc(docRef, {
         siteTitle,
         content: sidebarContent,
