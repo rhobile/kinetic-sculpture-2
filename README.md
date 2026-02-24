@@ -7,8 +7,8 @@ This is a high-performance digital gallery for kinetic sculptures, built with Ne
 This application is designed to run on a fully integrated Firebase backend:
 
 - **Firebase App Hosting**: Hosts the Next.js application. It automatically builds and deploys your site whenever you push code to your connected GitHub repository.
-- **Cloud Firestore**: A NoSQL database used to store all sculpture metadata, news entries, flow observations, and custom page content.
 - **Cloud Storage for Firebase**: Used for high-speed delivery of high-resolution images (`ks-images/`) and MP4 videos (`ks-videos/`).
+- **Cloud Firestore**: A NoSQL database used to store all sculpture metadata, news entries, flow observations, and custom page content.
 - **Firebase Authentication**: Provides secure access to the Management Dashboard for `rhobile@gmail.com`.
 
 ## 🚀 How to Publish Changes (Firebase App Hosting)
@@ -31,11 +31,11 @@ Firebase App Hosting will detect the push and automatically start a new deployme
 If you are missing the `src/` folder or other files on your computer, follow these exact steps to download a complete, fresh copy of the project:
 
 1. **Open the Terminal** (at the bottom of this window).
-2. **Run this command** to create a single zip file of everything (it includes the `src/` folder):
+2. **Copy and Run this SINGLE command** to create a zip file of everything (it includes the `src/` folder):
    ```bash
    zip -r rhobile-full-project.zip . -x "node_modules/*" ".next/*" ".git/*"
    ```
-3. **Download the file**: Look at the **File Explorer** on the left. Find `rhobile-full-project.zip`, **right-click** it, and select **Download**.
+3. **Download the file**: Once the command finishes, look at the **File Explorer** on the left. Find `rhobile-full-project.zip`, **right-click** it, and select **Download**.
 4. **Unzip on your PC**: Once downloaded, extract the contents. You will see the `src/` folder and all configuration files ready for use.
 
 ## 🌐 Go-Live Checklist
