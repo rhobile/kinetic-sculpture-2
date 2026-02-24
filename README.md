@@ -28,15 +28,25 @@ Firebase App Hosting will detect the push and automatically start a new deployme
 
 ## 📦 How to Download the ENTIRE Project to Your PC
 
-If you are missing the `src/` folder or other files on your computer, follow these exact steps to download a complete, fresh copy of the project:
+If you need to download a full copy of the project (including the `src/` folder) to your local computer, follow these steps in the **Terminal** at the bottom of this window:
 
-1. **Open the Terminal** (at the bottom of this window).
-2. **Copy and Run this SINGLE command** to create a zip file of everything (it includes the `src/` folder):
-   ```bash
-   zip -r rhobile-full-project.zip . -x "node_modules/*" ".next/*" ".git/*"
-   ```
-3. **Download the file**: Once the command finishes, look at the **File Explorer** on the left. Find `rhobile-full-project.zip`, **right-click** it, and select **Download**.
-4. **Unzip on your PC**: Once downloaded, extract the contents. You will see the `src/` folder and all configuration files ready for use.
+### Option 1: Create a ZIP (Recommended)
+Try running this command first:
+```bash
+zip -r rhobile-full.zip . -x "node_modules/*" ".next/*" ".git/*"
+```
+
+### Option 2: Fallback using TAR
+If the `zip` command is not recognized, run this instead:
+```bash
+tar -czvf rhobile-full.tar.gz . --exclude="node_modules" --exclude=".next" --exclude=".git"
+```
+
+### How to Download the file:
+1. Once the command finishes, look at the **File Explorer** on the left.
+2. Find the new file (`rhobile-full.zip` or `rhobile-full.tar.gz`).
+3. **Right-click** it and select **Download**.
+4. Save it to your PC and extract the contents. You will see the `src/` folder and all files ready for use.
 
 ## 🌐 Go-Live Checklist
 
