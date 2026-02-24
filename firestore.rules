@@ -37,6 +37,6 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     
-    // Deployment trigger version: 2.8.1
+    // Deployment trigger version: 2.8.2
   }
 }
