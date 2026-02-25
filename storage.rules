@@ -1,0 +1,25 @@
+rules_version = '2';
+
+// FIREBASE STORAGE SECURITY RULES
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check for administrative access via email or known UID
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'rhobile@gmail.com' ||
+        request.auth.uid == 'ge6KSJEZKFXsNZerEbXseOR2vSS2'
+      );
+    }
+
+    match /{allPaths=**} {
+      // Publicly readable for the gallery
+      allow read: if true;
+      // Protected write access for rhobile@gmail.com
+      allow write: if isAdmin();
+    }
+    // Deployment trigger version: 1.6.2
+  }
+}
+
+zip -r rhobile-full-project.zip . -x "node_modules/*" ".next/*" ".git/*"

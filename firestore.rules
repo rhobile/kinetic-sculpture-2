@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check for administrative access via email or known UID
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'rhobile@gmail.com' ||
+        request.auth.uid == 'ge6KSJEZKFXsNZerEbXseOR2vSS2'
+      );
+    }
+
+    // Explicit rules for primary collections
+    match /videos/{videoId} {
+      allow read, list: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /news/{newsId} {
+      allow read, list: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /observations/{obsId} {
+      allow read, list: if true;
+      allow write: if isAdmin();
+    }
+    
+    match /pages/{pageId} {
+      allow read, list: if true;
+      allow write: if isAdmin();
+    }
+
+    // Global fallback for queries and subcollections
+    match /{document=**} {
+      allow read, list: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Deployment trigger version: 2.8.2
+  }
+}
