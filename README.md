@@ -1,4 +1,5 @@
-# Rhobile | Kinetic Sculptures Gallery
+# Rhobile | Kinetic Sculptures Gallery specially changed to prove git commit -m has updated on GitHub without changing anythihg that matters
+>>>>>>> master
 
 This is a high-performance digital gallery for kinetic sculptures, built with Next.js 15, Firebase, and Tailwind CSS.
 

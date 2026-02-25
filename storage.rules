@@ -18,6 +18,6 @@ service firebase.storage {
       // Protected write access for rhobile@gmail.com
       allow write: if isAdmin();
     }
-    // Deployment trigger version: 1.6.2
+    // Deployment trigger version: 1.6.0
   }
 }
