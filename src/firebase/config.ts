@@ -1,3 +1,4 @@
+//"this is a test 26th feb"
 export const firebaseConfig = {
   "projectId": "kinetic-sculptures-2-936-80a86",
   "appId": "1:792239010124:web:b59f3d9e95aacdf5ba5fe9",
