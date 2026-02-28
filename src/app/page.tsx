@@ -35,7 +35,7 @@ export default function Home() {
     setIsStorageLoading(true);
     setError(null);
     try {
-      const storage = getStorage(firebaseApp);
+      const storage = getStorage(firebaseApp, 'ks-bucket-nl');
       const imgRes = await listAll(storageRef(storage, 'ks-images'));
       
       const filteredImages = imgRes.items.filter(item => {
