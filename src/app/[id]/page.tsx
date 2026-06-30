@@ -10,7 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 
 /**
  * Dedicated sculpture detail page designed for professional client inspection.
- * Uses 11pt uppercase titles for a clean, single-line appearance.
+ * Tightened vertical spacing between title and description.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -59,7 +59,8 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
             <FirebaseStorageVideo path={videoPath} className="w-full h-full object-contain" />
           </div>
           
-          <div className="max-w-2xl space-y-6">
+          {/* Reduced space-y-6 to space-y-3 to tighten gap between title and text */}
+          <div className="max-w-2xl space-y-3">
             <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight">
               {title}
             </h1>

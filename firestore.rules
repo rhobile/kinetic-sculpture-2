@@ -16,6 +16,5 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
-    // Deployment trigger version: 1.6.5
   }
 }

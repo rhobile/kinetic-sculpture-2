@@ -10,11 +10,7 @@ import Link from 'next/link';
 
 /**
  * Enhanced Custom Page renderer for cinematic storytelling.
- * Supports:
- * - [image:filename.jpg] for embedded images
- * - [video:filename.mp4] for embedded autoplaying, muted videos (kinetic experience)
- * - [label](url) for links
- * - *text* for italics
+ * Tightened vertical spacing for better flow on mobile.
  */
 export default function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -57,7 +53,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         const path = filename.startsWith('ks-images/') ? filename : `ks-images/${filename}`;
         
         elements.push(
-          <div key={`img-${idx}`} className="my-12 first:mt-0 last:mb-0">
+          <div key={`img-${idx}`} className="my-8 first:mt-0 last:mb-0">
             <div className="border border-white/5 bg-neutral-900 overflow-hidden shadow-2xl">
               <FirebaseStorageImage
                 path={path}
@@ -73,14 +69,13 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       }
 
       // Handle Video Tag: [video:filename.mp4]
-      // Kinetic Experience: Muted, loop, autoplay on scroll
       const videoMatch = trimmedLine.match(/^\[video:(.*?)\]$/);
       if (videoMatch) {
         const filename = videoMatch[1].trim();
         const path = filename.startsWith('ks-videos/') ? filename : `ks-videos/${filename}`;
         
         elements.push(
-          <div key={`vid-${idx}`} className="my-12 first:mt-0 last:mb-0">
+          <div key={`vid-${idx}`} className="my-8 first:mt-0 last:mb-0">
             <div className="border border-white/5 bg-black aspect-video overflow-hidden shadow-2xl relative">
               <FirebaseStorageVideo 
                 path={path} 
@@ -113,7 +108,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       });
 
       elements.push(
-        <p key={`p-${idx}`} className="min-h-[1.2em] text-[12pt] text-foreground/80 leading-relaxed font-normal mb-6 last:mb-0 max-w-2xl">
+        <p key={`p-${idx}`} className="min-h-[1.2em] text-[12pt] text-foreground/80 leading-relaxed font-normal mb-4 last:mb-0 max-w-2xl">
           {renderedLine}
         </p>
       );
@@ -151,7 +146,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
   return (
     <main className="p-4 sm:p-6 lg:p-8 lg:py-16">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-normal mb-12 tracking-[0.2em] uppercase border-b border-border/30 pb-10 leading-tight">
+        <h1 className="text-3xl font-normal mb-8 tracking-[0.2em] uppercase border-b border-border/30 pb-6 leading-tight">
           {pageData.title}
         </h1>
         <div className="max-w-none">
