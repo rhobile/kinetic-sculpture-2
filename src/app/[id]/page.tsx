@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 
 /**
  * Dedicated sculpture detail page designed for professional client inspection.
+ * Uses 11pt uppercase titles for a clean, single-line appearance.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -59,7 +60,7 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
           </div>
           
           <div className="max-w-2xl space-y-6">
-            <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight whitespace-nowrap truncate">
+            <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight">
               {title}
             </h1>
             <p className="text-lg text-white/60 font-light leading-relaxed whitespace-pre-wrap">

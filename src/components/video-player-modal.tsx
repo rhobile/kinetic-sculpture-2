@@ -17,6 +17,9 @@ interface VideoPlayerModalProps {
   onClose: () => void;
 }
 
+/**
+ * Gallery Modal with optimized title font size (9pt) to ensure single-line display.
+ */
 export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
     const filename = image.path.split('/').pop()?.split('.').slice(0, -1).join('.');
@@ -42,7 +45,7 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
           </div>
           <div className="px-6 py-10 bg-black border-t border-white/10 shrink-0">
             <DialogHeader className="text-left">
-              <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white mb-4 whitespace-nowrap truncate">
+              <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white mb-4 whitespace-nowrap truncate leading-tight">
                 {image.alt}
               </DialogTitle>
               <DialogDescription className="text-[11pt] text-white/60 font-normal leading-relaxed m-0 p-0 max-w-3xl">
