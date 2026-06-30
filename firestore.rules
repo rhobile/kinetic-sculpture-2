@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Admin access check via explicit email or known UID
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'rhobile@gmail.com' ||
+        request.auth.uid == 'ge6KSJEZKFXsNZerEbXseOR2vSS2' ||
+        request.auth.uid == 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2'
+      );
+    }
+
+    // Public read access for the entire database to support the gallery
+    match /{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    // Deployment trigger version: 1.6.4
+  }
+}

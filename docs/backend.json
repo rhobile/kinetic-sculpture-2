@@ -1,0 +1,166 @@
+
+{
+  "entities": {
+    "Video": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Video",
+      "type": "object",
+      "description": "Represents a video uploaded to the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the video."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the video."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the video."
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of the sculpture (lower numbers first)."
+        },
+        "uploadDate": {
+          "type": "string",
+          "description": "Date and time when the video was uploaded.",
+          "format": "date-time"
+        },
+        "storageUrl": {
+          "type": "string",
+          "description": "URL of the video in cloud storage.",
+          "format": "uri"
+        },
+        "thumbnailUrl": {
+          "type": "string",
+          "description": "URL of the video's thumbnail image.",
+          "format": "uri"
+        },
+        "hidden": {
+          "type": "boolean",
+          "description": "If true, the video is hidden from the main gallery but metadata is preserved."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "storageUrl",
+        "thumbnailUrl"
+      ]
+    },
+    "NewsItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NewsItem",
+      "type": "object",
+      "description": "An update or news article.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "content": { "type": "string" },
+        "imagePath": { "type": "string", "description": "Path to the image in Storage, e.g., ks-images/news.jpg" },
+        "videoId": { "type": "string", "description": "ID of the associated video in ks-videos/" },
+        "order": { "type": "number" }
+      },
+      "required": ["title", "date", "content"]
+    },
+    "Observation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Observation",
+      "type": "object",
+      "description": "A flow observation about wind or water.",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "content": { "type": "string" },
+        "imagePath": { "type": "string" },
+        "videoId": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["title", "date", "content"]
+    },
+    "Page": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Page",
+      "type": "object",
+      "description": "Represents a static page in the application (e.g., About, Contact).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the page."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the page (e.g., About Us, Contact)."
+        },
+        "content": {
+          "type": "string",
+          "description": "HTML content of the page."
+        },
+        "slug": {
+          "type": "string",
+          "description": "URL-friendly slug for the page (e.g., about-us, contact)."
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "content",
+        "slug"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/videos/{videoId}",
+        "definition": {
+          "entityName": "Video",
+          "schema": {
+            "$ref": "#/backend/entities/Video"
+          },
+          "description": "Stores video metadata. Publicly readable."
+        }
+      },
+      {
+        "path": "/news/{newsId}",
+        "definition": {
+          "entityName": "NewsItem",
+          "schema": {
+            "$ref": "#/backend/entities/NewsItem"
+          },
+          "description": "Stores news updates."
+        }
+      },
+      {
+        "path": "/observations/{obsId}",
+        "definition": {
+          "entityName": "Observation",
+          "schema": {
+            "$ref": "#/backend/entities/Observation"
+          },
+          "description": "Stores flow observations."
+        }
+      },
+      {
+        "path": "/pages/{pageId}",
+        "definition": {
+          "entityName": "Page",
+          "schema": {
+            "$ref": "#/backend/entities/Page"
+          },
+          "description": "Stores static page content. Publicly readable."
+        }
+      }
+    ]
+  }
+}
