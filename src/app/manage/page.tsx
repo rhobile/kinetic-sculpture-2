@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -43,7 +42,7 @@ import { EXCLUDED_IMAGES } from '@/lib/constants';
 
 /**
  * Unified Management Dashboard.
- * Scans both 'ks-images/' and 'ks-videos/' for a complete gallery view.
+ * Optimized for mobile spacing and single-folder media management.
  */
 export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -59,7 +58,12 @@ export default function ManageDashboardPage() {
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const isAdmin = user && (user.email === 'rhobile@gmail.com' || user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2');
+  // Synchronized Admin logic with security rules
+  const isAdmin = user && (
+    user.email === 'rhobile@gmail.com' || 
+    user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2' ||
+    user.uid === 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2'
+  );
 
   const allVideosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -330,14 +334,16 @@ export default function ManageDashboardPage() {
     }
   };
 
-  const handleConfirmDelete = useCallback(() => {
+  const handleConfirmAction = useCallback(() => {
     if (!itemToDelete || !firestore) return;
     const { id, collection: col, action } = itemToDelete;
     const docRef = doc(firestore, col, id);
+
     if (action === 'hide') {
-      updateDocumentNonBlocking(docRef, { hidden: true });
+      // Use setDocumentNonBlocking with merge for Show/Hide to avoid "document not found" errors
+      setDocumentNonBlocking(docRef, { hidden: true }, { merge: true });
     } else if (action === 'unhide') {
-      updateDocumentNonBlocking(docRef, { hidden: false });
+      setDocumentNonBlocking(docRef, { hidden: false }, { merge: true });
     } else {
       deleteDocumentNonBlocking(docRef);
     }
@@ -429,7 +435,7 @@ export default function ManageDashboardPage() {
                 {masonryItems.map((item: any) => (
                   <div key={item.id} className={cn(
                     "p-4 border flex items-center gap-4 transition-colors relative", 
-                    item.isHidden ? "bg-orange-50/10 border-orange-200/50 grayscale" : "bg-muted/30 border-border/50",
+                    item.isHidden ? "bg-orange-50/10 border-orange-200/50 grayscale opacity-60" : "bg-muted/30 border-border/50",
                     (!item.hasImage || !item.hasVideo) && "border-red-200/50"
                   )}>
                     <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
@@ -626,7 +632,7 @@ export default function ManageDashboardPage() {
             <AlertDialogTitle className="uppercase tracking-widest text-[9pt] font-normal">Confirm Action</AlertDialogTitle>
             <AlertDialogDescription className="text-sm">{itemToDelete?.msg}</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDelete} className="rounded-none bg-destructive hover:bg-destructive/90">Confirm</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter><AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmAction} className="rounded-none bg-destructive hover:bg-destructive/90">Confirm</AlertDialogAction></AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </main>
