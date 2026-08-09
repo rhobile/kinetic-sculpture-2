@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, memo } from 'react';
@@ -34,7 +33,7 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl w-[95vw] sm:w-full p-0 overflow-hidden border-none shadow-2xl rounded-none bg-black focus:outline-none flex flex-col max-h-[95vh] sm:max-h-[90vh]">
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden min-h-[250px]">
+          <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden min-h-[200px]">
             {videoPath ? (
               <FirebaseStorageVideo
                 path={videoPath}
@@ -46,8 +45,8 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               </div>
             )}
           </div>
-          <div className="px-6 py-4 sm:py-3 bg-black border-t border-white/10 shrink-0">
-            <DialogHeader className="text-left space-y-0.5 sm:space-y-1">
+          <div className="px-6 py-2 sm:py-2 bg-black border-t border-white/10 shrink-0">
+            <DialogHeader className="text-left space-y-0.5">
               <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white whitespace-nowrap truncate leading-tight">
                 {image.alt}
               </DialogTitle>

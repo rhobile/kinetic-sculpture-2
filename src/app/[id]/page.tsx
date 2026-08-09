@@ -1,4 +1,3 @@
-
 'use client';
 
 import { use, useMemo } from 'react';
@@ -47,14 +46,14 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <main className="min-h-screen bg-black text-white p-4 sm:p-8 lg:p-12">
-      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
+      <div className="max-w-5xl mx-auto space-y-4">
         <div className="flex justify-between items-center">
           <Link href="/" className="text-white/30 hover:text-white transition-colors flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] hover:no-underline">
             <ArrowLeft className="size-3" /> Return to Gallery
           </Link>
         </div>
 
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-2 sm:space-y-4">
           <div className="aspect-video bg-neutral-900 border border-white/5 relative overflow-hidden">
             <FirebaseStorageVideo path={videoPath} className="w-full h-full object-contain" />
           </div>

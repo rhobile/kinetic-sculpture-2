@@ -17,8 +17,12 @@ import { doc } from 'firebase/firestore';
 export function AppShell({ children }: { children: ReactNode }) {
   const { firestore, user } = useFirebase();
 
-  // Check if user is the authorized admin
-  const isAdmin = user && (user.email === 'rhobile@gmail.com' || user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2');
+  // Unified Admin check for consistency
+  const isAdmin = user && (
+    user.email === 'rhobile@gmail.com' || 
+    user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2' ||
+    user.uid === 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2'
+  );
 
   // Sidebar dynamic content
   const sidebarQuery = useMemoFirebase(() => {
