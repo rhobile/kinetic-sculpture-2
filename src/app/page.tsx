@@ -16,7 +16,8 @@ import { EXCLUDED_IMAGES } from '@/lib/constants';
 
 /**
  * Main Gallery Page.
- * Pulls thumbnails from 'ks-images/'.
+ * Uses a "Storage-First" approach: displays all items in 'ks-images/' 
+ * unless explicitly hidden in Firestore.
  */
 export default function Home() {
   const { firebaseApp, firestore } = useFirebase();
@@ -41,20 +42,19 @@ export default function Home() {
     setError(null);
     try {
       const storage = getStorage(firebaseApp, 'gs://ks-bucket-nl');
-      // Fetch from ks-images/
       const res = await listAll(storageRef(storage, 'ks-images'));
       
       const filteredImages = res.items.filter(item => {
         const name = item.name.toLowerCase();
         const isImg = name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png');
-        const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase();
+        const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase().trim();
         return isImg && !EXCLUDED_IMAGES.includes(fileNameLower);
       });
 
       setStorageItems({ items: filteredImages });
     } catch (err: any) {
       console.error("Gallery storage error:", err);
-      setError('Failed to connect to storage. Check folder permissions.');
+      setError('Failed to connect to storage.');
     } finally {
       setIsStorageLoading(false);
     }
@@ -67,44 +67,23 @@ export default function Home() {
   const galleryImages = useMemo(() => {
     if (!storageItems) return [];
 
-    if (!firestoreVideos || firestoreVideos.length === 0) {
-      return storageItems.items.map((item, index) => ({
-        id: item.name.split('.').slice(0, -1).join('.').toLowerCase(),
+    // Storage-first mapping: Show everything in storage unless explicitly hidden in Firestore
+    return storageItems.items.map((item, index) => {
+      const storageId = item.name.split('.').slice(0, -1).join('.').toLowerCase().trim();
+      const fsData = firestoreVideos?.find(fs => fs.id.toLowerCase().trim() === storageId);
+
+      // If Firestore explicitly marks this item as hidden, exclude it from the gallery
+      if (fsData?.hidden) return null;
+
+      return {
+        id: storageId,
         path: item.fullPath,
-        alt: item.name.split('.').slice(0, -1).join('.').replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        description: "A balance of form and articulated movement.",
+        alt: fsData?.title || storageId.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        description: fsData?.description || "A balance of form and articulated movement.",
         width: 500,
         height: index % 2 === 0 ? 600 : 750,
-      } as FirebaseImage));
-    }
-
-    const curated = firestoreVideos
-      .filter(fs => !fs.hidden)
-      .map((fsData, index) => {
-        const storageMatch = storageItems.items.find(item => 
-          item.name.split('.').slice(0, -1).join('.').toLowerCase().trim() === fsData.id.toLowerCase().trim()
-        );
-
-        if (!storageMatch) return null;
-
-        return {
-          id: fsData.id,
-          path: storageMatch.fullPath,
-          alt: fsData.title || fsData.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-          description: fsData.description || "A balance of form and articulated movement.",
-          width: 500,
-          height: index % 2 === 0 ? 600 : 750,
-        } as FirebaseImage;
-      }).filter((img): img is FirebaseImage => img !== null);
-
-    return curated.length > 0 ? curated : storageItems.items.map((item, index) => ({
-        id: item.name.split('.').slice(0, -1).join('.').toLowerCase(),
-        path: item.fullPath,
-        alt: item.name.split('.').slice(0, -1).join('.').replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        description: "A balance of form and articulated movement.",
-        width: 500,
-        height: index % 2 === 0 ? 600 : 750,
-      } as FirebaseImage));
+      } as FirebaseImage;
+    }).filter((img): img is FirebaseImage => img !== null);
   }, [storageItems, firestoreVideos]);
 
   return (
@@ -127,7 +106,7 @@ export default function Home() {
         ) : galleryImages.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
             <p className="text-muted-foreground text-[11pt] italic font-normal mb-6">
-              No images found in ks-images/ folder.
+              No visible sculptures found in ks-images/.
             </p>
             <Button onClick={fetchStorageData} variant="outline" className="rounded-none">
               <RefreshCw className="size-4 mr-2" /> Refresh Storage

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, memo } from 'react';
@@ -18,12 +19,11 @@ interface VideoPlayerModalProps {
 }
 
 /**
- * Gallery Modal with tightened vertical spacing for mobile.
- * Optimized title font size (9pt) to ensure single-line display.
+ * Gallery Modal optimized for mobile portrait.
+ * Tightened vertical spacing to eliminate gaps.
  */
 export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
-    // Resolve path to ks-videos/ folder
     const filename = image.id.toLowerCase().trim();
     if (!filename) return '';
     return `ks-videos/${filename}.mp4`;
@@ -41,16 +41,16 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               />
             ) : (
               <div className="flex items-center justify-center h-full p-4 text-center text-muted-foreground text-[12pt] font-normal">
-                Could not load video from ks-videos/.
+                Could not load video.
               </div>
             )}
           </div>
-          <div className="px-6 py-2 sm:py-2 bg-black border-t border-white/10 shrink-0">
-            <DialogHeader className="text-left space-y-0.5">
-              <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white whitespace-nowrap truncate leading-tight">
+          <div className="px-6 py-1 bg-black border-t border-white/5 shrink-0">
+            <DialogHeader className="text-left space-y-0 pb-1">
+              <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white whitespace-nowrap truncate leading-none pt-2">
                 {image.alt}
               </DialogTitle>
-              <DialogDescription className="text-[11pt] text-white/60 font-normal leading-tight sm:leading-relaxed m-0 p-0 max-w-3xl">
+              <DialogDescription className="text-[11pt] text-white/60 font-normal leading-tight mt-0.5 max-w-3xl">
                 {image.description || "A balance of form and articulated movement."}
               </DialogDescription>
             </DialogHeader>

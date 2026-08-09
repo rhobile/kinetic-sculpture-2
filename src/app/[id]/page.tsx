@@ -1,3 +1,4 @@
+
 'use client';
 
 import { use, useMemo } from 'react';
@@ -9,7 +10,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 /**
- * Sculpture detail page with tightened vertical spacing for mobile portrait screens.
+ * Sculpture detail page with minimal vertical spacing for mobile portrait.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -17,14 +18,14 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
 
   const videoQuery = useMemoFirebase(() => {
     if (!firestore || !id) return null;
-    return doc(firestore, 'videos', id);
+    return doc(firestore, 'videos', id.toLowerCase().trim());
   }, [firestore, id]);
 
   const { data: videoData, isLoading } = useDoc(videoQuery);
 
   const videoPath = useMemo(() => {
     if (!id) return '';
-    return `ks-videos/${id}.mp4`;
+    return `ks-videos/${id.toLowerCase().trim()}.mp4`;
   }, [id]);
 
   if (isLoading) {
@@ -34,7 +35,6 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
           <Skeleton className="aspect-video w-full bg-white/5" />
           <div className="space-y-2">
             <Skeleton className="h-6 w-1/3 bg-white/5" />
-            <Skeleton className="h-16 w-full bg-white/5" />
           </div>
         </div>
       </main>
@@ -53,16 +53,16 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
           </Link>
         </div>
 
-        <div className="space-y-2 sm:space-y-4">
+        <div className="space-y-2">
           <div className="aspect-video bg-neutral-900 border border-white/5 relative overflow-hidden">
             <FirebaseStorageVideo path={videoPath} className="w-full h-full object-contain" />
           </div>
           
-          <div className="max-w-2xl space-y-1 sm:space-y-2">
-            <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight">
+          <div className="max-w-2xl space-y-0.5 pt-1">
+            <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-none">
               {title}
             </h1>
-            <p className="text-[12pt] text-white/60 font-light leading-snug sm:leading-relaxed whitespace-pre-wrap">
+            <p className="text-[12pt] text-white/60 font-light leading-tight whitespace-pre-wrap pt-1">
               {description}
             </p>
           </div>
