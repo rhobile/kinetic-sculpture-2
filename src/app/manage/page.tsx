@@ -157,19 +157,28 @@ export default function ManageDashboardPage() {
     try {
       const storage = getStorage(firebaseApp, 'gs://ks-bucket-nl');
       const imgRes = await listAll(storageRef(storage, 'ks-images'));
+      
       const images = imgRes.items
         .filter(item => {
-          const lowerName = item.name.toLowerCase();
-          const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase().trim();
-          return (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) && !EXCLUDED_IMAGES.includes(fileNameLower);
+          const name = item.name.toLowerCase();
+          const fileNameNoExt = item.name.split('.').slice(0, -1).join('.').toLowerCase().trim();
+          const isImg = name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png');
+          return isImg && !EXCLUDED_IMAGES.includes(fileNameNoExt);
         })
         .map(item => ({ 
           id: item.name.split('.').slice(0, -1).join('.').toLowerCase().trim(), 
           path: item.fullPath, 
           name: item.name 
         }));
+      
       setStorageData({ images });
+      if (images.length === 0) {
+        toast({ title: "Sync Complete", description: "No images found in ks-images/ folder." });
+      } else {
+        toast({ title: "Sync Complete", description: `Found ${images.length} items in storage.` });
+      }
     } catch (error: any) {
+      console.error("Storage fetch error:", error);
       toast({ variant: "destructive", title: "Storage refresh failed", description: error.message });
     } finally {
       setIsRefreshing(false);

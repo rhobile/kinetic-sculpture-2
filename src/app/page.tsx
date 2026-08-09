@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { VideoPlayerModal } from '@/components/video-player-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Info } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import type { FirebaseImage } from '@/lib/firebase-images';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 
@@ -41,10 +41,10 @@ export default function Home() {
       const imgRes = await listAll(storageRef(storage, 'ks-images'));
       
       const filteredImages = imgRes.items.filter(item => {
-        const lowerName = item.name.toLowerCase();
-        const isJpg = lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+        const name = item.name.toLowerCase();
+        const isImg = name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png');
         const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase();
-        return isJpg && !EXCLUDED_IMAGES.includes(fileNameLower);
+        return isImg && !EXCLUDED_IMAGES.includes(fileNameLower);
       });
 
       setStorageItems({ items: filteredImages });

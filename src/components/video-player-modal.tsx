@@ -18,7 +18,7 @@ interface VideoPlayerModalProps {
 }
 
 /**
- * Gallery Modal with optimized title font size (9pt) and tightened vertical spacing.
+ * Gallery Modal with optimized title font size (9pt) and tight vertical spacing for mobile.
  */
 export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
@@ -31,11 +31,11 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl w-[95vw] sm:w-full p-0 overflow-hidden border-none shadow-2xl rounded-none bg-black focus:outline-none flex flex-col max-h-[90vh]">
         <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden min-h-[300px]">
+          <div className="flex-1 bg-black flex items-center justify-center relative overflow-hidden min-h-[250px]">
             {videoPath ? (
               <FirebaseStorageVideo
                 path={videoPath}
-                className="w-full h-full max-h-[70vh] object-contain"
+                className="w-full h-full max-h-[65vh] object-contain"
               />
             ) : (
               <div className="flex items-center justify-center h-full p-4 text-center text-muted-foreground text-[12pt] font-normal">
@@ -43,11 +43,9 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               </div>
             )}
           </div>
-          {/* Reduced padding from py-10 to py-6 */}
-          <div className="px-6 py-6 bg-black border-t border-white/10 shrink-0">
+          <div className="px-6 py-4 bg-black border-t border-white/10 shrink-0">
             <DialogHeader className="text-left">
-              {/* Reduced margin bottom from mb-4 to mb-2 */}
-              <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white mb-2 whitespace-nowrap truncate leading-tight">
+              <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white mb-1.5 whitespace-nowrap truncate leading-tight">
                 {image.alt}
               </DialogTitle>
               <DialogDescription className="text-[11pt] text-white/60 font-normal leading-relaxed m-0 p-0 max-w-3xl">

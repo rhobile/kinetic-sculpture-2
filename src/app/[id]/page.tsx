@@ -10,7 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 
 /**
  * Dedicated sculpture detail page designed for professional client inspection.
- * Tightened vertical spacing between title and description.
+ * Optimized typography and vertical spacing.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -47,24 +47,23 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <main className="min-h-screen bg-black text-white p-4 sm:p-8 lg:p-12">
-      <div className="max-w-5xl mx-auto space-y-12">
+      <div className="max-w-5xl mx-auto space-y-8">
         <div className="flex justify-between items-center">
           <Link href="/" className="text-white/30 hover:text-white transition-colors flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] hover:no-underline">
             <ArrowLeft className="size-3" /> Return to Gallery
           </Link>
         </div>
 
-        <div className="space-y-12">
+        <div className="space-y-8">
           <div className="aspect-video bg-neutral-900 border border-white/5 relative overflow-hidden">
             <FirebaseStorageVideo path={videoPath} className="w-full h-full object-contain" />
           </div>
           
-          {/* Reduced space-y-6 to space-y-3 to tighten gap between title and text */}
-          <div className="max-w-2xl space-y-3">
+          <div className="max-w-2xl space-y-2">
             <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight">
               {title}
             </h1>
-            <p className="text-lg text-white/60 font-light leading-relaxed whitespace-pre-wrap">
+            <p className="text-[12pt] text-white/60 font-light leading-relaxed whitespace-pre-wrap">
               {description}
             </p>
           </div>
