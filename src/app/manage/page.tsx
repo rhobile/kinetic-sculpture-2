@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -16,7 +17,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Save, Plus, LogIn, LogOut, ShieldCheck, ShieldAlert, AlertCircle, Copy, Check, Calendar, EyeOff, Eye
+  Trash2, Loader2, RefreshCw, Save, Plus, LogIn, LogOut, ShieldCheck, ShieldAlert, AlertCircle, Copy, Check, Calendar, EyeOff, Eye, Image as ImageIcon, Film, AlertTriangle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -41,25 +42,27 @@ import { cn } from '@/lib/utils';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 
 /**
- * The Administrative Command Center for Rhobile.
- * Allows for content curation, news updates, flow observations, and cinematic page management.
+ * Enhanced Management Dashboard.
+ * Now scans both ks-images/ and ks-videos/ to ensure no "orphaned" media is missed.
  */
 export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
-  const [storageData, setStorageData] = useState<{ images: any[] }>({ images: [] });
+  const [storageData, setStorageData] = useState<{ 
+    images: {id: string, path: string}[], 
+    videos: {id: string, path: string}[] 
+  }>({ images: [], videos: [] });
+  
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: string, action: 'delete' | 'hide' | 'unhide', msg: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Login State
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const isAdmin = user && (user.email === 'rhobile@gmail.com' || user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2');
 
-  // Firestore Data
   const allVideosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return collection(firestore, 'videos');
@@ -84,18 +87,15 @@ export default function ManageDashboardPage() {
   }, [firestore]);
   const { data: firestorePages } = useCollection(pagesQuery);
 
-  // Site Identity State
   const [siteTitle, setSiteTitle] = useState('Rhobile');
   const [sidebarContent, setSidebarContent] = useState('');
   
-  // Sculpture Modal
   const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [itemTitle, setItemTitle] = useState('');
   const [itemDesc, setItemDesc] = useState('');
   const [itemOrder, setItemOrder] = useState('0');
 
-  // News/Obs Modal
   const [isEntryDialogOpen, setIsEntryDialogOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<any | null>(null);
   const [entryType, setEntryType] = useState<'news' | 'observations'>('news');
@@ -106,7 +106,6 @@ export default function ManageDashboardPage() {
   const [entryVideoId, setEntryVideoId] = useState('');
   const [entryOrder, setEntryOrder] = useState('0');
 
-  // Pages Modal
   const [isPageDialogOpen, setIsPageDialogOpen] = useState(false);
   const [editingPage, setEditingPage] = useState<any | null>(null);
   const [pageTitle, setPageTitle] = useState('');
@@ -132,7 +131,7 @@ export default function ManageDashboardPage() {
     setIsLoggingIn(true);
     signInWithEmailAndPassword(auth, loginEmail, loginPassword)
       .then(() => {
-        toast({ title: "Authenticated", description: "Welcome back, Admin." });
+        toast({ title: "Authenticated" });
         setLoginEmail('');
         setLoginPassword('');
       })
@@ -156,30 +155,28 @@ export default function ManageDashboardPage() {
     setIsRefreshing(true);
     try {
       const storage = getStorage(firebaseApp, 'gs://ks-bucket-nl');
-      const imgRes = await listAll(storageRef(storage, 'ks-images'));
       
+      // Fetch Images
+      const imgRes = await listAll(storageRef(storage, 'ks-images'));
       const images = imgRes.items
-        .filter(item => {
-          const name = item.name.toLowerCase();
-          const fileNameNoExt = item.name.split('.').slice(0, -1).join('.').toLowerCase().trim();
-          const isImg = name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png');
-          return isImg && !EXCLUDED_IMAGES.includes(fileNameNoExt);
-        })
         .map(item => ({ 
           id: item.name.split('.').slice(0, -1).join('.').toLowerCase().trim(), 
-          path: item.fullPath, 
-          name: item.name 
+          path: item.fullPath 
         }));
       
-      setStorageData({ images });
-      if (images.length === 0) {
-        toast({ title: "Sync Complete", description: "No images found in ks-images/ folder." });
-      } else {
-        toast({ title: "Sync Complete", description: `Found ${images.length} items in storage.` });
-      }
+      // Fetch Videos
+      const vidRes = await listAll(storageRef(storage, 'ks-videos'));
+      const videos = vidRes.items
+        .map(item => ({ 
+          id: item.name.split('.').slice(0, -1).join('.').toLowerCase().trim(), 
+          path: item.fullPath 
+        }));
+      
+      setStorageData({ images, videos });
+      toast({ title: "Sync Complete", description: `Found ${images.length} images and ${videos.length} videos.` });
     } catch (error: any) {
       console.error("Storage fetch error:", error);
-      toast({ variant: "destructive", title: "Storage refresh failed", description: error.message });
+      toast({ variant: "destructive", title: "Storage sync failed", description: error.message });
     } finally {
       setIsRefreshing(false);
     }
@@ -190,16 +187,28 @@ export default function ManageDashboardPage() {
   }, [firebaseApp, fetchData]);
 
   const masonryItems = useMemo(() => {
-    return storageData.images.map(img => {
-      const fsData = firestoreVideos?.find(v => v.id === img.id);
+    // Create unique IDs from both sets
+    const allIds = Array.from(new Set([
+      ...storageData.images.map(img => img.id),
+      ...storageData.videos.map(vid => vid.id)
+    ]));
+
+    return allIds.map(id => {
+      const fsData = firestoreVideos?.find(v => v.id === id);
+      const imgMatch = storageData.images.find(img => img.id === id);
+      const vidMatch = storageData.videos.find(vid => vid.id === id);
+
       return {
-        id: img.id,
-        title: fsData?.title || img.id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        id,
+        title: fsData?.title || id.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
         description: fsData?.description || "",
         order: fsData?.order ?? 999,
-        imagePath: img.path,
+        imagePath: imgMatch?.path || null,
+        videoPath: vidMatch?.path || null,
         isIndexed: !!fsData,
-        isHidden: fsData?.hidden || false
+        isHidden: fsData?.hidden || false,
+        hasImage: !!imgMatch,
+        hasVideo: !!vidMatch
       };
     }).sort((a: any, b: any) => a.order - b.order);
   }, [storageData, firestoreVideos]);
@@ -208,7 +217,7 @@ export default function ManageDashboardPage() {
     const url = `${window.location.origin}/${id}`;
     navigator.clipboard.writeText(url);
     setCopiedId(id);
-    toast({ title: "URL Copied", description: "Client-direct link is ready." });
+    toast({ title: "URL Copied" });
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -350,7 +359,7 @@ export default function ManageDashboardPage() {
               </Badge>
             ) : (
               <Badge variant="outline" className="w-fit rounded-none border-orange-500/50 bg-orange-500/5 text-orange-600 text-[9px] uppercase tracking-widest px-2 py-0.5 mt-2">
-                <ShieldAlert className="size-3 mr-1" /> Visitor Mode
+                <ShieldAlert className="size-3 mr-1" /> Restricted Access
               </Badge>
             )}
           </div>
@@ -367,7 +376,7 @@ export default function ManageDashboardPage() {
             <Alert variant="destructive" className="rounded-none">
               <AlertCircle className="size-4" />
               <AlertTitle className="uppercase tracking-widest text-[10px] font-bold">Access Restricted</AlertTitle>
-              <AlertDescription className="text-sm">Sign in as <strong className="text-foreground">rhobile@gmail.com</strong> to manage gallery content.</AlertDescription>
+              <AlertDescription className="text-sm">Sign in as admin to manage content.</AlertDescription>
             </Alert>
             <Card className="rounded-none">
               <CardHeader><CardTitle className="text-sm uppercase tracking-widest">Admin Sign-In</CardTitle></CardHeader>
@@ -386,7 +395,7 @@ export default function ManageDashboardPage() {
           <Tabs defaultValue="masonry" className="w-full">
             <TabsList className="grid w-full max-w-2xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
               <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
-              <TabsTrigger value="masonry" className="rounded-none">Masonry</TabsTrigger>
+              <TabsTrigger value="masonry" className="rounded-none">Sculptures</TabsTrigger>
               <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
               <TabsTrigger value="obs" className="rounded-none">Obs</TabsTrigger>
               <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
@@ -409,19 +418,35 @@ export default function ManageDashboardPage() {
 
             <TabsContent value="masonry" className="space-y-6">
               <div className="flex justify-between items-center border-b border-border/30 pb-4">
-                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Sculpture Gallery</h2>
-                <Badge variant="outline" className="rounded-none text-[8px] uppercase tracking-widest">Manage Display Order & Metadata</Badge>
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Management</h2>
+                <div className="flex items-center gap-4 text-[9px] uppercase tracking-widest text-muted-foreground">
+                  <span className="flex items-center gap-1"><ImageIcon className="size-3" /> Image</span>
+                  <span className="flex items-center gap-1"><Film className="size-3" /> Video</span>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {masonryItems.map((item: any) => (
-                  <div key={item.id} className={cn("p-4 border flex items-center gap-4 transition-colors", item.isHidden ? "bg-orange-50/10 border-orange-200/50 grayscale" : "bg-muted/30 border-border/50")}>
+                  <div key={item.id} className={cn(
+                    "p-4 border flex items-center gap-4 transition-colors relative", 
+                    item.isHidden ? "bg-orange-50/10 border-orange-200/50 grayscale" : "bg-muted/30 border-border/50",
+                    (!item.hasImage || !item.hasVideo) && "border-red-200/50"
+                  )}>
                     <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
-                      <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
+                      {item.imagePath ? (
+                        <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-neutral-900 text-muted-foreground">
+                          <ImageIcon className="size-5 opacity-20" />
+                        </div>
+                      )}
                       {item.isHidden && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><EyeOff className="size-4 text-white" /></div>}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
-                      <p className="text-[8pt] text-accent font-mono truncate">{item.id}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className={cn("text-[8px] px-1 rounded-none uppercase", item.hasImage ? "text-green-600 border-green-200" : "text-red-600 border-red-200")}>Img</Badge>
+                        <Badge variant="outline" className={cn("text-[8px] px-1 rounded-none uppercase", item.hasVideo ? "text-green-600 border-green-200" : "text-red-600 border-red-200")}>Vid</Badge>
+                      </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-1">
@@ -445,7 +470,7 @@ export default function ManageDashboardPage() {
                             id: item.id, 
                             collection: 'videos', 
                             action: item.isHidden ? 'unhide' : 'hide', 
-                            msg: item.isHidden ? `Make "${item.title}" visible in the gallery again?` : `Hide "${item.title}" from the public gallery?` 
+                            msg: item.isHidden ? `Unhide "${item.title}"?` : `Hide "${item.title}"?` 
                           })}
                         >
                           {item.isHidden ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
@@ -459,7 +484,7 @@ export default function ManageDashboardPage() {
                               id: item.id, 
                               collection: 'videos', 
                               action: 'delete', 
-                              msg: `Delete metadata for "${item.title}"? This will reset its custom title and description.` 
+                              msg: `Delete metadata for "${item.title}"?` 
                             })}
                           >
                             <Trash2 className="size-3" />
@@ -467,6 +492,9 @@ export default function ManageDashboardPage() {
                         )}
                       </div>
                     </div>
+                    {(!item.hasImage || !item.hasVideo) && (
+                      <AlertTriangle className="absolute -top-1 -right-1 size-3 text-red-500 fill-red-500" />
+                    )}
                   </div>
                 ))}
               </div>
@@ -540,13 +568,13 @@ export default function ManageDashboardPage() {
 
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest text-sm font-normal">Sculpture Metadata</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[9pt] font-normal">Sculpture Metadata</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-4 gap-4">
-              <div className="col-span-3"><Label className="text-[10px] uppercase">Title</Label><Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none" /></div>
-              <div><Label className="text-[10px] uppercase">Order</Label><Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none" /></div>
+              <div className="col-span-3"><Label className="text-[9pt] uppercase">Title</Label><Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none" /></div>
+              <div><Label className="text-[9pt] uppercase">Order</Label><Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none" /></div>
             </div>
-            <div className="space-y-2"><Label className="text-[10px] uppercase">Description</Label><Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none h-32" /></div>
+            <div className="space-y-2"><Label className="text-[9pt] uppercase">Description</Label><Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none h-32" /></div>
           </div>
           <DialogFooter><Button onClick={saveItem} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest font-bold h-11">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Metadata</Button></DialogFooter>
         </DialogContent>
@@ -554,18 +582,18 @@ export default function ManageDashboardPage() {
 
       <Dialog open={isEntryDialogOpen} onOpenChange={setIsEntryDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none overflow-y-auto max-h-[90vh]">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest text-sm font-normal">{entryType === 'news' ? 'News' : 'Observation'} Entry</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[9pt] font-normal">{entryType === 'news' ? 'News' : 'Observation'} Entry</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[10px] uppercase">Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label className="text-[10px] uppercase">Date</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9pt] uppercase">Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9pt] uppercase">Date</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[10px] uppercase">Image (filename)</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label className="text-[10px] uppercase">Video ID</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9pt] uppercase">Image (filename)</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9pt] uppercase">Video ID</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] uppercase">Content</Label>
+              <Label className="text-[9pt] uppercase">Content</Label>
               <Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-48" />
             </div>
           </div>
@@ -575,15 +603,15 @@ export default function ManageDashboardPage() {
 
       <Dialog open={isPageDialogOpen} onOpenChange={setIsPageDialogOpen}>
         <DialogContent className="max-w-3xl rounded-none overflow-y-auto max-h-[90vh]">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest text-sm font-normal">Page Editor</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[9pt] font-normal">Page Editor</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[10px] uppercase">Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label className="text-[10px] uppercase">Slug</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" disabled={!editingPage?.isNew} /></div>
+              <div className="space-y-2"><Label className="text-[9pt] uppercase">Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9pt] uppercase">Slug</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" disabled={!editingPage?.isNew} /></div>
             </div>
             <div className="space-y-2">
-              <Label className="text-[10px] uppercase">Content</Label>
-              <p className="text-[8px] text-muted-foreground">Use [image:filename.jpg] for images and [video:filename.mp4] for auto-playing videos. Use [Label](url) for links.</p>
+              <Label className="text-[9pt] uppercase">Content</Label>
+              <p className="text-[8px] text-muted-foreground">Use [image:filename.jpg] for images and [video:filename.mp4] for auto-playing videos.</p>
               <Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-64 font-mono" />
             </div>
           </div>
@@ -594,7 +622,7 @@ export default function ManageDashboardPage() {
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent className="rounded-none">
           <AlertDialogHeader>
-            <AlertDialogTitle className="uppercase tracking-widest text-sm font-normal">Confirm Action</AlertDialogTitle>
+            <AlertDialogTitle className="uppercase tracking-widest text-[9pt] font-normal">Confirm Action</AlertDialogTitle>
             <AlertDialogDescription className="text-sm">{itemToDelete?.msg}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter><AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmDelete} className="rounded-none bg-destructive hover:bg-destructive/90">Confirm</AlertDialogAction></AlertDialogFooter>

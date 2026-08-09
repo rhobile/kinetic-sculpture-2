@@ -1,3 +1,4 @@
+
 'use client';
 
 import { use, useMemo } from 'react';
@@ -9,8 +10,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 /**
- * Dedicated sculpture detail page designed for professional client inspection.
- * Optimized typography and vertical spacing.
+ * Sculpture detail page with tightened vertical spacing for mobile portrait screens.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -31,11 +31,11 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
   if (isLoading) {
     return (
       <main className="min-h-screen bg-black flex flex-col items-center justify-center p-8">
-        <div className="w-full max-w-4xl space-y-8">
+        <div className="w-full max-w-4xl space-y-4">
           <Skeleton className="aspect-video w-full bg-white/5" />
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-1/3 bg-white/5" />
-            <Skeleton className="h-20 w-full bg-white/5" />
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-1/3 bg-white/5" />
+            <Skeleton className="h-16 w-full bg-white/5" />
           </div>
         </div>
       </main>
@@ -47,14 +47,14 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <main className="min-h-screen bg-black text-white p-4 sm:p-8 lg:p-12">
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-8">
         <div className="flex justify-between items-center">
-          <Link href="/" className="text-white/30 hover:text-white transition-colors flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] hover:no-underline">
+          <Link href="/" className="text-white/30 hover:text-white transition-colors flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] hover:no-underline">
             <ArrowLeft className="size-3" /> Return to Gallery
           </Link>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-8">
           <div className="aspect-video bg-neutral-900 border border-white/5 relative overflow-hidden">
             <FirebaseStorageVideo path={videoPath} className="w-full h-full object-contain" />
           </div>

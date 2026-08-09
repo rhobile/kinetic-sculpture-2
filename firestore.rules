@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -11,7 +12,7 @@ service cloud.firestore {
       );
     }
 
-    // Public read access for the entire database to support the gallery
+    // Public read access for all collections (videos, news, observations, pages)
     match /{document=**} {
       allow read: if true;
       allow write: if isAdmin();
