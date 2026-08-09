@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -21,7 +22,7 @@ export default function NewsPage() {
 
   const resolveImagePath = (path: string) => {
     if (!path) return '';
-    return path.startsWith('ks-images/') ? path : `ks-images/${path}`;
+    return path.startsWith('ks-gallery/') ? path : `ks-gallery/${path}`;
   };
 
   const handleVideoSelect = (item: any) => {
@@ -29,7 +30,7 @@ export default function NewsPage() {
     setSelectedVideo({
       id: item.videoId,
       title: item.title,
-      path: fullImagePath || `ks-images/${item.videoId}.jpg`,
+      path: fullImagePath || `ks-gallery/${item.videoId}.jpg`,
       description: item.content
     });
   };

@@ -24,9 +24,10 @@ interface VideoPlayerModalProps {
  */
 export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
+    // Resolve path to the unified 'ks-gallery/' folder
     const filename = image.path.split('/').pop()?.split('.').slice(0, -1).join('.');
     if (!filename) return '';
-    return `ks-videos/${filename}.mp4`;
+    return `ks-gallery/${filename}.mp4`;
   }, [image.path]);
 
   return (
@@ -41,16 +42,16 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               />
             ) : (
               <div className="flex items-center justify-center h-full p-4 text-center text-muted-foreground text-[12pt] font-normal">
-                Could not load video.
+                Could not load video from ks-gallery/.
               </div>
             )}
           </div>
-          <div className="px-6 py-4 bg-black border-t border-white/10 shrink-0">
-            <DialogHeader className="text-left space-y-1">
+          <div className="px-6 py-4 sm:py-3 bg-black border-t border-white/10 shrink-0">
+            <DialogHeader className="text-left space-y-0.5 sm:space-y-1">
               <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white whitespace-nowrap truncate leading-tight">
                 {image.alt}
               </DialogTitle>
-              <DialogDescription className="text-[11pt] text-white/60 font-normal leading-relaxed m-0 p-0 max-w-3xl">
+              <DialogDescription className="text-[11pt] text-white/60 font-normal leading-tight sm:leading-relaxed m-0 p-0 max-w-3xl">
                 {image.description || "A balance of form and articulated movement."}
               </DialogDescription>
             </DialogHeader>

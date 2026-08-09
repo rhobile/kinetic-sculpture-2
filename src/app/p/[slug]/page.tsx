@@ -1,3 +1,4 @@
+
 'use client';
 
 import { use, ReactNode, Fragment } from 'react';
@@ -9,8 +10,7 @@ import { FirebaseStorageVideo } from '@/components/firebase/storage-video';
 import Link from 'next/link';
 
 /**
- * Enhanced Custom Page renderer for cinematic storytelling.
- * Tightened vertical spacing for better flow on mobile.
+ * Cinematic Page renderer optimized for unified 'ks-gallery/' folder.
  */
 export default function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -26,7 +26,6 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
   const renderTextWithFormatting = (text: string) => {
     if (!text) return null;
 
-    // Handle Italics: *text*
     const italicParts = text.split(/(\*.*?\*)/g);
     return italicParts.map((part, i) => {
       const match = part.match(/\*(.*?)\*/);
@@ -46,11 +45,10 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
     lines.forEach((line, idx) => {
       const trimmedLine = line.trim();
       
-      // Handle Image Tag: [image:filename.jpg]
       const imgMatch = trimmedLine.match(/^\[image:(.*?)\]$/);
       if (imgMatch) {
         const filename = imgMatch[1].trim();
-        const path = filename.startsWith('ks-images/') ? filename : `ks-images/${filename}`;
+        const path = filename.startsWith('ks-gallery/') ? filename : `ks-gallery/${filename}`;
         
         elements.push(
           <div key={`img-${idx}`} className="my-8 first:mt-0 last:mb-0">
@@ -68,11 +66,10 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         return;
       }
 
-      // Handle Video Tag: [video:filename.mp4]
       const videoMatch = trimmedLine.match(/^\[video:(.*?)\]$/);
       if (videoMatch) {
         const filename = videoMatch[1].trim();
-        const path = filename.startsWith('ks-videos/') ? filename : `ks-videos/${filename}`;
+        const path = filename.startsWith('ks-gallery/') ? filename : `ks-gallery/${filename}`;
         
         elements.push(
           <div key={`vid-${idx}`} className="my-8 first:mt-0 last:mb-0">
@@ -87,7 +84,6 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         return;
       }
 
-      // Handle standard text and links
       const parts = line.split(/(\[.*?\]\(.*?\))/g);
       const renderedLine = parts.map((part, pIdx) => {
         const match = part.match(/\[(.*?)\]\((.*?)\)/);

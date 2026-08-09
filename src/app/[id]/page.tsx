@@ -25,7 +25,7 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
 
   const videoPath = useMemo(() => {
     if (!id) return '';
-    return `ks-videos/${id}.mp4`;
+    return `ks-gallery/${id}.mp4`;
   }, [id]);
 
   if (isLoading) {
@@ -47,23 +47,23 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <main className="min-h-screen bg-black text-white p-4 sm:p-8 lg:p-12">
-      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-8">
+      <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
         <div className="flex justify-between items-center">
           <Link href="/" className="text-white/30 hover:text-white transition-colors flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] hover:no-underline">
             <ArrowLeft className="size-3" /> Return to Gallery
           </Link>
         </div>
 
-        <div className="space-y-4 sm:space-y-8">
+        <div className="space-y-4 sm:space-y-6">
           <div className="aspect-video bg-neutral-900 border border-white/5 relative overflow-hidden">
             <FirebaseStorageVideo path={videoPath} className="w-full h-full object-contain" />
           </div>
           
-          <div className="max-w-2xl space-y-2">
+          <div className="max-w-2xl space-y-1 sm:space-y-2">
             <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight">
               {title}
             </h1>
-            <p className="text-[12pt] text-white/60 font-light leading-relaxed whitespace-pre-wrap">
+            <p className="text-[12pt] text-white/60 font-light leading-snug sm:leading-relaxed whitespace-pre-wrap">
               {description}
             </p>
           </div>

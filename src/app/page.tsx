@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
@@ -13,6 +14,10 @@ import { RefreshCw } from 'lucide-react';
 import type { FirebaseImage } from '@/lib/firebase-images';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 
+/**
+ * Main Gallery Page.
+ * Now pulls from the unified 'ks-gallery/' folder.
+ */
 export default function Home() {
   const { firebaseApp, firestore } = useFirebase();
   const [storageItems, setStorageItems] = useState<{ items: any[] } | null>(null);
@@ -20,7 +25,6 @@ export default function Home() {
   const [isStorageLoading, setIsStorageLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Firestore Data: Curated items
   const videosQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return query(collection(firestore, 'videos'), orderBy('order', 'asc'));
@@ -36,11 +40,11 @@ export default function Home() {
     setIsStorageLoading(true);
     setError(null);
     try {
-      // Force connection to the new bucket
       const storage = getStorage(firebaseApp, 'gs://ks-bucket-nl');
-      const imgRes = await listAll(storageRef(storage, 'ks-images'));
+      // Unified folder sync
+      const res = await listAll(storageRef(storage, 'ks-gallery'));
       
-      const filteredImages = imgRes.items.filter(item => {
+      const filteredImages = res.items.filter(item => {
         const name = item.name.toLowerCase();
         const isImg = name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png');
         const fileNameLower = item.name.split('.').slice(0, -1).join('.').toLowerCase();
@@ -50,7 +54,7 @@ export default function Home() {
       setStorageItems({ items: filteredImages });
     } catch (err: any) {
       console.error("Gallery storage error:", err);
-      setError('Failed to connect to storage. Please check your internet connection or bucket settings.');
+      setError('Failed to connect to storage. Please move files to ks-gallery/ folder.');
     } finally {
       setIsStorageLoading(false);
     }
@@ -63,7 +67,6 @@ export default function Home() {
   const galleryImages = useMemo(() => {
     if (!storageItems) return [];
 
-    // Fallback: Show ALL storage items if Firestore is empty or still loading
     if (!firestoreVideos || firestoreVideos.length === 0) {
       return storageItems.items.map((item, index) => ({
         id: item.name.split('.').slice(0, -1).join('.').toLowerCase(),
@@ -75,7 +78,6 @@ export default function Home() {
       } as FirebaseImage));
     }
 
-    // Curated: Show items indexed in Firestore (that aren't hidden)
     const curated = firestoreVideos
       .filter(fs => !fs.hidden)
       .map((fsData, index) => {
@@ -95,7 +97,6 @@ export default function Home() {
         } as FirebaseImage;
       }).filter((img): img is FirebaseImage => img !== null);
 
-    // If curation resulted in 0 items (e.g. broken IDs), fallback to all images
     return curated.length > 0 ? curated : storageItems.items.map((item, index) => ({
         id: item.name.split('.').slice(0, -1).join('.').toLowerCase(),
         path: item.fullPath,
@@ -126,7 +127,7 @@ export default function Home() {
         ) : galleryImages.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
             <p className="text-muted-foreground text-[11pt] italic font-normal mb-6">
-              No images found in ks-images/ folder of gs://ks-bucket-nl.
+              No images found in ks-gallery/ folder.
             </p>
             <Button onClick={fetchStorageData} variant="outline" className="rounded-none">
               <RefreshCw className="size-4 mr-2" /> Refresh Storage
