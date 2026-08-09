@@ -10,7 +10,7 @@ import { FirebaseStorageVideo } from '@/components/firebase/storage-video';
 import Link from 'next/link';
 
 /**
- * Cinematic Page renderer optimized for unified 'ks-gallery/' folder.
+ * Cinematic Page renderer using ks-images/ and ks-videos/ folders.
  */
 export default function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -48,7 +48,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       const imgMatch = trimmedLine.match(/^\[image:(.*?)\]$/);
       if (imgMatch) {
         const filename = imgMatch[1].trim();
-        const path = filename.startsWith('ks-gallery/') ? filename : `ks-gallery/${filename}`;
+        const path = filename.startsWith('ks-images/') ? filename : `ks-images/${filename}`;
         
         elements.push(
           <div key={`img-${idx}`} className="my-8 first:mt-0 last:mb-0">
@@ -69,7 +69,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       const videoMatch = trimmedLine.match(/^\[video:(.*?)\]$/);
       if (videoMatch) {
         const filename = videoMatch[1].trim();
-        const path = filename.startsWith('ks-gallery/') ? filename : `ks-gallery/${filename}`;
+        const path = filename.startsWith('ks-videos/') ? filename : `ks-videos/${filename}`;
         
         elements.push(
           <div key={`vid-${idx}`} className="my-8 first:mt-0 last:mb-0">

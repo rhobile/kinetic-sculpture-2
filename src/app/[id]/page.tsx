@@ -25,7 +25,7 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
 
   const videoPath = useMemo(() => {
     if (!id) return '';
-    return `ks-gallery/${id}.mp4`;
+    return `ks-videos/${id}.mp4`;
   }, [id]);
 
   if (isLoading) {

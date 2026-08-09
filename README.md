@@ -8,18 +8,18 @@ Ensure you are pushing to the correct repository: **rhobile/kinetic-sculpture-2*
 2.  **Publish to Studio**: You MUST click the **PUBLISH** button in the top toolbar to apply changes to your files.
 3.  **Push to GitHub**: Click the **Cloud with Up Arrow** icon to send changes to your live site.
 
-## 📂 Unified Media Migration
-We have unified all storage into one folder. 
-1. Go to the Firebase Console -> Storage.
-2. Create a folder named **`ks-gallery`**.
-3. Move all `.jpg`, `.jpeg`, `.png`, and `.mp4` files from your old `ks-images` and `ks-videos` folders into **`ks-gallery`**.
-4. The dashboard and gallery will now sync perfectly from this single location.
+## 📂 Media Folders
+Keep your storage organized using your established folders:
+- **`ks-images/`**: Upload all `.jpg`, `.jpeg`, and `.png` thumbnail images here.
+- **`ks-videos/`**: Upload all `.mp4` video files here.
+- The dashboard and gallery will pair files automatically if they share the same filename (e.g., `sculpture.jpg` and `sculpture.mp4`).
 
 ## 🔐 Hidden Admin Doorway
 Visit `https://rhobile.com/manage` directly to log in as **rhobile@gmail.com**. Once logged in, a "Unified Management" link will appear in your sidebar.
 
 ## 🌀 Cinematic Storytelling
-Use `[video:filename.mp4]` in your Page content for auto-playing, muted videos that play as the user scrolls. Files must be located in `ks-gallery/`.
+Use `[video:filename.mp4]` in your Page content for auto-playing, muted videos that play as the user scrolls. Files should be located in `ks-videos/`.
 
-## 🛠️ Mobile Spacing
-Vertical spacing between videos and titles has been tightened for an elegant look on mobile portrait screens. Titles are optimized at **9pt/11pt** uppercase to ensure they fit on a single line.
+## 🛠️ Mobile Spacing & Typography
+- **Spacing**: Vertical gaps between videos and titles are tightened for an elegant mobile portrait look.
+- **Titles**: Optimized at **9pt/11pt** uppercase to ensure they fit on a single line.

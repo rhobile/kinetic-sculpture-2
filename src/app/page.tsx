@@ -16,7 +16,7 @@ import { EXCLUDED_IMAGES } from '@/lib/constants';
 
 /**
  * Main Gallery Page.
- * Now pulls from the unified 'ks-gallery/' folder.
+ * Pulls thumbnails from 'ks-images/'.
  */
 export default function Home() {
   const { firebaseApp, firestore } = useFirebase();
@@ -41,8 +41,8 @@ export default function Home() {
     setError(null);
     try {
       const storage = getStorage(firebaseApp, 'gs://ks-bucket-nl');
-      // Unified folder sync
-      const res = await listAll(storageRef(storage, 'ks-gallery'));
+      // Fetch from ks-images/
+      const res = await listAll(storageRef(storage, 'ks-images'));
       
       const filteredImages = res.items.filter(item => {
         const name = item.name.toLowerCase();
@@ -54,7 +54,7 @@ export default function Home() {
       setStorageItems({ items: filteredImages });
     } catch (err: any) {
       console.error("Gallery storage error:", err);
-      setError('Failed to connect to storage. Please move files to ks-gallery/ folder.');
+      setError('Failed to connect to storage. Check folder permissions.');
     } finally {
       setIsStorageLoading(false);
     }
@@ -127,7 +127,7 @@ export default function Home() {
         ) : galleryImages.length === 0 ? (
           <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center">
             <p className="text-muted-foreground text-[11pt] italic font-normal mb-6">
-              No images found in ks-gallery/ folder.
+              No images found in ks-images/ folder.
             </p>
             <Button onClick={fetchStorageData} variant="outline" className="rounded-none">
               <RefreshCw className="size-4 mr-2" /> Refresh Storage

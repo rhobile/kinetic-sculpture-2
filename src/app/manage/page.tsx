@@ -43,11 +43,12 @@ import { EXCLUDED_IMAGES } from '@/lib/constants';
 
 /**
  * Unified Management Dashboard.
- * Scans 'ks-gallery/' for both images and videos.
+ * Scans both 'ks-images/' and 'ks-videos/' for a complete gallery view.
  */
 export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
-  const [storageData, setStorageData] = useState<{ id: string, path: string, type: 'img' | 'vid' }[]>([]);
+  const [imagesData, setImagesData] = useState<{ id: string, path: string }[]>([]);
+  const [videosData, setVideosData] = useState<{ id: string, path: string }[]>([]);
   
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -152,20 +153,32 @@ export default function ManageDashboardPage() {
     setIsRefreshing(true);
     try {
       const storage = getStorage(firebaseApp, 'gs://ks-bucket-nl');
-      const res = await listAll(storageRef(storage, 'ks-gallery'));
       
-      const items = res.items.map(item => {
-        const name = item.name.toLowerCase();
-        const id = item.name.split('.').slice(0, -1).join('.').toLowerCase().trim();
-        const type = (name.endsWith('.jpg') || name.endsWith('.jpeg') || name.endsWith('.png')) ? 'img' : 'vid';
-        return { id, path: item.fullPath, type: type as 'img' | 'vid' };
+      const [imagesRes, videosRes] = await Promise.all([
+        listAll(storageRef(storage, 'ks-images')),
+        listAll(storageRef(storage, 'ks-videos'))
+      ]);
+      
+      const images = imagesRes.items.map(item => ({
+        id: item.name.split('.').slice(0, -1).join('.').toLowerCase().trim(),
+        path: item.fullPath
+      }));
+      
+      const videos = videosRes.items.map(item => ({
+        id: item.name.split('.').slice(0, -1).join('.').toLowerCase().trim(),
+        path: item.fullPath
+      }));
+      
+      setImagesData(images);
+      setVideosData(videos);
+      
+      toast({ 
+        title: "Sync Complete", 
+        description: `Found ${images.length} images and ${videos.length} videos.` 
       });
-      
-      setStorageData(items);
-      toast({ title: "Sync Complete", description: `Found ${items.length} files in ks-gallery/.` });
     } catch (error: any) {
       console.error("Storage fetch error:", error);
-      toast({ variant: "destructive", title: "Storage sync failed", description: "Move files to ks-gallery/ folder." });
+      toast({ variant: "destructive", title: "Storage sync failed", description: error.message });
     } finally {
       setIsRefreshing(false);
     }
@@ -176,12 +189,15 @@ export default function ManageDashboardPage() {
   }, [firebaseApp, fetchData]);
 
   const masonryItems = useMemo(() => {
-    const allIds = Array.from(new Set(storageData.map(item => item.id)));
+    const allIds = Array.from(new Set([
+      ...imagesData.map(i => i.id),
+      ...videosData.map(v => v.id)
+    ]));
 
     return allIds.map(id => {
       const fsData = firestoreVideos?.find(v => v.id === id);
-      const imgMatch = storageData.find(item => item.id === id && item.type === 'img');
-      const vidMatch = storageData.find(item => item.id === id && item.type === 'vid');
+      const imgMatch = imagesData.find(i => i.id === id);
+      const vidMatch = videosData.find(v => v.id === id);
 
       return {
         id,
@@ -196,7 +212,7 @@ export default function ManageDashboardPage() {
         hasVideo: !!vidMatch
       };
     }).sort((a: any, b: any) => a.order - b.order);
-  }, [storageData, firestoreVideos]);
+  }, [imagesData, videosData, firestoreVideos]);
 
   const handleCopyLink = (id: string) => {
     const url = `${window.location.origin}/${id}`;
@@ -350,7 +366,7 @@ export default function ManageDashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
-              <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Sync Gallery
+              <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Sync Media
             </Button>
             {isAdmin && <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-none text-destructive"><LogOut className="size-4 mr-2" /> Logout</Button>}
           </div>
@@ -405,8 +421,8 @@ export default function ManageDashboardPage() {
               <div className="flex justify-between items-center border-b border-border/30 pb-4">
                 <h2 className="text-[10pt] uppercase tracking-widest font-normal">Gallery Management</h2>
                 <div className="flex items-center gap-4 text-[9px] uppercase tracking-widest text-muted-foreground">
-                  <span className="flex items-center gap-1"><ImageIcon className="size-3" /> Image</span>
-                  <span className="flex items-center gap-1"><Film className="size-3" /> Video</span>
+                  <span className="flex items-center gap-1"><ImageIcon className="size-3" /> ks-images</span>
+                  <span className="flex items-center gap-1"><Film className="size-3" /> ks-videos</span>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -574,8 +590,8 @@ export default function ManageDashboardPage() {
               <div className="space-y-2"><Label className="text-[9pt] uppercase">Date</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[9pt] uppercase">Media (filename)</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" placeholder="e.g. sculpture.jpg" /></div>
-              <div className="space-y-2"><Label className="text-[9pt] uppercase">Video ID</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9pt] uppercase">Image (ks-images/)</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" placeholder="e.g. sculpture.jpg" /></div>
+              <div className="space-y-2"><Label className="text-[9pt] uppercase">Video ID (ks-videos/)</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
             </div>
             <div className="space-y-2">
               <Label className="text-[9pt] uppercase">Content</Label>
@@ -596,7 +612,7 @@ export default function ManageDashboardPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-[9pt] uppercase">Content</Label>
-              <p className="text-[8px] text-muted-foreground">Use [image:filename.jpg] for images and [video:filename.mp4] for auto-playing videos. Files should be in ks-gallery/.</p>
+              <p className="text-[8px] text-muted-foreground">Use [image:filename.jpg] for ks-images/ and [video:filename.mp4] for ks-videos/.</p>
               <Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-64 font-mono" />
             </div>
           </div>

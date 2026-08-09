@@ -24,11 +24,11 @@ interface VideoPlayerModalProps {
  */
 export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
-    // Resolve path to the unified 'ks-gallery/' folder
-    const filename = image.path.split('/').pop()?.split('.').slice(0, -1).join('.');
+    // Resolve path to ks-videos/ folder
+    const filename = image.id.toLowerCase().trim();
     if (!filename) return '';
-    return `ks-gallery/${filename}.mp4`;
-  }, [image.path]);
+    return `ks-videos/${filename}.mp4`;
+  }, [image.id]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -42,7 +42,7 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               />
             ) : (
               <div className="flex items-center justify-center h-full p-4 text-center text-muted-foreground text-[12pt] font-normal">
-                Could not load video from ks-gallery/.
+                Could not load video from ks-videos/.
               </div>
             )}
           </div>
