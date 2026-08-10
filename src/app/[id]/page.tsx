@@ -10,7 +10,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 /**
- * Sculpture detail page with minimal vertical spacing for mobile portrait.
+ * Sculpture detail page with optimized mobile wrapping and tight spacing.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -59,7 +59,7 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
           </div>
           
           <div className="max-w-2xl space-y-0.5 pt-1">
-            <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-none">
+            <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight">
               {title}
             </h1>
             <p className="text-[12pt] text-white/60 font-light leading-tight whitespace-pre-wrap pt-1">
