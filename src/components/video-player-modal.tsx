@@ -20,7 +20,8 @@ interface VideoPlayerModalProps {
 
 /**
  * Gallery Modal optimized for mobile portrait.
- * Titles now wrap to a second line when needed.
+ * Titles wrap to a second line instead of being cut off.
+ * Vertical spacing tightened for a sleek look.
  */
 export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
@@ -45,12 +46,12 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               </div>
             )}
           </div>
-          <div className="px-6 py-2 bg-black border-t border-white/5 shrink-0">
-            <DialogHeader className="text-left space-y-0 pb-1">
-              <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white leading-tight pt-1">
+          <div className="px-6 py-1.5 bg-black border-t border-white/5 shrink-0">
+            <DialogHeader className="text-left space-y-0">
+              <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white leading-tight pt-1 break-words whitespace-normal">
                 {image.alt}
               </DialogTitle>
-              <DialogDescription className="text-[11pt] text-white/60 font-normal leading-tight mt-1 max-w-3xl">
+              <DialogDescription className="text-[11pt] text-white/60 font-normal leading-tight mt-0.5 max-w-3xl">
                 {image.description || "A balance of form and articulated movement."}
               </DialogDescription>
             </DialogHeader>

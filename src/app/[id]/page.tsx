@@ -6,11 +6,13 @@ import { doc } from 'firebase/firestore';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageVideo } from '@/components/firebase/storage-video';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 /**
  * Sculpture detail page with optimized mobile wrapping and tight spacing.
+ * Titles now wrap to a second line if they are long on mobile portrait.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -46,20 +48,20 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <main className="min-h-screen bg-black text-white p-4 sm:p-8 lg:p-12">
-      <div className="max-w-5xl mx-auto space-y-4">
-        <div className="flex justify-between items-center">
+      <div className="max-w-5xl mx-auto space-y-2">
+        <div className="flex justify-between items-center mb-2">
           <Link href="/" className="text-white/30 hover:text-white transition-colors flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] hover:no-underline">
             <ArrowLeft className="size-3" /> Return to Gallery
           </Link>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-1">
           <div className="aspect-video bg-neutral-900 border border-white/5 relative overflow-hidden">
             <FirebaseStorageVideo path={videoPath} className="w-full h-full object-contain" />
           </div>
           
-          <div className="max-w-2xl space-y-0.5 pt-1">
-            <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight">
+          <div className="max-w-2xl space-y-0 pt-0.5">
+            <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight break-words whitespace-normal">
               {title}
             </h1>
             <p className="text-[12pt] text-white/60 font-light leading-tight whitespace-pre-wrap pt-1">
