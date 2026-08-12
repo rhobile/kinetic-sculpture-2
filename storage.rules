@@ -1,10 +1,11 @@
+
 rules_version = '2';
 
 // FIREBASE STORAGE SECURITY RULES
 service firebase.storage {
   match /b/{bucket}/o {
     
-    // Unified Admin check across all buckets
+    // Unified Admin check for rhobile@gmail.com
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.email == 'rhobile@gmail.com' ||
@@ -14,7 +15,7 @@ service firebase.storage {
     }
 
     match /{allPaths=**} {
-      // Publicly readable for the gallery
+      // Publicly readable for the gallery and management preview
       allow read: if true;
       // Protected write access for authorized admins
       allow write: if isAdmin();

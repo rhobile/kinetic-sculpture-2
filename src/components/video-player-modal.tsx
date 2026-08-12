@@ -46,9 +46,9 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               </div>
             )}
           </div>
-          <div className="px-6 py-1.5 bg-black border-t border-white/5 shrink-0">
-            <DialogHeader className="text-left space-y-0">
-              <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase text-white leading-tight pt-1 break-words whitespace-normal">
+          <div className="px-6 py-2 bg-black border-t border-white/5 shrink-0">
+            <DialogHeader className="text-left space-y-0 text-white">
+              <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase leading-tight break-words whitespace-normal">
                 {image.alt}
               </DialogTitle>
               <DialogDescription className="text-[11pt] text-white/60 font-normal leading-tight mt-0.5 max-w-3xl">

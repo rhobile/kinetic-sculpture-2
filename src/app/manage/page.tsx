@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getStorage, ref as storageRef, listAll } from 'firebase/storage';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { collection, doc, query, setDoc } from 'firebase/firestore';
+import { collection, doc, query, setDoc, orderBy } from 'firebase/firestore';
 import { 
   useFirebase, 
   useCollection, 
@@ -17,7 +17,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Save, Plus, LogIn, LogOut, ShieldCheck, ShieldAlert, AlertCircle, Copy, Check, Calendar, EyeOff, Eye, Image as ImageIcon, Film, AlertTriangle
+  Trash2, Loader2, RefreshCw, Save, Plus, LogIn, LogOut, ShieldCheck, ShieldAlert, AlertCircle, Copy, Check, Calendar, EyeOff, Eye, Image as ImageIcon, Film, AlertTriangle, LayoutDashboard, FileText, Newspaper, Search
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -42,8 +42,8 @@ import { cn } from '@/lib/utils';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 
 /**
- * Unified Management Dashboard.
- * Optimized for mobile spacing and storage-to-db visibility management.
+ * Robust Management Dashboard.
+ * Handles storage-to-firestore synchronization, show/hide logic, and metadata editing.
  */
 export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -53,13 +53,12 @@ export default function ManageDashboardPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string, collection: string, action: 'delete' | 'hide' | 'unhide', msg: string } | null>(null);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Synchronized Admin logic
+  // Synchronized Admin logic for rhobile@gmail.com
   const isAdmin = user && (
     user.email === 'rhobile@gmail.com' || 
     user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2' ||
@@ -74,13 +73,13 @@ export default function ManageDashboardPage() {
 
   const newsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'news');
+    return query(collection(firestore, 'news'), orderBy('order', 'asc'));
   }, [firestore]);
   const { data: firestoreNews } = useCollection(newsQuery);
 
   const obsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return collection(firestore, 'observations');
+    return query(collection(firestore, 'observations'), orderBy('order', 'asc'));
   }, [firestore]);
   const { data: firestoreObs } = useCollection(obsQuery);
 
@@ -177,7 +176,7 @@ export default function ManageDashboardPage() {
       setImagesData(images);
       setVideosData(videos);
       
-      toast({ title: "Media Synced" });
+      toast({ title: "Media Sync Complete" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Storage sync failed", description: error.message });
     } finally {
@@ -215,18 +214,10 @@ export default function ManageDashboardPage() {
     }).sort((a: any, b: any) => a.order - b.order);
   }, [imagesData, videosData, firestoreVideos]);
 
-  const handleCopyLink = (id: string) => {
-    const url = `${window.location.origin}/${id}`;
-    navigator.clipboard.writeText(url);
-    setCopiedId(id);
-    toast({ title: "URL Copied" });
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
   const saveItem = () => {
-    if (!firestore || !itemTitle) return;
+    if (!firestore || !itemTitle || !editingItem) return;
     setIsSaving(true);
-    const id = editingItem?.id;
+    const id = editingItem.id;
     const docRef = doc(firestore, 'videos', id);
     setDocumentNonBlocking(docRef, {
       id,
@@ -234,10 +225,24 @@ export default function ManageDashboardPage() {
       description: itemDesc,
       order: Number(itemOrder) || 0,
       updatedAt: new Date().toISOString(),
-      hidden: editingItem?.isHidden || false
+      hidden: editingItem.isHidden || false
     }, { merge: true });
     setIsItemDialogOpen(false);
     setIsSaving(false);
+    toast({ title: "Metadata Saved" });
+  };
+
+  const saveSidebar = () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    const docRef = doc(firestore, 'pages', 'sidebar');
+    setDocumentNonBlocking(docRef, {
+      content: sidebarContent,
+      siteTitle: siteTitle,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    setIsSaving(false);
+    toast({ title: "Sidebar Updated" });
   };
 
   const openEntryDialog = (type: 'news' | 'observations', entry?: any) => {
@@ -280,6 +285,39 @@ export default function ManageDashboardPage() {
     }, { merge: true });
     setIsEntryDialogOpen(false);
     setIsSaving(false);
+    toast({ title: `${entryType} saved` });
+  };
+
+  const openPageDialog = (page?: any) => {
+    if (page) {
+      setEditingPage(page);
+      setPageTitle(page.title || '');
+      setPageSlug(page.slug || '');
+      setPageContent(page.content || '');
+    } else {
+      setEditingPage({ isNew: true });
+      setPageTitle('');
+      setPageSlug('');
+      setPageContent('');
+    }
+    setIsPageDialogOpen(true);
+  };
+
+  const savePage = () => {
+    if (!firestore || !pageTitle) return;
+    setIsSaving(true);
+    const id = editingPage?.isNew ? (pageSlug || pageTitle.toLowerCase().replace(/\s+/g, '-')) : editingPage.id;
+    const docRef = doc(firestore, 'pages', id);
+    setDocumentNonBlocking(docRef, {
+      id,
+      title: pageTitle,
+      slug: pageSlug || id,
+      content: pageContent,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    setIsPageDialogOpen(false);
+    setIsSaving(false);
+    toast({ title: "Page saved" });
   };
 
   const handleConfirmAction = useCallback(() => {
@@ -288,17 +326,18 @@ export default function ManageDashboardPage() {
     const docRef = doc(firestore, col, id);
 
     if (action === 'hide') {
-      setDocumentNonBlocking(docRef, { hidden: true }, { merge: true });
+      setDocumentNonBlocking(docRef, { hidden: true, id }, { merge: true });
     } else if (action === 'unhide') {
-      setDocumentNonBlocking(docRef, { hidden: false }, { merge: true });
+      setDocumentNonBlocking(docRef, { hidden: false, id }, { merge: true });
     } else {
       deleteDocumentNonBlocking(docRef);
     }
     setItemToDelete(null);
+    toast({ title: "Action Applied" });
   }, [itemToDelete, firestore]);
 
   if (isAuthLoading) {
-    return <div className="flex items-center justify-center min-h-screen"><Loader2 className="size-8 animate-spin text-accent" /></div>;
+    return <div className="flex items-center justify-center min-h-screen bg-black text-white/50"><Loader2 className="size-8 animate-spin" /></div>;
   }
 
   return (
@@ -306,39 +345,39 @@ export default function ManageDashboardPage() {
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-[12pt] font-normal uppercase tracking-widest text-foreground/80">Unified Management</h1>
+            <h1 className="text-[14pt] font-normal uppercase tracking-[0.2em] text-foreground">Management Portal</h1>
             {isAdmin ? (
-              <Badge variant="outline" className="w-fit rounded-none border-green-500/50 bg-green-500/5 text-green-600 text-[9px] uppercase tracking-widest px-2 py-0.5 mt-2">
-                <ShieldCheck className="size-3 mr-1" /> Authorized Admin
+              <Badge variant="outline" className="w-fit rounded-none border-green-500/30 bg-green-500/5 text-green-600 text-[10px] uppercase tracking-widest px-2 py-0.5 mt-2">
+                <ShieldCheck className="size-3 mr-1" /> Admin Access
               </Badge>
             ) : (
-              <Badge variant="outline" className="w-fit rounded-none border-orange-500/50 bg-orange-500/5 text-orange-600 text-[9px] uppercase tracking-widest px-2 py-0.5 mt-2">
-                <ShieldAlert className="size-3 mr-1" /> Restricted Access
+              <Badge variant="outline" className="w-fit rounded-none border-orange-500/30 bg-orange-500/5 text-orange-600 text-[10px] uppercase tracking-widest px-2 py-0.5 mt-2">
+                <ShieldAlert className="size-3 mr-1" /> Public View
               </Badge>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => fetchData()} disabled={isRefreshing} className="rounded-none font-normal">
+            <Button variant="outline" size="sm" onClick={fetchData} disabled={isRefreshing} className="rounded-none font-normal uppercase tracking-widest text-[10px]">
               <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Sync Media
             </Button>
-            {isAdmin && <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-none text-destructive"><LogOut className="size-4 mr-2" /> Logout</Button>}
+            {isAdmin && <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-none text-destructive uppercase tracking-widest text-[10px]"><LogOut className="size-4 mr-2" /> Logout</Button>}
           </div>
         </div>
 
         {!isAdmin && (
           <div className="max-w-md mx-auto space-y-6">
-            <Alert variant="destructive" className="rounded-none">
+            <Alert variant="destructive" className="rounded-none bg-red-50/5 border-red-500/20">
               <AlertCircle className="size-4" />
-              <AlertTitle className="uppercase tracking-widest text-[10px] font-bold">Access Restricted</AlertTitle>
-              <AlertDescription className="text-sm">Sign in as admin to manage content.</AlertDescription>
+              <AlertTitle className="uppercase tracking-widest text-[10px] font-bold">Access Denied</AlertTitle>
+              <AlertDescription className="text-sm">Sign in as admin to manage site content.</AlertDescription>
             </Alert>
-            <Card className="rounded-none">
-              <CardHeader><CardTitle className="text-sm uppercase tracking-widest">Admin Sign-In</CardTitle></CardHeader>
+            <Card className="rounded-none border-border/40 shadow-none">
+              <CardHeader><CardTitle className="text-xs uppercase tracking-[0.2em]">Authentication</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2"><Label className="text-[10px] uppercase">Email</Label><Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="rounded-none" required /></div>
-                  <div className="space-y-2"><Label className="text-[10px] uppercase">Password</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="rounded-none" required /></div>
-                  <Button type="submit" disabled={isLoggingIn} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold">{isLoggingIn ? <Loader2 className="size-3 animate-spin mr-2" /> : <LogIn className="size-3 mr-2" />} Authenticate</Button>
+                  <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest">Email</Label><Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="rounded-none bg-muted/20" required /></div>
+                  <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest">Password</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="rounded-none bg-muted/20" required /></div>
+                  <Button type="submit" disabled={isLoggingIn} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold h-11">{isLoggingIn ? <Loader2 className="size-3 animate-spin mr-2" /> : <LogIn className="size-3 mr-2" />} Sign In</Button>
                 </form>
               </CardContent>
             </Card>
@@ -348,21 +387,21 @@ export default function ManageDashboardPage() {
         {isAdmin && (
           <Tabs defaultValue="masonry" className="w-full">
             <TabsList className="grid w-full max-w-2xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
-              <TabsTrigger value="sidebar" className="rounded-none">Sidebar</TabsTrigger>
-              <TabsTrigger value="masonry" className="rounded-none">Sculptures</TabsTrigger>
-              <TabsTrigger value="news" className="rounded-none">News</TabsTrigger>
-              <TabsTrigger value="obs" className="rounded-none">Obs</TabsTrigger>
-              <TabsTrigger value="pages" className="rounded-none">Pages</TabsTrigger>
+              <TabsTrigger value="masonry" className="rounded-none text-[9px] uppercase tracking-widest py-2">Sculptures</TabsTrigger>
+              <TabsTrigger value="sidebar" className="rounded-none text-[9px] uppercase tracking-widest py-2">Sidebar</TabsTrigger>
+              <TabsTrigger value="news" className="rounded-none text-[9px] uppercase tracking-widest py-2">News</TabsTrigger>
+              <TabsTrigger value="obs" className="rounded-none text-[9px] uppercase tracking-widest py-2">Obs</TabsTrigger>
+              <TabsTrigger value="pages" className="rounded-none text-[9px] uppercase tracking-widest py-2">Pages</TabsTrigger>
             </TabsList>
 
             <TabsContent value="masonry" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {masonryItems.map((item: any) => (
                   <div key={item.id} className={cn(
-                    "p-4 border flex items-center gap-4 transition-colors relative", 
-                    item.isHidden ? "bg-orange-50/10 border-orange-200/50 grayscale opacity-60" : "bg-muted/30 border-border/50"
+                    "p-4 border flex items-center gap-4 transition-all relative rounded-none", 
+                    item.isHidden ? "bg-orange-50/5 border-orange-200/20 grayscale opacity-60" : "bg-muted/10 border-border/40"
                   )}>
-                    <div className="size-16 bg-black shrink-0 relative border border-border/50 overflow-hidden">
+                    <div className="size-16 bg-black shrink-0 relative border border-white/10 overflow-hidden">
                       {item.imagePath ? (
                         <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
                       ) : (
@@ -370,40 +409,36 @@ export default function ManageDashboardPage() {
                           <ImageIcon className="size-5 opacity-20" />
                         </div>
                       )}
-                      {item.isHidden && <div className="absolute inset-0 bg-black/40 flex items-center justify-center"><EyeOff className="size-4 text-white" /></div>}
+                      {item.isHidden && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><EyeOff className="size-4 text-white" /></div>}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
+                      <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight">{item.title}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className={cn("text-[8px] px-1 rounded-none uppercase", item.hasImage ? "text-green-600 border-green-200" : "text-red-600 border-red-200")}>Img</Badge>
-                        <Badge variant="outline" className={cn("text-[8px] px-1 rounded-none uppercase", item.hasVideo ? "text-green-600 border-green-200" : "text-red-600 border-red-200")}>Vid</Badge>
+                        <Badge variant="outline" className={cn("text-[8px] px-1 rounded-none uppercase", item.hasImage ? "text-green-600 border-green-200/50" : "text-red-600 border-red-200/50")}>Img</Badge>
+                        <Badge variant="outline" className={cn("text-[8px] px-1 rounded-none uppercase", item.hasVideo ? "text-green-600 border-green-200/50" : "text-red-600 border-red-200/50")}>Vid</Badge>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <div className="flex items-center gap-1">
-                        <Button variant="outline" size="sm" className="rounded-none h-7 px-2 text-[9px] uppercase tracking-widest" onClick={() => {
-                          setEditingItem(item);
-                          setItemTitle(item.title || '');
-                          setItemDesc(item.description || '');
-                          setItemOrder(item.order?.toString() || '0');
-                          setIsItemDialogOpen(true);
-                        }}>Edit</Button>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="rounded-none h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                          onClick={() => setItemToDelete({ 
-                            id: item.id, 
-                            collection: 'videos', 
-                            action: item.isHidden ? 'unhide' : 'hide', 
-                            msg: item.isHidden ? `Unhide "${item.title}"?` : `Hide "${item.title}"?` 
-                          })}
-                        >
-                          {item.isHidden ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
-                        </Button>
-                      </div>
+                      <Button variant="outline" size="sm" className="rounded-none h-7 px-2 text-[9px] uppercase tracking-widest" onClick={() => {
+                        setEditingItem(item);
+                        setItemTitle(item.title || '');
+                        setItemDesc(item.description || '');
+                        setItemOrder(item.order?.toString() || '0');
+                        setIsItemDialogOpen(true);
+                      }}>Edit</Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="rounded-none h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                        onClick={() => setItemToDelete({ 
+                          id: item.id, 
+                          collection: 'videos', 
+                          action: item.isHidden ? 'unhide' : 'hide', 
+                          msg: item.isHidden ? `Unhide "${item.title}"?` : `Hide "${item.title}" from public gallery?` 
+                        })}
+                      >
+                        {item.isHidden ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
+                      </Button>
                     </div>
                     {(!item.hasImage || !item.hasVideo) && (
                       <AlertTriangle className="absolute -top-1 -right-1 size-3 text-red-500 fill-red-500" />
@@ -412,23 +447,83 @@ export default function ManageDashboardPage() {
                 ))}
               </div>
             </TabsContent>
+
+            <TabsContent value="sidebar" className="space-y-6">
+              <Card className="rounded-none border-border/40">
+                <CardHeader><CardTitle className="text-xs uppercase tracking-widest">Global Sidebar & Site Title</CardTitle></CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase">Site Title</Label>
+                    <Input value={siteTitle} onChange={e => setSiteTitle(e.target.value)} className="rounded-none" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] uppercase">Sidebar Content (Markdown Links: [Label](url))</Label>
+                    <Textarea value={sidebarContent} onChange={e => setSidebarContent(e.target.value)} className="rounded-none h-64 font-mono text-sm" />
+                  </div>
+                  <Button onClick={saveSidebar} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold h-11">
+                    {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Changes
+                  </Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
             
-            {/* News, Obs, Pages tabs omitted for brevity but preserved in full file */}
             <TabsContent value="news" className="space-y-6">
               <div className="flex justify-between items-center border-b border-border/30 pb-4">
                 <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Articles</h2>
-                <Button size="sm" onClick={() => openEntryDialog('news')} className="rounded-none h-8 font-normal"><Plus className="size-3 mr-2" /> Add News</Button>
+                <Button size="sm" onClick={() => openEntryDialog('news')} className="rounded-none h-8 font-normal uppercase text-[9px] tracking-widest"><Plus className="size-3 mr-2" /> Add News</Button>
               </div>
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-3">
                 {firestoreNews?.map((item: any) => (
-                  <div key={item.id} className="p-4 border bg-muted/30 flex items-center justify-between gap-4">
+                  <div key={item.id} className="p-4 border border-border/40 bg-muted/10 flex items-center justify-between gap-4 rounded-none">
                     <div className="flex-1 min-w-0">
-                       <h3 className="text-[10pt] font-normal truncate">{item.title}</h3>
-                       <p className="text-[8pt] text-muted-foreground"><Calendar className="size-3 inline mr-1" /> {item.date}</p>
+                       <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight">{item.title}</h3>
+                       <p className="text-[9px] text-muted-foreground uppercase tracking-widest"><Calendar className="size-3 inline mr-1" /> {item.date}</p>
                     </div>
                     <div className="flex items-center gap-2">
                        <Button variant="outline" size="sm" onClick={() => openEntryDialog('news', item)} className="rounded-none h-7 px-3 text-[9px] uppercase">Edit</Button>
-                       <Button variant="ghost" size="sm" onClick={() => setItemToDelete({ id: item.id, collection: 'news', action: 'delete', msg: `Delete news item "${item.title}"?` })} className="rounded-none h-7 px-2 text-destructive"><Trash2 className="size-3" /></Button>
+                       <Button variant="ghost" size="sm" onClick={() => setItemToDelete({ id: item.id, collection: 'news', action: 'delete', msg: `Permanently delete news item "${item.title}"?` })} className="rounded-none h-7 px-2 text-destructive"><Trash2 className="size-3" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="obs" className="space-y-6">
+              <div className="flex justify-between items-center border-b border-border/30 pb-4">
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Observations</h2>
+                <Button size="sm" onClick={() => openEntryDialog('observations')} className="rounded-none h-8 font-normal uppercase text-[9px] tracking-widest"><Plus className="size-3 mr-2" /> Add Observation</Button>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {firestoreObs?.map((item: any) => (
+                  <div key={item.id} className="p-4 border border-border/40 bg-muted/10 flex items-center justify-between gap-4 rounded-none">
+                    <div className="flex-1 min-w-0">
+                       <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight">{item.title}</h3>
+                       <p className="text-[9px] text-muted-foreground uppercase tracking-widest"><Calendar className="size-3 inline mr-1" /> {item.date}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <Button variant="outline" size="sm" onClick={() => openEntryDialog('observations', item)} className="rounded-none h-7 px-3 text-[9px] uppercase">Edit</Button>
+                       <Button variant="ghost" size="sm" onClick={() => setItemToDelete({ id: item.id, collection: 'observations', action: 'delete', msg: `Delete observation "${item.title}"?` })} className="rounded-none h-7 px-2 text-destructive"><Trash2 className="size-3" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="pages" className="space-y-6">
+              <div className="flex justify-between items-center border-b border-border/30 pb-4">
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Static Pages</h2>
+                <Button size="sm" onClick={() => openPageDialog()} className="rounded-none h-8 font-normal uppercase text-[9px] tracking-widest"><Plus className="size-3 mr-2" /> Create Page</Button>
+              </div>
+              <div className="grid grid-cols-1 gap-3">
+                {firestorePages?.filter(p => p.id !== 'sidebar').map((item: any) => (
+                  <div key={item.id} className="p-4 border border-border/40 bg-muted/10 flex items-center justify-between gap-4 rounded-none">
+                    <div className="flex-1 min-w-0">
+                       <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight">{item.title}</h3>
+                       <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Slug: /p/{item.slug}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                       <Button variant="outline" size="sm" onClick={() => openPageDialog(item)} className="rounded-none h-7 px-3 text-[9px] uppercase">Edit</Button>
+                       <Button variant="ghost" size="sm" onClick={() => setItemToDelete({ id: item.id, collection: 'pages', action: 'delete', msg: `Delete static page "${item.title}"?` })} className="rounded-none h-7 px-2 text-destructive"><Trash2 className="size-3" /></Button>
                     </div>
                   </div>
                 ))}
@@ -438,27 +533,66 @@ export default function ManageDashboardPage() {
         )}
       </div>
 
+      {/* Dialogs */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-        <DialogContent className="max-w-2xl rounded-none">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[9pt] font-normal">Sculpture Metadata</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-2xl rounded-none border-white/10 bg-black text-white">
+          <DialogHeader><DialogTitle className="uppercase tracking-[0.2em] text-[10pt] font-normal">Sculpture Metadata</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-4 gap-4">
-              <div className="col-span-3"><Label className="text-[9pt] uppercase">Title</Label><Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none" /></div>
-              <div><Label className="text-[9pt] uppercase">Order</Label><Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none" /></div>
+              <div className="col-span-3"><Label className="text-[9px] uppercase tracking-widest">Public Title</Label><Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none bg-white/5 border-white/10" /></div>
+              <div><Label className="text-[9px] uppercase tracking-widest">Order</Label><Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none bg-white/5 border-white/10" /></div>
             </div>
-            <div className="space-y-2"><Label className="text-[9pt] uppercase">Description</Label><Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none h-32" /></div>
+            <div className="space-y-2"><Label className="text-[9px] uppercase tracking-widest">Gallery Description</Label><Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none h-32 bg-white/5 border-white/10" /></div>
           </div>
           <DialogFooter><Button onClick={saveItem} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest font-bold h-11">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Metadata</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
+      <Dialog open={isEntryDialogOpen} onOpenChange={setIsEntryDialogOpen}>
+        <DialogContent className="max-w-3xl rounded-none bg-black text-white">
+          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[10pt] font-normal">{entryType === 'news' ? 'News Article' : 'Observation'}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label className="text-[9px] uppercase">Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase">Date String</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label className="text-[9px] uppercase">Image Filename (e.g. news.jpg)</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase">Matching Video ID</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
+            </div>
+            <div className="space-y-2"><Label className="text-[9px] uppercase">Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-48" /></div>
+          </div>
+          <DialogFooter><Button onClick={saveEntry} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest h-11">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Entry</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPageDialogOpen} onOpenChange={setIsPageDialogOpen}>
+        <DialogContent className="max-w-4xl rounded-none bg-black text-white">
+          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[10pt] font-normal">Static Page</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label className="text-[9px] uppercase">Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase">Slug (/p/...)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" /></div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[9px] uppercase">Content ([image:file.jpg], [video:file.mp4], [Link](url))</Label>
+              <Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-[400px] font-mono" />
+            </div>
+          </div>
+          <DialogFooter><Button onClick={savePage} disabled={isSaving} className="rounded-none w-full h-11 uppercase tracking-widest">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Page</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
-        <AlertDialogContent className="rounded-none">
+        <AlertDialogContent className="rounded-none border-white/10 bg-black text-white">
           <AlertDialogHeader>
-            <AlertDialogTitle className="uppercase tracking-widest text-[9pt] font-normal">Confirm Action</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm">{itemToDelete?.msg}</AlertDialogDescription>
+            <AlertDialogTitle className="uppercase tracking-widest text-[10pt] font-normal">Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription className="text-white/60">{itemToDelete?.msg}</AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter><AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel><AlertDialogAction onClick={handleConfirmAction} className="rounded-none bg-destructive hover:bg-destructive/90">Confirm</AlertDialogAction></AlertDialogFooter>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-none bg-transparent border-white/20 text-white hover:bg-white/5">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAction} className="rounded-none bg-destructive text-white hover:bg-destructive/90 border-none">Confirm</AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </main>
