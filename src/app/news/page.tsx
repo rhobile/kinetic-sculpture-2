@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * News Page for Rhobile.
- * Optimized for dark theme and mobile portrait title wrapping.
+ * Light theme (white background, black text) and mobile title wrapping.
  */
 export default function NewsPage() {
   const { firestore } = useFirebase();
@@ -39,20 +39,20 @@ export default function NewsPage() {
   };
 
   return (
-    <div className="bg-black min-h-screen text-white">
+    <div className="bg-background min-h-screen text-foreground">
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl font-normal mb-8 tracking-widest border-b border-white/10 pb-6 uppercase">News</h1>
+          <h1 className="text-2xl font-normal mb-8 tracking-widest border-b border-border pb-6 uppercase">News</h1>
           
           <div className="space-y-16">
             {isLoading ? (
               [...Array(2)].map((_, i) => (
                 <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
-                  <Skeleton className="aspect-square md:col-span-1 bg-white/5" />
+                  <Skeleton className="aspect-square md:col-span-1" />
                   <div className="md:col-span-3 space-y-4">
-                    <Skeleton className="h-4 w-20 bg-white/5" />
-                    <Skeleton className="h-6 w-3/4 bg-white/5" />
-                    <Skeleton className="h-20 w-full bg-white/5" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-6 w-3/4" />
+                    <Skeleton className="h-20 w-full" />
                   </div>
                 </div>
               ))
@@ -64,7 +64,7 @@ export default function NewsPage() {
                     <div className="md:col-span-1">
                       <div 
                         className={cn(
-                          "aspect-square relative overflow-hidden rounded-none border border-white/10 bg-neutral-900",
+                          "aspect-square relative overflow-hidden rounded-none border border-border bg-neutral-50",
                           item.videoId && "cursor-pointer hover:opacity-90 transition-opacity"
                         )}
                         onClick={() => item.videoId && handleVideoSelect(item)}
@@ -78,7 +78,7 @@ export default function NewsPage() {
                             className="object-cover w-full h-full"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-white/30 p-4 text-center text-[10px] uppercase tracking-widest">
+                          <div className="w-full h-full flex items-center justify-center text-foreground/30 p-4 text-center text-[10px] uppercase tracking-widest">
                             No Image
                           </div>
                         )}
@@ -86,12 +86,12 @@ export default function NewsPage() {
                     </div>
                     <div className="md:col-span-3 space-y-3">
                       <div className="space-y-1">
-                        <p className="text-[12px] tracking-widest text-white/40 uppercase">{item.date}</p>
-                        <h2 className="text-[14pt] font-normal tracking-wide leading-tight break-words whitespace-normal uppercase">
+                        <p className="text-[12px] tracking-widest text-foreground/40 uppercase">{item.date}</p>
+                        <h2 className="text-[14pt] font-normal tracking-wide leading-tight break-words whitespace-normal uppercase text-foreground">
                           {item.title}
                         </h2>
                       </div>
-                      <p className="text-[12pt] text-white/70 leading-relaxed font-light whitespace-pre-wrap max-w-none">
+                      <p className="text-[12pt] text-foreground/70 leading-relaxed font-light whitespace-pre-wrap max-w-none">
                         {item.content}
                       </p>
                     </div>
@@ -99,7 +99,7 @@ export default function NewsPage() {
                 );
               })
             ) : (
-              <p className="text-[12px] text-white/30 italic font-normal">No news updates at this time.</p>
+              <p className="text-[12px] text-foreground/30 italic font-normal">No news updates at this time.</p>
             )}
           </div>
         </div>

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { use, useMemo } from 'react';
@@ -10,7 +9,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 /**
- * Sculpture detail page with optimized mobile wrapping and tight spacing.
+ * Sculpture detail page with white background and black text.
  * Titles now wrap to a second line if they are long on mobile portrait.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,11 +30,11 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-black flex flex-col items-center justify-center p-8">
+      <main className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
         <div className="w-full max-w-4xl space-y-4">
-          <Skeleton className="aspect-video w-full bg-white/5" />
+          <Skeleton className="aspect-video w-full" />
           <div className="space-y-2">
-            <Skeleton className="h-6 w-1/3 bg-white/5" />
+            <Skeleton className="h-6 w-1/3" />
           </div>
         </div>
       </main>
@@ -46,24 +45,24 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
   const description = videoData?.description || "A balance of form and articulated movement.";
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 sm:p-8 lg:p-12">
+    <main className="min-h-screen bg-background text-foreground p-4 sm:p-8 lg:p-12">
       <div className="max-w-5xl mx-auto space-y-2">
         <div className="flex justify-between items-center mb-1">
-          <Link href="/" className="text-white/30 hover:text-white transition-colors flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] hover:no-underline">
+          <Link href="/" className="text-foreground/30 hover:text-foreground transition-colors flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] hover:no-underline">
             <ArrowLeft className="size-3" /> Return to Gallery
           </Link>
         </div>
 
         <div className="space-y-1">
-          <div className="aspect-video bg-neutral-900 border border-white/5 relative overflow-hidden">
+          <div className="aspect-video bg-neutral-100 border border-border relative overflow-hidden">
             <FirebaseStorageVideo path={videoPath} className="w-full h-full object-contain" />
           </div>
           
           <div className="max-w-2xl space-y-0 pt-0.5">
-            <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight break-words whitespace-normal">
+            <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight break-words whitespace-normal text-foreground">
               {title}
             </h1>
-            <p className="text-[12pt] text-white/60 font-light leading-tight whitespace-pre-wrap pt-0.5">
+            <p className="text-[12pt] text-foreground/60 font-light leading-tight whitespace-pre-wrap pt-0.5">
               {description}
             </p>
           </div>

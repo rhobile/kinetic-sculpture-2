@@ -9,8 +9,8 @@ import { FirebaseStorageVideo } from '@/components/firebase/storage-video';
 import Link from 'next/link';
 
 /**
- * Cinematic Page renderer using ks-images/ and ks-videos/ folders.
- * Optimized for dark theme and mobile title wrapping.
+ * Cinematic Page renderer with light theme (white background, black text).
+ * Optimized for mobile title wrapping.
  */
 export default function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -52,7 +52,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         
         elements.push(
           <div key={`img-${idx}`} className="my-6 first:mt-0 last:mb-0">
-            <div className="border border-white/5 bg-neutral-900 overflow-hidden shadow-2xl">
+            <div className="border border-border bg-neutral-50 overflow-hidden shadow-sm">
               <FirebaseStorageImage
                 path={path}
                 alt={`Image ${filename}`}
@@ -73,7 +73,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         
         elements.push(
           <div key={`vid-${idx}`} className="my-6 first:mt-0 last:mb-0">
-            <div className="border border-white/5 bg-black aspect-video overflow-hidden shadow-2xl relative">
+            <div className="border border-border bg-black aspect-video overflow-hidden shadow-sm relative">
               <FirebaseStorageVideo 
                 path={path} 
                 className="w-full h-full" 
@@ -104,7 +104,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       });
 
       elements.push(
-        <p key={`p-${idx}`} className="min-h-[1.2em] text-[12pt] text-white/80 leading-relaxed font-light mb-3 last:mb-0 max-w-2xl">
+        <p key={`p-${idx}`} className="min-h-[1.2em] text-[12pt] text-foreground/80 leading-relaxed font-light mb-3 last:mb-0 max-w-2xl">
           {renderedLine}
         </p>
       );
@@ -115,13 +115,13 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
 
   if (isLoading || !firestore || !slug) {
     return (
-      <main className="min-h-screen bg-black p-4 sm:p-6 lg:p-8">
+      <main className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          <Skeleton className="h-10 w-3/4 mb-10 bg-white/5" />
+          <Skeleton className="h-10 w-3/4 mb-10" />
           <div className="space-y-4">
-            <Skeleton className="h-4 w-full bg-white/5" />
-            <Skeleton className="h-4 w-full bg-white/5" />
-            <Skeleton className="h-4 w-5/6 bg-white/5" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
           </div>
         </div>
       </main>
@@ -130,19 +130,19 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
 
   if (!pageData) {
     return (
-      <main className="min-h-screen bg-black p-4 sm:p-6 lg:p-8">
+      <main className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto text-center py-20">
-          <h1 className="text-2xl font-normal tracking-widest mb-4 text-white">Page Not Found</h1>
-          <p className="text-white/40">The page you are looking for does not exist.</p>
+          <h1 className="text-2xl font-normal tracking-widest mb-4 text-foreground">Page Not Found</h1>
+          <p className="text-foreground/40">The page you are looking for does not exist.</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8 lg:py-12">
+    <main className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 lg:py-12">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-[14pt] font-normal mb-6 tracking-[0.2em] uppercase border-b border-white/10 pb-4 leading-tight break-words whitespace-normal">
+        <h1 className="text-[14pt] font-normal mb-6 tracking-[0.2em] uppercase border-b border-border pb-4 leading-tight break-words whitespace-normal text-foreground">
           {pageData.title}
         </h1>
         <div className="max-w-none">
