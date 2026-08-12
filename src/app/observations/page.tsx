@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -8,6 +9,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { VideoPlayerModal } from '@/components/video-player-modal';
 import { cn } from '@/lib/utils';
 
+/**
+ * Observations Page for Rhobile.
+ * Titles wrap gracefully and vertical spacing is tightened.
+ */
 export default function ObservationsPage() {
   const { firestore } = useFirebase();
   const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
@@ -38,7 +43,7 @@ export default function ObservationsPage() {
     <div className="bg-background min-h-screen">
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl font-normal mb-6 tracking-widest border-b border-border/50 pb-6">Flow observations of wind and water</h1>
+          <h1 className="text-2xl font-normal mb-6 tracking-widest border-b border-border/50 pb-6 uppercase">Flow observations of wind and water</h1>
           
           <div className="space-y-20">
             {isLoading ? (
@@ -83,7 +88,9 @@ export default function ObservationsPage() {
                     <div className="md:col-span-3 space-y-4">
                       <div className="space-y-1">
                         <p className="text-[12px] tracking-widest text-muted-foreground uppercase">{item.date}</p>
-                        <h2 className="text-[14pt] font-normal tracking-wide">{item.title}</h2>
+                        <h2 className="text-[14pt] font-normal tracking-wide leading-tight break-words whitespace-normal uppercase">
+                          {item.title}
+                        </h2>
                       </div>
                       <p className="text-[12pt] text-foreground/80 leading-relaxed font-normal whitespace-pre-wrap max-w-none">
                         {item.content}

@@ -7,11 +7,12 @@ import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VideoPlayerModal } from '@/components/video-player-modal';
-import { cn } from '@/utils';
+import { cn } from '@/lib/utils';
 
 /**
  * News Page for Rhobile.
- * All image references now point to ks-images/ folder.
+ * All image references point to ks-images/ folder.
+ * Titles now wrap gracefully on mobile portrait.
  */
 export default function NewsPage() {
   const { firestore } = useFirebase();
@@ -26,7 +27,6 @@ export default function NewsPage() {
 
   const resolveImagePath = (path: string) => {
     if (!path) return '';
-    // Reverted from ks-gallery to ks-images
     return path.startsWith('ks-images/') ? path : `ks-images/${path}`;
   };
 
@@ -44,7 +44,7 @@ export default function NewsPage() {
     <div className="bg-background min-h-screen">
       <main className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl font-normal mb-6 tracking-widest border-b border-border/50 pb-6">News</h1>
+          <h1 className="text-2xl font-normal mb-6 tracking-widest border-b border-border/50 pb-6 uppercase">News</h1>
           
           <div className="space-y-20">
             {isLoading ? (
@@ -89,7 +89,9 @@ export default function NewsPage() {
                     <div className="md:col-span-3 space-y-4">
                       <div className="space-y-1">
                         <p className="text-[12px] tracking-widest text-muted-foreground uppercase">{item.date}</p>
-                        <h2 className="text-[14pt] font-normal tracking-wide">{item.title}</h2>
+                        <h2 className="text-[14pt] font-normal tracking-wide leading-tight break-words whitespace-normal uppercase">
+                          {item.title}
+                        </h2>
                       </div>
                       <p className="text-[12pt] text-foreground/80 leading-relaxed font-normal whitespace-pre-wrap max-w-none">
                         {item.content}
