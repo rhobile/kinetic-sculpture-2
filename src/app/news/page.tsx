@@ -7,8 +7,12 @@ import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VideoPlayerModal } from '@/components/video-player-modal';
-import { cn } from '@/lib/utils';
+import { cn } from '@/utils';
 
+/**
+ * News Page for Rhobile.
+ * All image references now point to ks-images/ folder.
+ */
 export default function NewsPage() {
   const { firestore } = useFirebase();
   const [selectedVideo, setSelectedVideo] = useState<any | null>(null);
@@ -22,7 +26,8 @@ export default function NewsPage() {
 
   const resolveImagePath = (path: string) => {
     if (!path) return '';
-    return path.startsWith('ks-gallery/') ? path : `ks-gallery/${path}`;
+    // Reverted from ks-gallery to ks-images
+    return path.startsWith('ks-images/') ? path : `ks-images/${path}`;
   };
 
   const handleVideoSelect = (item: any) => {
@@ -30,7 +35,7 @@ export default function NewsPage() {
     setSelectedVideo({
       id: item.videoId,
       title: item.title,
-      path: fullImagePath || `ks-gallery/${item.videoId}.jpg`,
+      path: fullImagePath || `ks-images/${item.videoId}.jpg`,
       description: item.content
     });
   };
