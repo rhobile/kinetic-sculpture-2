@@ -1,7 +1,6 @@
-
 'use client';
 
-import { use, ReactNode, Fragment } from 'react';
+import { use, ReactNode } from 'react';
 import { doc } from 'firebase/firestore';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +10,7 @@ import Link from 'next/link';
 
 /**
  * Cinematic Page renderer using ks-images/ and ks-videos/ folders.
+ * Optimized for dark theme and mobile title wrapping.
  */
 export default function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -51,7 +51,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         const path = filename.startsWith('ks-images/') ? filename : `ks-images/${filename}`;
         
         elements.push(
-          <div key={`img-${idx}`} className="my-8 first:mt-0 last:mb-0">
+          <div key={`img-${idx}`} className="my-6 first:mt-0 last:mb-0">
             <div className="border border-white/5 bg-neutral-900 overflow-hidden shadow-2xl">
               <FirebaseStorageImage
                 path={path}
@@ -72,7 +72,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         const path = filename.startsWith('ks-videos/') ? filename : `ks-videos/${filename}`;
         
         elements.push(
-          <div key={`vid-${idx}`} className="my-8 first:mt-0 last:mb-0">
+          <div key={`vid-${idx}`} className="my-6 first:mt-0 last:mb-0">
             <div className="border border-white/5 bg-black aspect-video overflow-hidden shadow-2xl relative">
               <FirebaseStorageVideo 
                 path={path} 
@@ -104,7 +104,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       });
 
       elements.push(
-        <p key={`p-${idx}`} className="min-h-[1.2em] text-[12pt] text-foreground/80 leading-relaxed font-normal mb-4 last:mb-0 max-w-2xl">
+        <p key={`p-${idx}`} className="min-h-[1.2em] text-[12pt] text-white/80 leading-relaxed font-light mb-3 last:mb-0 max-w-2xl">
           {renderedLine}
         </p>
       );
@@ -115,13 +115,13 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
 
   if (isLoading || !firestore || !slug) {
     return (
-      <main className="p-4 sm:p-6 lg:p-8">
+      <main className="min-h-screen bg-black p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto space-y-6">
-          <Skeleton className="h-10 w-3/4 mb-10" />
+          <Skeleton className="h-10 w-3/4 mb-10 bg-white/5" />
           <div className="space-y-4">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
+            <Skeleton className="h-4 w-full bg-white/5" />
+            <Skeleton className="h-4 w-full bg-white/5" />
+            <Skeleton className="h-4 w-5/6 bg-white/5" />
           </div>
         </div>
       </main>
@@ -130,19 +130,19 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
 
   if (!pageData) {
     return (
-      <main className="p-4 sm:p-6 lg:p-8">
+      <main className="min-h-screen bg-black p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto text-center py-20">
-          <h1 className="text-2xl font-normal tracking-widest mb-4">Page Not Found</h1>
-          <p className="text-muted-foreground">The page you are looking for does not exist.</p>
+          <h1 className="text-2xl font-normal tracking-widest mb-4 text-white">Page Not Found</h1>
+          <p className="text-white/40">The page you are looking for does not exist.</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="p-4 sm:p-6 lg:p-8 lg:py-16">
+    <main className="min-h-screen bg-black text-white p-4 sm:p-6 lg:p-8 lg:py-12">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-normal mb-8 tracking-[0.2em] uppercase border-b border-border/30 pb-6 leading-tight">
+        <h1 className="text-[14pt] font-normal mb-6 tracking-[0.2em] uppercase border-b border-white/10 pb-4 leading-tight break-words whitespace-normal">
           {pageData.title}
         </h1>
         <div className="max-w-none">
