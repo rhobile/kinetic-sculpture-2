@@ -17,6 +17,6 @@
 - `ks-images/`: Sculpture thumbnails (.jpg, .png).
 - `ks-videos/`: Sculpture videos (.mp4).
 
-## 🚀 Deployment
+## 🚀 Deployment & GitHub
 1. **Publish**: Apply design changes in Firebase Studio.
-2. **Push**: Type your summary (e.g., "Adjust mobile titles") in the commit box before pushing to GitHub.
+2. **Push Message**: When clicking the cloud icon to Push to GitHub, **manually clear the text box** and type your own summary (e.g., "Updated sculpture titles"). This prevents your conversation history from being used as the commit title.
