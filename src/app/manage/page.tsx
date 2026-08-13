@@ -16,7 +16,7 @@ import {
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Save, Plus, LogIn, LogOut, ShieldCheck, ShieldAlert, AlertCircle, EyeOff, Eye, Image as ImageIcon, AlertTriangle, Calendar
+  Trash2, Loader2, RefreshCw, Save, Plus, LogIn, LogOut, ShieldCheck, ShieldAlert, AlertCircle, EyeOff, Eye, Image as ImageIcon, AlertTriangle, Calendar, Settings
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -43,7 +43,7 @@ import { EXCLUDED_IMAGES } from '@/lib/constants';
 /**
  * Robust Management Dashboard.
  * Handles storage-to-firestore synchronization, show/hide logic, and metadata editing.
- * Fixed visibility for light theme.
+ * Fixed visibility for light theme - all text is explicitly black on white.
  */
 export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -337,15 +337,15 @@ export default function ManageDashboardPage() {
   }, [itemToDelete, firestore]);
 
   if (isAuthLoading) {
-    return <div className="flex items-center justify-center min-h-screen bg-background text-foreground/50"><Loader2 className="size-8 animate-spin" /></div>;
+    return <div className="flex items-center justify-center min-h-screen bg-white text-black/50"><Loader2 className="size-8 animate-spin" /></div>;
   }
 
   return (
-    <main className="p-4 sm:p-6 lg:p-8 bg-background min-h-screen text-foreground">
+    <main className="p-4 sm:p-6 lg:p-8 bg-white min-h-screen text-black">
       <div className="max-w-6xl mx-auto space-y-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border/50 pb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-black/10 pb-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-[14pt] font-normal uppercase tracking-[0.2em]">Management Portal</h1>
+            <h1 className="text-[14pt] font-normal uppercase tracking-[0.2em] text-black">Management Portal</h1>
             {isAdmin ? (
               <Badge variant="outline" className="w-fit rounded-none border-green-500/30 bg-green-500/5 text-green-600 text-[10px] uppercase tracking-widest px-2 py-0.5 mt-2">
                 <ShieldCheck className="size-3 mr-1" /> Admin Access
@@ -357,27 +357,27 @@ export default function ManageDashboardPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={fetchData} disabled={isRefreshing} className="rounded-none font-normal uppercase tracking-widest text-[10px]">
+            <Button variant="outline" size="sm" onClick={fetchData} disabled={isRefreshing} className="rounded-none font-normal uppercase tracking-widest text-[10px] border-black/20 text-black">
               <RefreshCw className={cn("size-4 mr-2", isRefreshing && "animate-spin")} /> Sync Media
             </Button>
-            {isAdmin && <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-none text-destructive uppercase tracking-widest text-[10px]"><LogOut className="size-4 mr-2" /> Logout</Button>}
+            {isAdmin && <Button variant="ghost" size="sm" onClick={handleLogout} className="rounded-none text-red-600 uppercase tracking-widest text-[10px]"><LogOut className="size-4 mr-2" /> Logout</Button>}
           </div>
         </div>
 
         {!isAdmin && (
           <div className="max-w-md mx-auto space-y-6">
-            <Alert variant="destructive" className="rounded-none bg-red-50/5 border-red-500/20">
+            <Alert variant="destructive" className="rounded-none bg-red-50 border-red-200 text-red-600">
               <AlertCircle className="size-4" />
               <AlertTitle className="uppercase tracking-widest text-[10px] font-bold">Access Denied</AlertTitle>
               <AlertDescription className="text-sm">Sign in as admin to manage site content.</AlertDescription>
             </Alert>
-            <Card className="rounded-none border-border/40 shadow-none">
-              <CardHeader><CardTitle className="text-xs uppercase tracking-[0.2em]">Authentication</CardTitle></CardHeader>
+            <Card className="rounded-none border-black/10 shadow-none bg-white">
+              <CardHeader><CardTitle className="text-xs uppercase tracking-[0.2em] text-black">Authentication</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest">Email</Label><Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="rounded-none" required /></div>
-                  <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest">Password</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="rounded-none" required /></div>
-                  <Button type="submit" disabled={isLoggingIn} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold h-11">{isLoggingIn ? <Loader2 className="size-3 animate-spin mr-2" /> : <LogIn className="size-3 mr-2" />} Sign In</Button>
+                  <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest text-black">Email</Label><Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="rounded-none border-black/20 text-black bg-white" required /></div>
+                  <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest text-black">Password</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="rounded-none border-black/20 text-black bg-white" required /></div>
+                  <Button type="submit" disabled={isLoggingIn} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold h-11 bg-black text-white">{isLoggingIn ? <Loader2 className="size-3 animate-spin mr-2" /> : <LogIn className="size-3 mr-2" />} Sign In</Button>
                 </form>
               </CardContent>
             </Card>
@@ -386,12 +386,12 @@ export default function ManageDashboardPage() {
 
         {isAdmin && (
           <Tabs defaultValue="masonry" className="w-full">
-            <TabsList className="grid w-full max-w-2xl grid-cols-5 rounded-none bg-muted/50 p-1 mb-8">
-              <TabsTrigger value="masonry" className="rounded-none text-[9px] uppercase tracking-widest py-2">Sculptures</TabsTrigger>
-              <TabsTrigger value="sidebar" className="rounded-none text-[9px] uppercase tracking-widest py-2">Sidebar</TabsTrigger>
-              <TabsTrigger value="news" className="rounded-none text-[9px] uppercase tracking-widest py-2">News</TabsTrigger>
-              <TabsTrigger value="obs" className="rounded-none text-[9px] uppercase tracking-widest py-2">Obs</TabsTrigger>
-              <TabsTrigger value="pages" className="rounded-none text-[9px] uppercase tracking-widest py-2">Pages</TabsTrigger>
+            <TabsList className="grid w-full max-w-2xl grid-cols-5 rounded-none bg-black/5 p-1 mb-8">
+              <TabsTrigger value="masonry" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">Sculptures</TabsTrigger>
+              <TabsTrigger value="sidebar" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">Sidebar</TabsTrigger>
+              <TabsTrigger value="news" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">News</TabsTrigger>
+              <TabsTrigger value="obs" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">Obs</TabsTrigger>
+              <TabsTrigger value="pages" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">Pages</TabsTrigger>
             </TabsList>
 
             <TabsContent value="masonry" className="space-y-6">
@@ -399,27 +399,27 @@ export default function ManageDashboardPage() {
                 {masonryItems.map((item: any) => (
                   <div key={item.id} className={cn(
                     "p-4 border flex items-center gap-4 transition-all relative rounded-none", 
-                    item.isHidden ? "bg-orange-50/5 border-orange-200/20 grayscale opacity-60" : "bg-muted/10 border-border/40"
+                    item.isHidden ? "bg-orange-50 border-orange-200 grayscale opacity-60" : "bg-black/5 border-black/10"
                   )}>
-                    <div className="size-16 bg-neutral-100 shrink-0 relative border border-border overflow-hidden">
+                    <div className="size-16 bg-neutral-200 shrink-0 relative border border-black/10 overflow-hidden">
                       {item.imagePath ? (
                         <FirebaseStorageImage path={item.imagePath} alt={item.title} width={64} height={64} className="object-cover w-full h-full" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-neutral-50 text-muted-foreground">
+                        <div className="w-full h-full flex items-center justify-center bg-neutral-100 text-black/30">
                           <ImageIcon className="size-5 opacity-20" />
                         </div>
                       )}
                       {item.isHidden && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><EyeOff className="size-4 text-black" /></div>}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight">{item.title}</h3>
+                      <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight text-black">{item.title}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className={cn("text-[8px] px-1 rounded-none uppercase", item.hasImage ? "text-green-600 border-green-200/50" : "text-red-600 border-red-200/50")}>Img</Badge>
-                        <Badge variant="outline" className={cn("text-[8px] px-1 rounded-none uppercase", item.hasVideo ? "text-green-600 border-green-200/50" : "text-red-600 border-red-200/50")}>Vid</Badge>
+                        <Badge variant="outline" className={cn("text-[8px] px-1 rounded-none uppercase", item.hasImage ? "text-green-600 border-green-200" : "text-red-600 border-red-200")}>Img</Badge>
+                        <Badge variant="outline" className={cn("text-[8px] px-1 rounded-none uppercase", item.hasVideo ? "text-green-600 border-green-200" : "text-red-600 border-red-200")}>Vid</Badge>
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      <Button variant="outline" size="sm" className="rounded-none h-7 px-2 text-[9px] uppercase tracking-widest" onClick={() => {
+                      <Button variant="outline" size="sm" className="rounded-none h-7 px-2 text-[9px] uppercase tracking-widest border-black/20 text-black" onClick={() => {
                         setEditingItem(item);
                         setItemTitle(item.title || '');
                         setItemDesc(item.description || '');
@@ -429,7 +429,7 @@ export default function ManageDashboardPage() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="rounded-none h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                        className="rounded-none h-7 w-7 p-0 text-black/40 hover:text-black"
                         onClick={() => setItemToDelete({ 
                           id: item.id, 
                           collection: 'videos', 
@@ -449,18 +449,18 @@ export default function ManageDashboardPage() {
             </TabsContent>
 
             <TabsContent value="sidebar" className="space-y-6">
-              <Card className="rounded-none border-border/40">
-                <CardHeader><CardTitle className="text-xs uppercase tracking-widest">Global Sidebar & Site Title</CardTitle></CardHeader>
+              <Card className="rounded-none border-black/10 bg-white">
+                <CardHeader><CardTitle className="text-xs uppercase tracking-widest text-black">Global Sidebar & Site Title</CardTitle></CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase">Site Title</Label>
-                    <Input value={siteTitle} onChange={e => setSiteTitle(e.target.value)} className="rounded-none" />
+                    <Label className="text-[10px] uppercase text-black">Site Title</Label>
+                    <Input value={siteTitle} onChange={e => setSiteTitle(e.target.value)} className="rounded-none border-black/20 text-black bg-white" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase">Sidebar Content (Markdown Links: [Label](url))</Label>
-                    <Textarea value={sidebarContent} onChange={e => setSidebarContent(e.target.value)} className="rounded-none h-64 font-mono text-sm" />
+                    <Label className="text-[10px] uppercase text-black">Sidebar Content (Markdown Links: [Label](url))</Label>
+                    <Textarea value={sidebarContent} onChange={e => setSidebarContent(e.target.value)} className="rounded-none h-64 font-mono text-sm border-black/20 text-black bg-white" />
                   </div>
-                  <Button onClick={saveSidebar} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold h-11">
+                  <Button onClick={saveSidebar} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold h-11 bg-black text-white">
                     {isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Changes
                   </Button>
                 </CardContent>
@@ -468,20 +468,20 @@ export default function ManageDashboardPage() {
             </TabsContent>
             
             <TabsContent value="news" className="space-y-6">
-              <div className="flex justify-between items-center border-b border-border/30 pb-4">
-                <h2 className="text-[10pt] uppercase tracking-widest font-normal">News Articles</h2>
-                <Button size="sm" onClick={() => openEntryDialog('news')} className="rounded-none h-8 font-normal uppercase text-[9px] tracking-widest"><Plus className="size-3 mr-2" /> Add News</Button>
+              <div className="flex justify-between items-center border-b border-black/10 pb-4">
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal text-black">News Articles</h2>
+                <Button size="sm" onClick={() => openEntryDialog('news')} className="rounded-none h-8 font-normal uppercase text-[9px] tracking-widest bg-black text-white"><Plus className="size-3 mr-2" /> Add News</Button>
               </div>
               <div className="grid grid-cols-1 gap-3">
                 {firestoreNews?.map((item: any) => (
-                  <div key={item.id} className="p-4 border border-border/40 bg-muted/10 flex items-center justify-between gap-4 rounded-none">
+                  <div key={item.id} className="p-4 border border-black/10 bg-black/5 flex items-center justify-between gap-4 rounded-none">
                     <div className="flex-1 min-w-0">
-                       <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight">{item.title}</h3>
-                       <p className="text-[9px] text-muted-foreground uppercase tracking-widest"><Calendar className="size-3 inline mr-1" /> {item.date}</p>
+                       <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight text-black">{item.title}</h3>
+                       <p className="text-[9px] text-black/50 uppercase tracking-widest"><Calendar className="size-3 inline mr-1" /> {item.date}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                       <Button variant="outline" size="sm" onClick={() => openEntryDialog('news', item)} className="rounded-none h-7 px-3 text-[9px] uppercase">Edit</Button>
-                       <Button variant="ghost" size="sm" onClick={() => setItemToDelete({ id: item.id, collection: 'news', action: 'delete', msg: `Permanently delete news item "${item.title}"?` })} className="rounded-none h-7 px-2 text-destructive"><Trash2 className="size-3" /></Button>
+                       <Button variant="outline" size="sm" onClick={() => openEntryDialog('news', item)} className="rounded-none h-7 px-3 text-[9px] uppercase border-black/20 text-black">Edit</Button>
+                       <Button variant="ghost" size="sm" onClick={() => setItemToDelete({ id: item.id, collection: 'news', action: 'delete', msg: `Permanently delete news item "${item.title}"?` })} className="rounded-none h-7 px-2 text-red-600"><Trash2 className="size-3" /></Button>
                     </div>
                   </div>
                 ))}
@@ -489,20 +489,20 @@ export default function ManageDashboardPage() {
             </TabsContent>
 
             <TabsContent value="obs" className="space-y-6">
-              <div className="flex justify-between items-center border-b border-border/30 pb-4">
-                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Observations</h2>
-                <Button size="sm" onClick={() => openEntryDialog('observations')} className="rounded-none h-8 font-normal uppercase text-[9px] tracking-widest"><Plus className="size-3 mr-2" /> Add Observation</Button>
+              <div className="flex justify-between items-center border-b border-black/10 pb-4">
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal text-black">Observations</h2>
+                <Button size="sm" onClick={() => openEntryDialog('observations')} className="rounded-none h-8 font-normal uppercase text-[9px] tracking-widest bg-black text-white"><Plus className="size-3 mr-2" /> Add Observation</Button>
               </div>
               <div className="grid grid-cols-1 gap-3">
                 {firestoreObs?.map((item: any) => (
-                  <div key={item.id} className="p-4 border border-border/40 bg-muted/10 flex items-center justify-between gap-4 rounded-none">
+                  <div key={item.id} className="p-4 border border-black/10 bg-black/5 flex items-center justify-between gap-4 rounded-none">
                     <div className="flex-1 min-w-0">
-                       <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight">{item.title}</h3>
-                       <p className="text-[9px] text-muted-foreground uppercase tracking-widest"><Calendar className="size-3 inline mr-1" /> {item.date}</p>
+                       <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight text-black">{item.title}</h3>
+                       <p className="text-[9px] text-black/50 uppercase tracking-widest"><Calendar className="size-3 inline mr-1" /> {item.date}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                       <Button variant="outline" size="sm" onClick={() => openEntryDialog('observations', item)} className="rounded-none h-7 px-3 text-[9px] uppercase">Edit</Button>
-                       <Button variant="ghost" size="sm" onClick={() => setItemToDelete({ id: item.id, collection: 'observations', action: 'delete', msg: `Delete observation "${item.title}"?` })} className="rounded-none h-7 px-2 text-destructive"><Trash2 className="size-3" /></Button>
+                       <Button variant="outline" size="sm" onClick={() => openEntryDialog('observations', item)} className="rounded-none h-7 px-3 text-[9px] uppercase border-black/20 text-black">Edit</Button>
+                       <Button variant="ghost" size="sm" onClick={() => setItemToDelete({ id: item.id, collection: 'observations', action: 'delete', msg: `Delete observation "${item.title}"?` })} className="rounded-none h-7 px-2 text-red-600"><Trash2 className="size-3" /></Button>
                     </div>
                   </div>
                 ))}
@@ -510,20 +510,20 @@ export default function ManageDashboardPage() {
             </TabsContent>
 
             <TabsContent value="pages" className="space-y-6">
-              <div className="flex justify-between items-center border-b border-border/30 pb-4">
-                <h2 className="text-[10pt] uppercase tracking-widest font-normal">Static Pages</h2>
-                <Button size="sm" onClick={() => openPageDialog()} className="rounded-none h-8 font-normal uppercase text-[9px] tracking-widest"><Plus className="size-3 mr-2" /> Create Page</Button>
+              <div className="flex justify-between items-center border-b border-black/10 pb-4">
+                <h2 className="text-[10pt] uppercase tracking-widest font-normal text-black">Static Pages</h2>
+                <Button size="sm" onClick={() => openPageDialog()} className="rounded-none h-8 font-normal uppercase text-[9px] tracking-widest bg-black text-white"><Plus className="size-3 mr-2" /> Create Page</Button>
               </div>
               <div className="grid grid-cols-1 gap-3">
                 {firestorePages?.filter(p => p.id !== 'sidebar').map((item: any) => (
-                  <div key={item.id} className="p-4 border border-border/40 bg-muted/10 flex items-center justify-between gap-4 rounded-none">
+                  <div key={item.id} className="p-4 border border-black/10 bg-black/5 flex items-center justify-between gap-4 rounded-none">
                     <div className="flex-1 min-w-0">
-                       <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight">{item.title}</h3>
-                       <p className="text-[9px] text-muted-foreground uppercase tracking-widest">Slug: /p/{item.slug}</p>
+                       <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight text-black">{item.title}</h3>
+                       <p className="text-[9px] text-black/50 uppercase tracking-widest">Slug: /p/{item.slug}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                       <Button variant="outline" size="sm" onClick={() => openPageDialog(item)} className="rounded-none h-7 px-3 text-[9px] uppercase">Edit</Button>
-                       <Button variant="ghost" size="sm" onClick={() => setItemToDelete({ id: item.id, collection: 'pages', action: 'delete', msg: `Delete static page "${item.title}"?` })} className="rounded-none h-7 px-2 text-destructive"><Trash2 className="size-3" /></Button>
+                       <Button variant="outline" size="sm" onClick={() => openPageDialog(item)} className="rounded-none h-7 px-3 text-[9px] uppercase border-black/20 text-black">Edit</Button>
+                       <Button variant="ghost" size="sm" onClick={() => setItemToDelete({ id: item.id, collection: 'pages', action: 'delete', msg: `Delete static page "${item.title}"?` })} className="rounded-none h-7 px-2 text-red-600"><Trash2 className="size-3" /></Button>
                     </div>
                   </div>
                 ))}
@@ -533,65 +533,65 @@ export default function ManageDashboardPage() {
         )}
       </div>
 
-      {/* Dialogs - Optimized for light theme */}
+      {/* Dialogs - Fixed visibility with explicit colors */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-        <DialogContent className="max-w-2xl rounded-none border-border bg-background text-foreground">
-          <DialogHeader><DialogTitle className="uppercase tracking-[0.2em] text-[10pt] font-normal">Sculpture Metadata</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-2xl rounded-none border-black/20 bg-white text-black shadow-2xl">
+          <DialogHeader><DialogTitle className="uppercase tracking-[0.2em] text-[10pt] font-normal text-black">Sculpture Metadata</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-4 gap-4">
-              <div className="col-span-3"><Label className="text-[9px] uppercase tracking-widest">Public Title</Label><Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none" /></div>
-              <div><Label className="text-[9px] uppercase tracking-widest">Order</Label><Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none" /></div>
+              <div className="col-span-3"><Label className="text-[9px] uppercase tracking-widest text-black">Public Title</Label><Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
+              <div><Label className="text-[9px] uppercase tracking-widest text-black">Order</Label><Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
             </div>
-            <div className="space-y-2"><Label className="text-[9px] uppercase tracking-widest">Gallery Description</Label><Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none h-32" /></div>
+            <div className="space-y-2"><Label className="text-[9px] uppercase tracking-widest text-black">Gallery Description</Label><Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none h-32 border-black/20 text-black bg-white" /></div>
           </div>
-          <DialogFooter><Button onClick={saveItem} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest font-bold h-11">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Metadata</Button></DialogFooter>
+          <DialogFooter><Button onClick={saveItem} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest font-bold h-11 bg-black text-white hover:bg-black/90">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Metadata</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isEntryDialogOpen} onOpenChange={setIsEntryDialogOpen}>
-        <DialogContent className="max-w-3xl rounded-none bg-background text-foreground border-border">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[10pt] font-normal">{entryType === 'news' ? 'News Article' : 'Observation'}</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-3xl rounded-none bg-white text-black border-black/20 shadow-2xl">
+          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black">{entryType === 'news' ? 'News Article' : 'Observation'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[9px] uppercase">Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label className="text-[9px] uppercase">Date String</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Date String</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[9px] uppercase">Image Filename (e.g. news.jpg)</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label className="text-[9px] uppercase">Matching Video ID</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Image Filename (e.g. news.jpg)</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Matching Video ID</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
             </div>
-            <div className="space-y-2"><Label className="text-[9px] uppercase">Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-48" /></div>
+            <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-48 border-black/20 text-black bg-white" /></div>
           </div>
-          <DialogFooter><Button onClick={saveEntry} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest h-11">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Entry</Button></DialogFooter>
+          <DialogFooter><Button onClick={saveEntry} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest h-11 bg-black text-white hover:bg-black/90">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Entry</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isPageDialogOpen} onOpenChange={setIsPageDialogOpen}>
-        <DialogContent className="max-w-4xl rounded-none bg-background text-foreground border-border">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[10pt] font-normal">Static Page</DialogTitle></DialogHeader>
+        <DialogContent className="max-w-4xl rounded-none bg-white text-black border-black/20 shadow-2xl">
+          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black">Static Page</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[9px] uppercase">Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none" /></div>
-              <div className="space-y-2"><Label className="text-[9px] uppercase">Slug (/p/...)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Slug (/p/...)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
             </div>
             <div className="space-y-2">
-              <Label className="text-[9px] uppercase">Content ([image:file.jpg], [video:file.mp4], [Link](url))</Label>
-              <Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-[400px] font-mono" />
+              <Label className="text-[9px] uppercase text-black">Content ([image:file.jpg], [video:file.mp4], [Link](url))</Label>
+              <Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-[400px] font-mono border-black/20 text-black bg-white" />
             </div>
           </div>
-          <DialogFooter><Button onClick={savePage} disabled={isSaving} className="rounded-none w-full h-11 uppercase tracking-widest">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Page</Button></DialogFooter>
+          <DialogFooter><Button onClick={savePage} disabled={isSaving} className="rounded-none w-full h-11 uppercase tracking-widest bg-black text-white hover:bg-black/90">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Page</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
-        <AlertDialogContent className="rounded-none border-border bg-background text-foreground">
+        <AlertDialogContent className="rounded-none border-black/20 bg-white text-black">
           <AlertDialogHeader>
-            <AlertDialogTitle className="uppercase tracking-widest text-[10pt] font-normal">Confirm Action</AlertDialogTitle>
-            <AlertDialogDescription>{itemToDelete?.msg}</AlertDialogDescription>
+            <AlertDialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black">Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription className="text-black/60">{itemToDelete?.msg}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-none">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmAction} className="rounded-none bg-destructive text-white hover:bg-destructive/90 border-none">Confirm</AlertDialogAction>
+            <AlertDialogCancel className="rounded-none border-black/20 text-black bg-white">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAction} className="rounded-none bg-red-600 text-white hover:bg-red-700 border-none">Confirm</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
