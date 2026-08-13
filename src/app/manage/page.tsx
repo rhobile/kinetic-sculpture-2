@@ -10,13 +10,12 @@ import {
   useDoc, 
   useMemoFirebase, 
   deleteDocumentNonBlocking, 
-  setDocumentNonBlocking,
-  updateDocumentNonBlocking
+  setDocumentNonBlocking
 } from '@/firebase';
 import { FirebaseStorageImage } from '@/components/firebase/storage-image';
 import { Button } from '@/components/ui/button';
 import { 
-  Trash2, Loader2, RefreshCw, Save, Plus, LogIn, LogOut, ShieldCheck, ShieldAlert, AlertCircle, EyeOff, Eye, Image as ImageIcon, AlertTriangle, Calendar, Settings
+  Trash2, Loader2, RefreshCw, Save, Plus, LogIn, LogOut, ShieldCheck, ShieldAlert, AlertCircle, EyeOff, Eye, Image as ImageIcon, Calendar, Settings
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -38,12 +37,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { EXCLUDED_IMAGES } from '@/lib/constants';
 
 /**
  * Management Dashboard.
  * Strictly White Background / Black Text.
- * Logic uses setDocumentNonBlocking for robust Show/Hide toggling.
+ * Legibility fixed for all inputs.
  */
 export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -58,7 +56,6 @@ export default function ManageDashboardPage() {
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Unified Admin logic for rhobile@gmail.com
   const isAdmin = user && (
     user.email === 'rhobile@gmail.com' || 
     user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2' ||
@@ -528,7 +525,6 @@ export default function ManageDashboardPage() {
         )}
       </div>
 
-      {/* Dialogs - Strictly Light Theme */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none border-black/20 bg-white text-black shadow-2xl">
           <DialogHeader><DialogTitle className="uppercase tracking-[0.2em] text-[10pt] font-normal text-black">Edit Sculpture Metadata</DialogTitle></DialogHeader>
@@ -579,14 +575,14 @@ export default function ManageDashboardPage() {
       </Dialog>
 
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
-        <AlertDialogContent className="rounded-none border-black/20 bg-white text-black">
+        <AlertDialogContent className="rounded-none border-black/20 bg-white text-black shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black font-normal">Confirm Removal</AlertDialogTitle>
+            <AlertDialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black">Confirm Action</AlertDialogTitle>
             <AlertDialogDescription className="text-black/60 font-normal">{itemToDelete?.msg}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-none border-black/20 text-black bg-white font-normal uppercase text-[9px] tracking-widest">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmAction} className="rounded-none bg-red-600 text-white hover:bg-red-700 border-none font-normal uppercase text-[9px] tracking-widest">Confirm</AlertDialogAction>
+            <AlertDialogCancel className="rounded-none border-black/20 text-black bg-white uppercase text-[9px] tracking-widest">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAction} className="rounded-none bg-red-600 text-white hover:bg-red-700 border-none uppercase text-[9px] tracking-widest">Confirm</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -9,8 +9,8 @@ import { VideoPlayerModal } from '@/components/video-player-modal';
 import { cn } from '@/lib/utils';
 
 /**
- * News Page for Rhobile.
- * Light theme (white background, black text) and mobile title wrapping.
+ * News Page.
+ * Title wrapping and tight spacing preserved.
  */
 export default function NewsPage() {
   const { firestore } = useFirebase();
@@ -44,7 +44,7 @@ export default function NewsPage() {
         <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl font-normal mb-8 tracking-widest border-b border-border pb-6 uppercase">News</h1>
           
-          <div className="space-y-16">
+          <div className="space-y-12">
             {isLoading ? (
               [...Array(2)].map((_, i) => (
                 <div key={i} className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
@@ -84,8 +84,8 @@ export default function NewsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="md:col-span-3 space-y-3">
-                      <div className="space-y-1">
+                    <div className="md:col-span-3 space-y-1.5">
+                      <div className="space-y-0.5">
                         <p className="text-[12px] tracking-widest text-foreground/40 uppercase">{item.date}</p>
                         <h2 className="text-[14pt] font-normal tracking-wide leading-tight break-words whitespace-normal uppercase text-foreground">
                           {item.title}

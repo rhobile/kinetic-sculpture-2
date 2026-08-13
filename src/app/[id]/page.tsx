@@ -9,8 +9,8 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 /**
- * Sculpture detail page with white background and black text.
- * Titles now wrap to a second line if they are long on mobile portrait.
+ * Sculpture detail page.
+ * Title wraps to second line and spacing is tightened.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -46,14 +46,14 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <main className="min-h-screen bg-background text-foreground p-4 sm:p-8 lg:p-12">
-      <div className="max-w-5xl mx-auto space-y-2">
+      <div className="max-w-5xl mx-auto space-y-1">
         <div className="flex justify-between items-center mb-1">
           <Link href="/" className="text-foreground/30 hover:text-foreground transition-colors flex items-center gap-2 text-[9px] uppercase tracking-[0.3em] hover:no-underline">
             <ArrowLeft className="size-3" /> Return to Gallery
           </Link>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-0.5">
           <div className="aspect-video bg-neutral-100 border border-border relative overflow-hidden">
             <FirebaseStorageVideo path={videoPath} className="w-full h-full object-contain" />
           </div>

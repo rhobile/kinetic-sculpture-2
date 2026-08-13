@@ -9,8 +9,8 @@ import { FirebaseStorageVideo } from '@/components/firebase/storage-video';
 import Link from 'next/link';
 
 /**
- * Cinematic Page renderer with light theme (white background, black text).
- * Optimized for mobile title wrapping.
+ * Custom Page renderer.
+ * Title wrapping preserved and vertical spacing tightened.
  */
 export default function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -51,8 +51,8 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         const path = filename.startsWith('ks-images/') ? filename : `ks-images/${filename}`;
         
         elements.push(
-          <div key={`img-${idx}`} className="my-6 first:mt-0 last:mb-0">
-            <div className="border border-border bg-neutral-50 overflow-hidden shadow-sm">
+          <div key={`img-${idx}`} className="my-4 first:mt-0 last:mb-0">
+            <div className="border border-border bg-neutral-50 overflow-hidden">
               <FirebaseStorageImage
                 path={path}
                 alt={`Image ${filename}`}
@@ -72,8 +72,8 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
         const path = filename.startsWith('ks-videos/') ? filename : `ks-videos/${filename}`;
         
         elements.push(
-          <div key={`vid-${idx}`} className="my-6 first:mt-0 last:mb-0">
-            <div className="border border-border bg-black aspect-video overflow-hidden shadow-sm relative">
+          <div key={`vid-${idx}`} className="my-4 first:mt-0 last:mb-0">
+            <div className="border border-border bg-black aspect-video overflow-hidden relative">
               <FirebaseStorageVideo 
                 path={path} 
                 className="w-full h-full" 
@@ -104,7 +104,7 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
       });
 
       elements.push(
-        <p key={`p-${idx}`} className="min-h-[1.2em] text-[12pt] text-foreground/80 leading-relaxed font-light mb-3 last:mb-0 max-w-2xl">
+        <p key={`p-${idx}`} className="min-h-[1.2em] text-[12pt] text-foreground/80 leading-relaxed font-light mb-2 last:mb-0 max-w-2xl">
           {renderedLine}
         </p>
       );

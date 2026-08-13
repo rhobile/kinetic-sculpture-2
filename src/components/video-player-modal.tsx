@@ -18,9 +18,8 @@ interface VideoPlayerModalProps {
 }
 
 /**
- * Gallery Modal with light theme (white background, black text).
- * Titles wrap to a second line instead of being cut off.
- * Vertical spacing tightened for a sleek look.
+ * Gallery Modal.
+ * Title wraps to second line on mobile and spacing is tightened.
  */
 export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
@@ -45,7 +44,7 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               </div>
             )}
           </div>
-          <div className="px-6 py-2 bg-background border-t border-border shrink-0">
+          <div className="px-6 py-1.5 bg-background border-t border-border shrink-0">
             <DialogHeader className="text-left space-y-0 text-foreground">
               <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase leading-tight break-words whitespace-normal">
                 {image.alt}
