@@ -39,9 +39,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 /**
- * Management Dashboard.
- * Strictly White Background / Black Text.
- * Legibility fixed for all inputs.
+ * Management Dashboard for Rhobile.
+ * Legibility: Strictly Black Text on White Background.
+ * Permissions: Restricted to rhobile@gmail.com.
  */
 export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();

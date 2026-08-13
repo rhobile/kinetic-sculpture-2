@@ -10,7 +10,8 @@ import { ArrowLeft } from 'lucide-react';
 
 /**
  * Sculpture detail page.
- * Title wraps to second line and spacing is tightened.
+ * 9pt uppercase title with wrapping enabled.
+ * Spacing tightened between video and text.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);

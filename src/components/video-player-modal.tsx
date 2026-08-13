@@ -20,6 +20,7 @@ interface VideoPlayerModalProps {
 /**
  * Gallery Modal.
  * Title wraps to second line on mobile and spacing is tightened.
+ * Title remains strictly 9pt/11pt uppercase.
  */
 export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {

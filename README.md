@@ -6,15 +6,17 @@
    - The "Management Dashboard" link will be **hidden**.
    - Navigating to `/manage` manually will show a **login screen** instead of your data.
 
-## 🚀 Project Logic Summary
-- **Real-Time Database**: When you click "Save" in the dashboard, the text updates **instantly** on all devices (like your wife's phone) because Firestore is a real-time database.
-- **Publish & Push**: Clicking "Publish" in Studio saves your **code changes** (design, layout, fixes). Clicking the cloud icon to **Push to GitHub** deploys these design changes to the live site.
-- **Commit Messages**: When pushing to GitHub, **manually clear the text box** and type your own summary (e.g., "Adjusted mobile spacing"). This prevents the conversation history from being used as the title.
+## 🚀 GitHub Push & Commit Messages
+If your custom commit messages are being ignored and replaced by AI chat text:
+1. Go to the **Source Control** tab in the sidebar.
+2. **Clear the text box** completely.
+3. Type your own message (e.g., "Adjusted mobile layout").
+4. **CRITICAL**: Click outside the text box or press Enter to ensure the UI "saves" your message before you click the Push/Cloud icon.
 
 ## 🎨 Design Notes
-- **Typography**: Titles are **9pt/11pt uppercase** and configured to **wrap to a second line** on mobile portrait screens so they are never cut off.
-- **Spacing**: Vertical gaps between videos and text are tightened for a sleek look.
 - **Theme**: Strictly **White Background with Black Text**.
+- **Typography**: Titles are **9pt/11pt uppercase** and configured to **wrap to a second line** on mobile portrait screens so they are never cut off.
+- **Spacing**: Vertical gaps between videos and text are tightened (minimal margins) for a sleek look.
 
 ## 📁 Storage Structure
 - `ks-images/`: Sculpture thumbnails (.jpg, .png).
