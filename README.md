@@ -1,25 +1,22 @@
-
 # Rhobile | Gallery Management & Security Guide
+
+## 🔐 How to Verify Public Access
+1. **Persistent Session**: Your PC "always has the dashboard available" because you are logged in as **rhobile@gmail.com**. Firebase remembers you.
+2. **Public View**: To see what a normal visitor sees, open your browser in **Incognito** or **Private Mode** and visit rhobile.com.
+   - The "Management Dashboard" link will be **hidden**.
+   - Navigating to `/manage` manually will show a **login screen** instead of your data.
 
 ## 🚀 Project Logic Summary
 - **Storage-First Gallery**: All images uploaded to `ks-images/` appear in the main gallery immediately.
 - **Management Dashboard**: Visit `/manage` to toggle visibility (Show/Hide) or edit metadata for sculptures.
 - **Admin Access**: Sign in with **rhobile@gmail.com**. This grants full write access to Firestore and Storage.
-- **Media Folders**: 
-  - `ks-images/`: Sculpture thumbnails (.jpg, .jpeg, .png).
-  - `ks-videos/`: Sculpture videos (.mp4).
+- **Typography**: Titles are **9pt/11pt uppercase** and configured to **wrap to a second line** on mobile portrait screens.
+- **Spacing**: Vertical gaps between videos and text are tightened for a sleek look.
 
-## 📱 Mobile & Typography Optimization
-- **Titles**: Set to **9pt/11pt uppercase**. Configured to **wrap to a second line** on narrow screens to prevent being cut off.
-- **Spacing**: Vertical gaps between videos and titles are tightened for a sleek, cohesive look on mobile portrait screens.
+## 📁 Storage Structure
+- `ks-images/`: Sculpture thumbnails (.jpg, .png).
+- `ks-videos/`: Sculpture videos (.mp4).
 
-## 🔐 Troubleshooting Repository Mismatch
-If you see a different repository name (like `studio-2may`) in the push dialog:
-1. Look at the **top header toolbar** next to the project name.
-2. Click the **GitHub icon** or the **Settings (cog)**.
-3. Disconnect the current repository and search for **rhobile/kinetic-sculpture-2** to reconnect it.
-
-## 🚀 Direct GitHub Deployment
-1. **Publish**: Click the **PUBLISH** button in the top toolbar to apply changes to your files.
-2. **Push**: Click the **Cloud with Up Arrow** icon.
-3. **Commit Message**: Type your own summary (e.g., "Adjust mobile spacing and title wrapping") in the message box that appears.
+## 🚀 Deployment
+1. **Publish**: Apply design changes in Firebase Studio.
+2. **Push**: Type your summary (e.g., "Adjust mobile titles") in the commit box before pushing to GitHub.

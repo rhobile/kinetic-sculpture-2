@@ -41,9 +41,9 @@ import { cn } from '@/lib/utils';
 import { EXCLUDED_IMAGES } from '@/lib/constants';
 
 /**
- * Robust Management Dashboard.
- * Handles storage-to-firestore synchronization, show/hide logic, and metadata editing.
- * Fixed visibility for light theme - all text is explicitly black on white.
+ * Management Dashboard.
+ * Strictly White Background / Black Text.
+ * Logic uses setDocumentNonBlocking for robust Show/Hide toggling.
  */
 export default function ManageDashboardPage() {
   const { firebaseApp, auth, firestore, user, isUserLoading: isAuthLoading } = useFirebase();
@@ -58,7 +58,7 @@ export default function ManageDashboardPage() {
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  // Synchronized Admin logic for rhobile@gmail.com
+  // Unified Admin logic for rhobile@gmail.com
   const isAdmin = user && (
     user.email === 'rhobile@gmail.com' || 
     user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2' ||
@@ -133,7 +133,7 @@ export default function ManageDashboardPage() {
     setIsLoggingIn(true);
     signInWithEmailAndPassword(auth, loginEmail, loginPassword)
       .then(() => {
-        toast({ title: "Authenticated" });
+        toast({ title: "Authenticated as Admin" });
         setLoginEmail('');
         setLoginPassword('');
       })
@@ -148,7 +148,7 @@ export default function ManageDashboardPage() {
   const handleLogout = () => {
     if (!auth) return;
     signOut(auth).then(() => {
-      toast({ title: "Signed out" });
+      toast({ title: "Signed out successfully" });
     });
   };
 
@@ -157,7 +157,6 @@ export default function ManageDashboardPage() {
     setIsRefreshing(true);
     try {
       const storage = getStorage(firebaseApp, 'gs://ks-bucket-nl');
-      
       const [imagesRes, videosRes] = await Promise.all([
         listAll(storageRef(storage, 'ks-images')),
         listAll(storageRef(storage, 'ks-videos'))
@@ -175,8 +174,7 @@ export default function ManageDashboardPage() {
       
       setImagesData(images);
       setVideosData(videos);
-      
-      toast({ title: "Media Sync Complete" });
+      toast({ title: "Media Metadata Synced" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Storage sync failed", description: error.message });
     } finally {
@@ -333,7 +331,7 @@ export default function ManageDashboardPage() {
       deleteDocumentNonBlocking(docRef);
     }
     setItemToDelete(null);
-    toast({ title: "Action Applied" });
+    toast({ title: "Action completed" });
   }, [itemToDelete, firestore]);
 
   if (isAuthLoading) {
@@ -345,14 +343,14 @@ export default function ManageDashboardPage() {
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-black/10 pb-6">
           <div className="flex flex-col gap-1">
-            <h1 className="text-[14pt] font-normal uppercase tracking-[0.2em] text-black">Management Portal</h1>
+            <h1 className="text-[14pt] font-normal uppercase tracking-[0.2em] text-black">Site Management</h1>
             {isAdmin ? (
               <Badge variant="outline" className="w-fit rounded-none border-green-500/30 bg-green-500/5 text-green-600 text-[10px] uppercase tracking-widest px-2 py-0.5 mt-2">
-                <ShieldCheck className="size-3 mr-1" /> Admin Access
+                <ShieldCheck className="size-3 mr-1" /> Admin: {user.email}
               </Badge>
             ) : (
-              <Badge variant="outline" className="w-fit rounded-none border-orange-500/30 bg-orange-500/5 text-orange-600 text-[10px] uppercase tracking-widest px-2 py-0.5 mt-2">
-                <ShieldAlert className="size-3 mr-1" /> Public View
+              <Badge variant="outline" className="w-fit rounded-none border-black/10 bg-black/5 text-black/40 text-[10px] uppercase tracking-widest px-2 py-0.5 mt-2">
+                <ShieldAlert className="size-3 mr-1" /> Viewing as Public
               </Badge>
             )}
           </div>
@@ -368,14 +366,14 @@ export default function ManageDashboardPage() {
           <div className="max-w-md mx-auto space-y-6">
             <Alert variant="destructive" className="rounded-none bg-red-50 border-red-200 text-red-600">
               <AlertCircle className="size-4" />
-              <AlertTitle className="uppercase tracking-widest text-[10px] font-bold">Access Denied</AlertTitle>
-              <AlertDescription className="text-sm">Sign in as admin to manage site content.</AlertDescription>
+              <AlertTitle className="uppercase tracking-widest text-[10px] font-bold">Admin Restricted</AlertTitle>
+              <AlertDescription className="text-sm font-normal">Please sign in with your admin credentials to edit the gallery or pages.</AlertDescription>
             </Alert>
             <Card className="rounded-none border-black/10 shadow-none bg-white">
-              <CardHeader><CardTitle className="text-xs uppercase tracking-[0.2em] text-black">Authentication</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-xs uppercase tracking-[0.2em] text-black font-normal">Admin Authentication</CardTitle></CardHeader>
               <CardContent>
                 <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest text-black">Email</Label><Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="rounded-none border-black/20 text-black bg-white" required /></div>
+                  <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest text-black">Email Address</Label><Input type="email" value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className="rounded-none border-black/20 text-black bg-white" required /></div>
                   <div className="space-y-2"><Label className="text-[10px] uppercase tracking-widest text-black">Password</Label><Input type="password" value={loginPassword} onChange={e => setLoginPassword(e.target.value)} className="rounded-none border-black/20 text-black bg-white" required /></div>
                   <Button type="submit" disabled={isLoggingIn} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold h-11 bg-black text-white">{isLoggingIn ? <Loader2 className="size-3 animate-spin mr-2" /> : <LogIn className="size-3 mr-2" />} Sign In</Button>
                 </form>
@@ -390,7 +388,7 @@ export default function ManageDashboardPage() {
               <TabsTrigger value="masonry" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">Sculptures</TabsTrigger>
               <TabsTrigger value="sidebar" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">Sidebar</TabsTrigger>
               <TabsTrigger value="news" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">News</TabsTrigger>
-              <TabsTrigger value="obs" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">Obs</TabsTrigger>
+              <TabsTrigger value="obs" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">Observations</TabsTrigger>
               <TabsTrigger value="pages" className="rounded-none text-[9px] uppercase tracking-widest py-2 data-[state=active]:bg-white data-[state=active]:text-black">Pages</TabsTrigger>
             </TabsList>
 
@@ -440,9 +438,6 @@ export default function ManageDashboardPage() {
                         {item.isHidden ? <Eye className="size-3" /> : <EyeOff className="size-3" />}
                       </Button>
                     </div>
-                    {(!item.hasImage || !item.hasVideo) && (
-                      <AlertTriangle className="absolute -top-1 -right-1 size-3 text-red-500 fill-red-500" />
-                    )}
                   </div>
                 ))}
               </div>
@@ -450,14 +445,14 @@ export default function ManageDashboardPage() {
 
             <TabsContent value="sidebar" className="space-y-6">
               <Card className="rounded-none border-black/10 bg-white">
-                <CardHeader><CardTitle className="text-xs uppercase tracking-widest text-black">Global Sidebar & Site Title</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-xs uppercase tracking-widest text-black font-normal">Global Sidebar & Site Title</CardTitle></CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase text-black">Site Title</Label>
+                    <Label className="text-[10px] uppercase text-black">Site Header Title</Label>
                     <Input value={siteTitle} onChange={e => setSiteTitle(e.target.value)} className="rounded-none border-black/20 text-black bg-white" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] uppercase text-black">Sidebar Content (Markdown Links: [Label](url))</Label>
+                    <Label className="text-[10px] uppercase text-black">Sidebar Content (Markdown: [Label](url) and *Italics*)</Label>
                     <Textarea value={sidebarContent} onChange={e => setSidebarContent(e.target.value)} className="rounded-none h-64 font-mono text-sm border-black/20 text-black bg-white" />
                   </div>
                   <Button onClick={saveSidebar} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest text-[11px] font-bold h-11 bg-black text-white">
@@ -519,7 +514,7 @@ export default function ManageDashboardPage() {
                   <div key={item.id} className="p-4 border border-black/10 bg-black/5 flex items-center justify-between gap-4 rounded-none">
                     <div className="flex-1 min-w-0">
                        <h3 className="text-[10pt] font-normal truncate uppercase tracking-tight text-black">{item.title}</h3>
-                       <p className="text-[9px] text-black/50 uppercase tracking-widest">Slug: /p/{item.slug}</p>
+                       <p className="text-[9px] text-black/50 uppercase tracking-widest">URL Slug: /p/{item.slug}</p>
                     </div>
                     <div className="flex items-center gap-2">
                        <Button variant="outline" size="sm" onClick={() => openPageDialog(item)} className="rounded-none h-7 px-3 text-[9px] uppercase border-black/20 text-black">Edit</Button>
@@ -533,16 +528,16 @@ export default function ManageDashboardPage() {
         )}
       </div>
 
-      {/* Dialogs - Fixed visibility with explicit colors */}
+      {/* Dialogs - Strictly Light Theme */}
       <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
         <DialogContent className="max-w-2xl rounded-none border-black/20 bg-white text-black shadow-2xl">
-          <DialogHeader><DialogTitle className="uppercase tracking-[0.2em] text-[10pt] font-normal text-black">Sculpture Metadata</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="uppercase tracking-[0.2em] text-[10pt] font-normal text-black">Edit Sculpture Metadata</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3"><Label className="text-[9px] uppercase tracking-widest text-black">Public Title</Label><Input value={itemTitle} onChange={e => setItemTitle(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
-              <div><Label className="text-[9px] uppercase tracking-widest text-black">Order</Label><Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
+              <div><Label className="text-[9px] uppercase tracking-widest text-black">Sort Order</Label><Input type="number" value={itemOrder} onChange={e => setItemOrder(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
             </div>
-            <div className="space-y-2"><Label className="text-[9px] uppercase tracking-widest text-black">Gallery Description</Label><Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none h-32 border-black/20 text-black bg-white" /></div>
+            <div className="space-y-2"><Label className="text-[9px] uppercase tracking-widest text-black">Sculpture Description</Label><Textarea value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="rounded-none h-32 border-black/20 text-black bg-white" /></div>
           </div>
           <DialogFooter><Button onClick={saveItem} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest font-bold h-11 bg-black text-white hover:bg-black/90">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Metadata</Button></DialogFooter>
         </DialogContent>
@@ -550,17 +545,17 @@ export default function ManageDashboardPage() {
 
       <Dialog open={isEntryDialogOpen} onOpenChange={setIsEntryDialogOpen}>
         <DialogContent className="max-w-3xl rounded-none bg-white text-black border-black/20 shadow-2xl">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black">{entryType === 'news' ? 'News Article' : 'Observation'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black">{entryType === 'news' ? 'News Entry' : 'Observation Entry'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Title</Label><Input value={entryTitle} onChange={e => setEntryTitle(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
-              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Date String</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Date (Displayed)</Label><Input value={entryDate} onChange={e => setEntryDate(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Image Filename (e.g. news.jpg)</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
-              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Matching Video ID</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Image Name (in ks-images/)</Label><Input value={entryImagePath} onChange={e => setEntryImagePath(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Video ID (for popup)</Label><Input value={entryVideoId} onChange={e => setEntryVideoId(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
             </div>
-            <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Content</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-48 border-black/20 text-black bg-white" /></div>
+            <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Main Content Text</Label><Textarea value={entryContent} onChange={e => setEntryContent(e.target.value)} className="rounded-none h-48 border-black/20 text-black bg-white" /></div>
           </div>
           <DialogFooter><Button onClick={saveEntry} disabled={isSaving} className="rounded-none w-full uppercase tracking-widest h-11 bg-black text-white hover:bg-black/90">{isSaving ? <Loader2 className="size-3 animate-spin mr-2" /> : <Save className="size-3 mr-2" />} Save Entry</Button></DialogFooter>
         </DialogContent>
@@ -568,14 +563,14 @@ export default function ManageDashboardPage() {
 
       <Dialog open={isPageDialogOpen} onOpenChange={setIsPageDialogOpen}>
         <DialogContent className="max-w-4xl rounded-none bg-white text-black border-black/20 shadow-2xl">
-          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black">Static Page</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black">Static Custom Page</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
-              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Slug (/p/...)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">Page Title</Label><Input value={pageTitle} onChange={e => setPageTitle(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
+              <div className="space-y-2"><Label className="text-[9px] uppercase text-black">URL Slug (e.g. about)</Label><Input value={pageSlug} onChange={e => setPageSlug(e.target.value)} className="rounded-none border-black/20 text-black bg-white" /></div>
             </div>
             <div className="space-y-2">
-              <Label className="text-[9px] uppercase text-black">Content ([image:file.jpg], [video:file.mp4], [Link](url))</Label>
+              <Label className="text-[9px] uppercase text-black">Content ([image:name.jpg], [video:name.mp4], [Link](url))</Label>
               <Textarea value={pageContent} onChange={e => setPageContent(e.target.value)} className="rounded-none h-[400px] font-mono border-black/20 text-black bg-white" />
             </div>
           </div>
@@ -586,12 +581,12 @@ export default function ManageDashboardPage() {
       <AlertDialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
         <AlertDialogContent className="rounded-none border-black/20 bg-white text-black">
           <AlertDialogHeader>
-            <AlertDialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black">Confirm Action</AlertDialogTitle>
-            <AlertDialogDescription className="text-black/60">{itemToDelete?.msg}</AlertDialogDescription>
+            <AlertDialogTitle className="uppercase tracking-widest text-[10pt] font-normal text-black font-normal">Confirm Removal</AlertDialogTitle>
+            <AlertDialogDescription className="text-black/60 font-normal">{itemToDelete?.msg}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-none border-black/20 text-black bg-white">Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmAction} className="rounded-none bg-red-600 text-white hover:bg-red-700 border-none">Confirm</AlertDialogAction>
+            <AlertDialogCancel className="rounded-none border-black/20 text-black bg-white font-normal uppercase text-[9px] tracking-widest">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAction} className="rounded-none bg-red-600 text-white hover:bg-red-700 border-none font-normal uppercase text-[9px] tracking-widest">Confirm</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

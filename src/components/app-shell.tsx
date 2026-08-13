@@ -14,17 +14,20 @@ import { Menu, Settings } from 'lucide-react';
 import { useFirebase, useDoc, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
+/**
+ * App Shell for Rhobile.
+ * Sidebar link to 'Manage Dashboard' is strictly hidden unless logged in as admin.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
   const { firestore, user } = useFirebase();
 
-  // Unified Admin check for consistency
+  // Unified Admin check: Only rhobile@gmail.com or specific UIDs see admin tools.
   const isAdmin = user && (
     user.email === 'rhobile@gmail.com' || 
     user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2' ||
     user.uid === 'gHZ9n7s2b9X8fJ2kP3s5t8YxVOE2'
   );
 
-  // Sidebar dynamic content
   const sidebarQuery = useMemoFirebase(() => {
     if (!firestore) return null;
     return doc(firestore, 'pages', 'sidebar');
@@ -40,24 +43,19 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const renderTextWithFormatting = (text: string) => {
     if (!text) return null;
-
-    // Handle Italics: *text*
     const italicParts = text.split(/(\*.*?\*)/g);
     return italicParts.map((part, i) => {
       const match = part.match(/\*(.*?)\*/);
       if (match) {
-        return <em key={i} className="italic">{match[1]}</em>;
+        return <em key={i} className="italic font-normal">{match[1]}</em>;
       }
       return part;
     });
   };
 
-  // Helper to parse formatting and [text](url) into Link components
   const renderFormattedText = (text: string) => {
     return text.split('\n').map((line, lineIdx) => {
-      // Split by markdown link pattern [label](url)
       const parts = line.split(/(\[.*?\]\(.*?\))/g);
-      
       const content = parts.map((part, partIdx) => {
         const match = part.match(/\[(.*?)\]\((.*?)\)/);
         if (match) {
@@ -86,36 +84,37 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider suppressHydrationWarning>
-      <Sidebar className="border-0 bg-sidebar" style={{ '--sidebar-width': '18rem', '--sidebar-width-icon': '3rem' } as React.CSSProperties}>
-        <SidebarHeader className="p-6 pb-2 flex items-center justify-center">
-          <Link href="/" className="block text-foreground hover:no-underline w-full">
-            <h1 className="font-headline text-xl sm:text-2xl tracking-[0.15em] sm:tracking-[0.25em] mb-1 whitespace-nowrap text-center font-normal">
+      <Sidebar className="border-0 bg-white" style={{ '--sidebar-width': '18rem', '--sidebar-width-icon': '3rem' } as React.CSSProperties}>
+        <SidebarHeader className="p-6 pb-2 flex items-center justify-center bg-white">
+          <Link href="/" className="block text-black hover:no-underline w-full">
+            <h1 className="font-headline text-xl sm:text-2xl tracking-[0.15em] sm:tracking-[0.25em] mb-1 whitespace-nowrap text-center font-normal uppercase">
               {siteTitle}
             </h1>
           </Link>
         </SidebarHeader>
-        <SidebarContent className="px-6 py-4 space-y-0 overflow-y-auto">
+        <SidebarContent className="px-6 py-4 space-y-0 overflow-y-auto bg-white">
           <div className="space-y-1">
             {renderFormattedText(sidebarText)}
           </div>
+          {/* Dashboard link is strictly hidden from the public */}
           {isAdmin && (
-            <div className="pt-8 mt-4 border-t border-border/20">
-              <Link href="/manage" className="text-muted-foreground/30 hover:text-accent transition-colors flex items-center gap-2 text-[10pt]">
-                <Settings className="size-3" /> Manage Dashboard
+            <div className="pt-8 mt-4 border-t border-black/10">
+              <Link href="/manage" className="text-black/30 hover:text-black transition-colors flex items-center gap-2 text-[10pt] uppercase tracking-widest hover:no-underline">
+                <Settings className="size-3" /> Management Dashboard
               </Link>
             </div>
           )}
         </SidebarContent>
       </Sidebar>
       
-      <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 sm:hidden">
-          <SidebarTrigger><Menu className="size-6" /></SidebarTrigger>
+      <SidebarInset className="bg-white">
+        <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-white/95 backdrop-blur px-4 sm:hidden">
+          <SidebarTrigger className="text-black"><Menu className="size-6" /></SidebarTrigger>
           <div className="flex-1 overflow-hidden">
-            <h1 className="text-base font-headline tracking-[0.15em] whitespace-nowrap font-normal truncate">{siteTitle}</h1>
+            <h1 className="text-base font-headline tracking-[0.15em] whitespace-nowrap font-normal truncate text-black uppercase">{siteTitle}</h1>
           </div>
         </header>
-        <div className="flex-1">{children}</div>
+        <div className="flex-1 bg-white">{children}</div>
       </SidebarInset>
     </SidebarProvider>
   );
