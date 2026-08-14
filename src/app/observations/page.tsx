@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 /**
  * Observations Page.
- * Title wrapping and tight spacing preserved.
+ * Supports *italics* and [link](url) in content.
  */
 export default function ObservationsPage() {
   const { firestore } = useFirebase();
@@ -22,6 +22,27 @@ export default function ObservationsPage() {
   }, [firestore]);
 
   const { data: observations, isLoading } = useCollection(obsQuery);
+
+  const renderTextWithFormatting = (text: string) => {
+    if (!text) return null;
+    const italicParts = text.split(/(\*.*?\*)/g);
+    return italicParts.map((part, i) => {
+      const match = part.match(/\*(.*?)\*/);
+      if (match) {
+        return <em key={i} className="italic">{match[1]}</em>;
+      }
+      return part;
+    });
+  };
+
+  const renderFormattedContent = (text: string) => {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => (
+      <p key={i} className="min-h-[1.2em] mb-2 last:mb-0">
+        {renderTextWithFormatting(line)}
+      </p>
+    ));
+  };
 
   const resolveImagePath = (path: string) => {
     if (!path) return '';
@@ -91,9 +112,9 @@ export default function ObservationsPage() {
                           {item.title}
                         </h2>
                       </div>
-                      <p className="text-[12pt] text-foreground/70 leading-relaxed font-light whitespace-pre-wrap max-w-none">
-                        {item.content}
-                      </p>
+                      <div className="text-[12pt] text-foreground/70 leading-relaxed font-light max-w-none">
+                        {renderFormattedContent(item.content)}
+                      </div>
                     </div>
                   </article>
                 );

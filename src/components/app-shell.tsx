@@ -16,12 +16,11 @@ import { doc } from 'firebase/firestore';
 
 /**
  * App Shell for Rhobile.
- * Sidebar link to 'Manage Dashboard' is strictly hidden unless logged in as admin.
+ * Supports *italics* in sidebar.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const { firestore, user } = useFirebase();
 
-  // Unified Admin check: Only rhobile@gmail.com or specific UIDs see admin tools.
   const isAdmin = user && (
     user.email === 'rhobile@gmail.com' || 
     user.uid === 'ge6KSJEZKFXsNZerEbXseOR2vSS2' ||
@@ -96,7 +95,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="space-y-1">
             {renderFormattedText(sidebarText)}
           </div>
-          {/* Dashboard link is strictly hidden from the public */}
           {isAdmin && (
             <div className="pt-8 mt-4 border-t border-black/10">
               <Link href="/manage" className="text-black/30 hover:text-black transition-colors flex items-center gap-2 text-[10pt] uppercase tracking-widest hover:no-underline">

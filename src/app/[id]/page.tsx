@@ -10,8 +10,7 @@ import { ArrowLeft } from 'lucide-react';
 
 /**
  * Sculpture detail page.
- * 9pt uppercase title with wrapping enabled.
- * Spacing tightened between video and text.
+ * Supports *italics* in description.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -28,6 +27,27 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
     if (!id) return '';
     return `ks-videos/${id.toLowerCase().trim()}.mp4`;
   }, [id]);
+
+  const renderTextWithFormatting = (text: string) => {
+    if (!text) return null;
+    const italicParts = text.split(/(\*.*?\*)/g);
+    return italicParts.map((part, i) => {
+      const match = part.match(/\*(.*?)\*/);
+      if (match) {
+        return <em key={i} className="italic">{match[1]}</em>;
+      }
+      return part;
+    });
+  };
+
+  const renderFormattedContent = (text: string) => {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => (
+      <p key={i} className="min-h-[1.2em]">
+        {renderTextWithFormatting(line)}
+      </p>
+    ));
+  };
 
   if (isLoading) {
     return (
@@ -63,9 +83,9 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
             <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight break-words whitespace-normal text-foreground">
               {title}
             </h1>
-            <p className="text-[12pt] text-foreground/60 font-light leading-tight whitespace-pre-wrap pt-0.5">
-              {description}
-            </p>
+            <div className="text-[12pt] text-foreground/60 font-light leading-tight pt-0.5">
+              {renderFormattedContent(description)}
+            </div>
           </div>
         </div>
       </div>

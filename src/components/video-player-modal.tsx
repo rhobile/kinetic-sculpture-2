@@ -19,8 +19,7 @@ interface VideoPlayerModalProps {
 
 /**
  * Gallery Modal.
- * Title wraps to second line on mobile and spacing is tightened.
- * Title remains strictly 9pt/11pt uppercase.
+ * Supports *italics* in description.
  */
 export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
@@ -28,6 +27,27 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
     if (!filename) return '';
     return `ks-videos/${filename}.mp4`;
   }, [image.id]);
+
+  const renderTextWithFormatting = (text: string) => {
+    if (!text) return null;
+    const italicParts = text.split(/(\*.*?\*)/g);
+    return italicParts.map((part, i) => {
+      const match = part.match(/\*(.*?)\*/);
+      if (match) {
+        return <em key={i} className="italic">{match[1]}</em>;
+      }
+      return part;
+    });
+  };
+
+  const renderFormattedContent = (text: string) => {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => (
+      <p key={i} className="min-h-[1.2em]">
+        {renderTextWithFormatting(line)}
+      </p>
+    ));
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -50,9 +70,9 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase leading-tight break-words whitespace-normal">
                 {image.alt}
               </DialogTitle>
-              <DialogDescription className="text-[11pt] text-foreground/60 font-normal leading-tight mt-0.5 max-w-3xl">
-                {image.description || "A balance of form and articulated movement."}
-              </DialogDescription>
+              <div className="text-[11pt] text-foreground/60 font-normal leading-tight mt-0.5 max-w-3xl">
+                {renderFormattedContent(image.description || "A balance of form and articulated movement.")}
+              </div>
             </DialogHeader>
           </div>
         </div>

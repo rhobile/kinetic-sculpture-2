@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 /**
  * Custom Page renderer.
- * Title wrapping preserved and vertical spacing tightened.
+ * Supports *italics* and [link](url).
  */
 export default function CustomPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
@@ -25,7 +25,6 @@ export default function CustomPage({ params }: { params: Promise<{ slug: string 
 
   const renderTextWithFormatting = (text: string) => {
     if (!text) return null;
-
     const italicParts = text.split(/(\*.*?\*)/g);
     return italicParts.map((part, i) => {
       const match = part.match(/\*(.*?)\*/);
