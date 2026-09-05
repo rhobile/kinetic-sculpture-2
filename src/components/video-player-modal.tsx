@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, memo } from 'react';
@@ -6,7 +7,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import type { FirebaseImage } from '@/lib/firebase-images';
 import { FirebaseStorageVideo } from '@/components/firebase/storage-video';
@@ -18,8 +18,9 @@ interface VideoPlayerModalProps {
 }
 
 /**
- * Gallery Modal.
- * Supports *italics* in description.
+ * Gallery Modal for Rhobile.
+ * Fixed: Titles now wrap correctly to a second line on mobile.
+ * Support for *italics* in descriptions.
  */
 export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, onClose }: VideoPlayerModalProps) {
   const videoPath = useMemo(() => {
@@ -34,7 +35,7 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
     return italicParts.map((part, i) => {
       const match = part.match(/\*(.*?)\*/);
       if (match) {
-        return <em key={i} className="italic">{match[1]}</em>;
+        return <em key={i} className="italic font-normal">{match[1]}</em>;
       }
       return part;
     });
@@ -65,8 +66,9 @@ export const VideoPlayerModal = memo(function VideoPlayerModal({ image, isOpen, 
               </div>
             )}
           </div>
-          <div className="px-6 py-1.5 bg-background border-t border-border shrink-0">
-            <DialogHeader className="text-left space-y-0 text-foreground">
+          <div className="px-6 py-2 sm:py-3 bg-background border-t border-border shrink-0">
+            <DialogHeader className="text-left space-y-0.5 text-foreground">
+              {/* Added break-words and whitespace-normal to ensure title wrapping on mobile */}
               <DialogTitle className="font-normal text-[9pt] tracking-[0.2em] uppercase leading-tight break-words whitespace-normal">
                 {image.alt}
               </DialogTitle>

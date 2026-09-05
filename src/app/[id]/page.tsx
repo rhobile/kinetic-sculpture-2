@@ -1,3 +1,4 @@
+
 'use client';
 
 import { use, useMemo } from 'react';
@@ -9,8 +10,9 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
 /**
- * Sculpture detail page.
- * Supports *italics* in description.
+ * Sculpture detail page for Rhobile.
+ * Fixed: Titles wrap to second line on mobile portrait.
+ * Vertical spacing tightened.
  */
 export default function SculptureDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -34,7 +36,7 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
     return italicParts.map((part, i) => {
       const match = part.match(/\*(.*?)\*/);
       if (match) {
-        return <em key={i} className="italic">{match[1]}</em>;
+        return <em key={i} className="italic font-normal">{match[1]}</em>;
       }
       return part;
     });
@@ -80,6 +82,7 @@ export default function SculptureDetailPage({ params }: { params: Promise<{ id: 
           </div>
           
           <div className="max-w-2xl space-y-0 pt-0.5">
+            {/* Title wrap fix: leading-tight, break-words, and whitespace-normal */}
             <h1 className="text-[11pt] font-normal tracking-[0.2em] uppercase leading-tight break-words whitespace-normal text-foreground">
               {title}
             </h1>

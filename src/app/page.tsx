@@ -18,6 +18,7 @@ import { EXCLUDED_IMAGES } from '@/lib/constants';
  * Main Gallery Page.
  * Uses a "Storage-First" approach: displays all items in 'ks-images/' 
  * unless explicitly hidden in Firestore.
+ * Now correctly sorts by the 'order' field from Firestore.
  */
 export default function Home() {
   const { firebaseApp, firestore } = useFirebase();
@@ -67,8 +68,8 @@ export default function Home() {
   const galleryImages = useMemo(() => {
     if (!storageItems) return [];
 
-    // Storage-first mapping: Show everything in storage unless explicitly hidden in Firestore
-    return storageItems.items.map((item, index) => {
+    // Map all storage items to their metadata and sort by the 'order' field from Firestore
+    const items = storageItems.items.map((item, index) => {
       const storageId = item.name.split('.').slice(0, -1).join('.').toLowerCase().trim();
       const fsData = firestoreVideos?.find(fs => fs.id.toLowerCase().trim() === storageId);
 
@@ -80,16 +81,20 @@ export default function Home() {
         path: item.fullPath,
         alt: fsData?.title || storageId.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
         description: fsData?.description || "A balance of form and articulated movement.",
+        order: fsData?.order ?? 999, // Fallback for unindexed items
         width: 500,
         height: index % 2 === 0 ? 600 : 750,
-      } as FirebaseImage;
-    }).filter((img): img is FirebaseImage => img !== null);
+      } as (FirebaseImage & { order: number });
+    }).filter((img): img is (FirebaseImage & { order: number }) => img !== null);
+
+    // SORT BY ORDER: This ensures your management dashboard sorting is reflected here
+    return items.sort((a, b) => a.order - b.order);
   }, [storageItems, firestoreVideos]);
 
   return (
     <div className="bg-background min-h-screen">
       <main className="w-full">
-        {(isStorageLoading) ? (
+        {(isStorageLoading || isFsLoading) ? (
           <div className="columns-2 sm:columns-3 lg:columns-4 gap-0 p-0">
             {[...Array(8)].map((_, i) => (
               <Skeleton key={i} className="w-full aspect-[2/3] rounded-none border-[0.5px] border-white" />
